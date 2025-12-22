@@ -1,0 +1,196 @@
+{
+    "id": "prod_01KD463871WSYY1TJNE7F03ZKR",
+    "title": "Urban Chain Bracelet",
+    "subtitle": "Bold Style. Modern Edge.",
+    "status": "draft",
+    "external_id": null,
+    "description": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
+    "handle": "urban-chain-bracelet",
+    "is_giftcard": false,
+    "discountable": true,
+    "thumbnail": "https://ae-pic-a1.aliexpress-media.com/kf/Sd2f3678c44e841af88312da2286fbab39.jpg",
+    "collection_id": null,
+    "type_id": null,
+    "weight": null,
+    "length": null,
+    "height": null,
+    "width": null,
+    "hs_code": null,
+    "origin_country": null,
+    "mid_code": null,
+    "material": null,
+    "created_at": "2025-12-22T23:25:16.387Z",
+    "updated_at": "2025-12-22T23:25:16.387Z",
+    "deleted_at": null,
+    "metadata": {
+        "brand": "THE UNCUT BRAND",
+        "vault": {
+            "video": null,
+            "images": [
+                "https://ae-pic-a1.aliexpress-media.com/kf/Sa9b17d38a22d4e94817abaffe4297946p.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S3a0084df3733439899fd4be900a68397n.jpg"
+            ]
+        },
+        "title_i18n": {
+            "en": "Urban Chain Bracelet",
+            "fr": "Bracelet Chaîne Urbain"
+        },
+        "features_i18n": {
+            "en": [
+                "Premium Stainless Steel",
+                "Water Resistant",
+                "Hypoallergenic",
+                "Durable Construction"
+            ],
+            "fr": [
+                "Acier Inoxydable Premium",
+                "Résistant à l'Eau",
+                "Hypoallergénique",
+                "Construction Durable"
+            ]
+        },
+        "keywords_i18n": {
+            "en": [
+                "chain bracelet",
+                "men's bracelet",
+                "stainless steel jewelry",
+                "modern accessories"
+            ],
+            "fr": [
+                "bracelet chaîne",
+                "bracelet homme",
+                "bijoux acier inoxydable",
+                "accessoires modernes"
+            ]
+        },
+        "subtitle_i18n": {
+            "en": "Bold Style. Modern Edge.",
+            "fr": "Style Audacieux. Modernité Affirmée."
+        },
+        "seo_title_i18n": {
+            "en": "Urban Chain Bracelet | THE UNCUT BRAND",
+            "fr": "Bracelet Chaîne Urbain | THE UNCUT BRAND"
+        },
+        "description_i18n": {
+            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
+            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
+        },
+        "seo_description_i18n": {
+            "en": "Modern stainless steel chain bracelet. Bold style for the modern man.",
+            "fr": "Bracelet chaîne moderne en acier inoxydable. Style audacieux pour l'homme moderne."
+        },
+        "long_description_i18n": {
+            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
+            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
+        },
+        "short_description_i18n": {
+            "en": "Premium stainless steel chain bracelet with modern design.",
+            "fr": "Bracelet chaîne en acier inoxydable premium au design moderne."
+        }
+    },
+    "type": null,
+    "collection": null,
+    "options": [
+        {
+            "id": "opt_01KD4638721GQTPVTCK15EEVH7",
+            "title": "Color",
+            "metadata": null,
+            "product_id": "prod_01KD463871WSYY1TJNE7F03ZKR",
+            "created_at": "2025-12-22T23:25:16.387Z",
+            "updated_at": "2025-12-22T23:25:16.387Z",
+            "deleted_at": null,
+            "values": [
+                {
+                    "id": "optval_01KD463872SFVJVP5M7SRF3HQQ",
+                    "value": "black",
+                    "metadata": null,
+                    "option_id": "opt_01KD4638721GQTPVTCK15EEVH7",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                },
+                {
+                    "id": "optval_01KD463872BJXWS3EG6E75H163",
+                    "value": "gold",
+                    "metadata": null,
+                    "option_id": "opt_01KD4638721GQTPVTCK15EEVH7",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                },
+                {
+                    "id": "optval_01KD463872VX76EM4W7JKCKN17",
+                    "value": "silver",
+                    "metadata": null,
+                    "option_id": "opt_01KD4638721GQTPVTCK15EEVH7",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                }
+            ]
+        },
+        {
+            "id": "opt_01KD463872ZFJF7N991XGEWQW3",
+            "title": "Length",
+            "metadata": null,
+            "product_id": "prod_01KD463871WSYY1TJNE7F03ZKR",
+            "created_at": "2025-12-22T23:25:16.387Z",
+            "updated_at": "2025-12-22T23:25:16.387Z",
+            "deleted_at": null,
+            "values": [
+                {
+                    "id": "optval_01KD463871YD42JSBB5K2QFCGP",
+                    "value": "18",
+                    "metadata": null,
+                    "option_id": "opt_01KD463872ZFJF7N991XGEWQW3",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                },
+                {
+                    "id": "optval_01KD463872A04V5AR8YNS3SJS0",
+                    "value": "20",
+                    "metadata": null,
+                    "option_id": "opt_01KD463872ZFJF7N991XGEWQW3",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                },
+                {
+                    "id": "optval_01KD463872ARCM1B6C40Z5BHTB",
+                    "value": "22",
+                    "metadata": null,
+                    "option_id": "opt_01KD463872ZFJF7N991XGEWQW3",
+                    "created_at": "2025-12-22T23:25:16.387Z",
+                    "updated_at": "2025-12-22T23:25:16.387Z",
+                    "deleted_at": null
+                }
+            ]
+        }
+    ],
+    "tags": [],
+    "images": [
+        {
+            "id": "img_01KD4638726HEVADA4T3D0HF7P",
+            "url": "https://ae-pic-a1.aliexpress-media.com/kf/Sa9b17d38a22d4e94817abaffe4297946p.jpg",
+            "metadata": null,
+            "rank": 0,
+            "product_id": "prod_01KD463871WSYY1TJNE7F03ZKR",
+            "created_at": "2025-12-22T23:25:16.387Z",
+            "updated_at": "2025-12-22T23:25:16.387Z",
+            "deleted_at": null
+        },
+        {
+            "id": "img_01KD463872P7EBRS98A2QP74NS",
+            "url": "https://ae-pic-a1.aliexpress-media.com/kf/S3a0084df3733439899fd4be900a68397n.jpg",
+            "metadata": null,
+            "rank": 1,
+            "product_id": "prod_01KD463871WSYY1TJNE7F03ZKR",
+            "created_at": "2025-12-22T23:25:16.387Z",
+            "updated_at": "2025-12-22T23:25:16.387Z",
+            "deleted_at": null
+        }
+    ],
+    "categories": [],
+    "sales_channels": []
+}

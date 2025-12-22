@@ -1,0 +1,132 @@
+{
+  "title": "Essential Cross Necklace",
+  "subtitle": "Timeless Faith. Modern Edge.",
+  "status": "draft",
+  "handle": "essential-cross-necklace",
+  "description": "A sleek, beveled-edge cross pendant crafted from high-grade stainless steel. A versatile piece designed for daily wear, featuring a durable box chain and a polished finish.",
+  "is_giftcard": false,
+  "discountable": true,
+  "shipping_profile_id": "{YOUR_SHIPPING_PROFILE_ID}",
+  "thumbnail": "https://ae01.alicdn.com/kf/S9489ccb0cdfa40b2af198e95dd16c3a0r.jpg",
+  "images": [
+    "https://ae01.alicdn.com/kf/S30eca8cbfd5c4a65b78aade0985f9bc7d.jpg",
+    "https://ae01.alicdn.com/kf/S7b265ed61f8049acbde56f4a9995a7c5x.jpg",
+    "https://ae01.alicdn.com/kf/S61d2f2056a79455f90575f3cf8a15ba42.jpg"
+  ],
+  "options": [
+    {
+      "title": "Color",
+      "values": [
+        "black",
+        "gold",
+        "silver"
+      ]
+    }
+  ],
+  "metadata": {
+    "brand": "THE UNCUT BRAND",
+    "material": "Stainless Steel",
+    "vault": {
+      "video": null,
+      "images": [
+        "https://ae01.alicdn.com/kf/S30eca8cbfd5c4a65b78aade0985f9bc7d.jpg",
+        "https://ae01.alicdn.com/kf/S7b265ed61f8049acbde56f4a9995a7c5x.jpg",
+        "https://ae01.alicdn.com/kf/S61d2f2056a79455f90575f3cf8a15ba42.jpg"
+      ]
+    },
+    "title_i18n": {
+      "en": "Essential Cross Necklace",
+      "fr": "Collier Croix Essentiel"
+    },
+    "subtitle_i18n": {
+      "en": "Timeless Faith. Modern Edge.",
+      "fr": "Foi Intemporelle. Style Moderne."
+    },
+    "description_i18n": {
+      "en": "A sleek, beveled-edge cross pendant crafted from high-grade stainless steel. A versatile piece designed for daily wear, featuring a durable box chain and a polished finish.",
+      "fr": "Un pendentif en croix élégant avec des bords biseautés, fabriqué en acier inoxydable de haute qualité. Une pièce polyvalente conçue pour un usage quotidien, dotée d'une chaîne maille vénitienne durable et d'une finition polie."
+    },
+    "short_description_i18n": {
+      "en": "Polished stainless steel cross necklace with a durable box chain.",
+      "fr": "Collier croix en acier inoxydable poli avec une chaîne maille vénitienne durable."
+    },
+    "long_description_i18n": {
+      "en": "A sleek, beveled-edge cross pendant crafted from high-grade stainless steel. A versatile piece designed for daily wear, featuring a durable box chain and a polished finish.",
+      "fr": "Un pendentif en croix élégant avec des bords biseautés, fabriqué en acier inoxydable de haute qualité. Une pièce polyvalente conçue pour un usage quotidien, dotée d'une chaîne maille vénitienne durable et d'une finition polie."
+    },
+    "features_i18n": {
+      "en": [
+        "316L Stainless Steel",
+        "Beveled Edge Design",
+        "Water & Sweat Resistant",
+        "Polished Finish",
+        "Box Chain Included"
+      ],
+      "fr": [
+        "Acier Inoxydable 316L",
+        "Design à Bords Biseautés",
+        "Résistant à l'Eau et à la Transpiration",
+        "Finition Polie",
+        "Chaîne Maille Vénitienne Incluse"
+      ]
+    },
+    "keywords_i18n": {
+      "en": [
+        "cross necklace",
+        "men's jewelry",
+        "stainless steel necklace",
+        "minimalist cross",
+        "religious jewelry"
+      ],
+      "fr": [
+        "collier croix",
+        "bijoux pour hommes",
+        "collier en acier inoxydable",
+        "croix minimaliste",
+        "bijoux religieux"
+      ]
+    },
+    "seo_title_i18n": {
+      "en": "Essential Stainless Steel Cross Necklace | THE UNCUT BRAND",
+      "fr": "Collier Croix en Acier Inoxydable | THE UNCUT BRAND"
+    },
+    "seo_description_i18n": {
+      "en": "Shop our Essential Cross Necklace. Durable 316L stainless steel with a polished finish. Available in Gold, Silver, and Black.",
+      "fr": "Découvrez notre collier croix essentiel. Acier inoxydable 316L durable avec finition polie. Disponible en Or, Argent et Noir."
+    },
+    "options_i18n": [
+      {
+        "title_i18n": {
+          "en": "Color",
+          "fr": "Couleur"
+        },
+        "values": [
+          {
+            "value": "black",
+            "value_i18n": {
+              "en": "Black",
+              "fr": "Noir"
+            },
+            "hex": "#000000"
+          },
+          {
+            "value": "gold",
+            "value_i18n": {
+              "en": "Gold",
+              "fr": "Or"
+            },
+            "hex": "#D4AF37"
+          },
+          {
+            "value": "silver",
+            "value_i18n": {
+              "en": "Silver",
+              "fr": "Argent"
+            },
+            "hex": "#C0C0C0"
+          }
+        ]
+      }
+    ]
+  }
+}
