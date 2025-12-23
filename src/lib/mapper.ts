@@ -38,7 +38,18 @@ export function mapExternalToProduct(rawJson: any): Partial<ProductState> {
   }));
 
   // Setup Localization (EN by default)
+  const emptyLoc: Localization = {
+    title: '',
+    subtitle: '',
+    description: '',
+    features: [],
+    metadata_title: '',
+    metadata_description: '',
+    keywords: [],
+  };
+
   const enLoc: Localization = {
+    ...emptyLoc,
     title,
     description,
     subtitle: findValue(rawJson, ['subtitle', 'teaser']) || '',
@@ -58,10 +69,10 @@ export function mapExternalToProduct(rawJson: any): Partial<ProductState> {
     ignoredUrls: [],
     localization: {
       en: enLoc,
-      es: { title: '', description: '' },
-      fr: { title: '', description: '' },
-      de: { title: '', description: '' },
-      ja: { title: '', description: '' },
+      es: { ...emptyLoc },
+      fr: { ...emptyLoc },
+      de: { ...emptyLoc },
+      ja: { ...emptyLoc },
     },
     activeLanguages: ['en'],
     thumbnail: images[0] || ''

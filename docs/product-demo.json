@@ -1,44 +1,46 @@
 {
-  "title": "Minimalist Recycled Leather Wallet",
-  "description": "Hand-crafted from 100% recycled premium leather, this slim wallet combines sustainability with timeless design. Featuring a precision-cut silhouette and reinforced stitching for ultimate longevity.",
-  "subtitle": "Sustainability meets sophisticated design.",
-  "sku": "WL-MIN-001",
-  "price": 45,
+  "title": "Cobalt Frost Huggies",
+  "description": "Electric cobalt huggie hoop earrings crafted from high-grade 316L stainless steel with a dual-texture sandblasted finish and a precision-cut central groove for a sharp, industrial contrast. Built to handle sweat, wear, and nights that run late—without losing the edge.",
+  "subtitle": "Electric Boldness. Unrivaled Texture.",
+  "sku": "UNCUT-EAR-COBALT-FROST-HUGGIES-001",
+  "price": 39,
   "images": [
-    "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1550520920-27af500dae7a?auto=format&fit=crop&q=80&w=800"
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/dummy/cobalt-frost-huggies-render-1.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/dummy/cobalt-frost-huggies-render-2.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/dummy/cobalt-frost-huggies-render-3.png"
   ],
   "options": [
     {
       "name": "Color",
       "values": [
-        "Obsidian Black",
-        "Arctic White",
-        "Saddle Brown"
+        "Cobalt Blue"
       ]
     },
     {
-      "name": "Size",
+      "name": "Finish",
       "values": [
-        "Slim",
-        "Executive"
+        "Dual-Texture Sandblast"
       ]
     }
   ],
   "features": [
-    "100% recycled leather",
-    "Holds up to 8 cards",
-    "RFID protection layer",
-    "Hand-stitched durability"
+    "Electric cobalt anodized finish",
+    "Dual-band industrial sandblast texture",
+    "Precision-cut central contrast groove",
+    "High-grade 316L stainless steel construction",
+    "Secure click-to-lock hinge mechanism",
+    "Hypoallergenic and sweat-resistant"
   ],
-  "metadata_title": "Minimalist Wallet | Recycled Leather | The Uncut Brand",
-  "metadata_description": "Shop our handcrafted minimalist wallet made from recycled leather. Sustainable, slim, and built to last.",
+  "metadata_title": "Cobalt Frost Huggies | Electric Blue Textured Men's Earrings | THE UNCUT BRAND",
+  "metadata_description": "Shop the Cobalt Frost Huggies—bold electric blue huggie hoops for men with a dual-texture sandblasted finish. Durable 316L stainless steel, built for daily wear.",
   "keywords": [
-    "wallet",
-    "leather",
-    "minimalist",
-    "sustainable",
-    "recycled",
-    "rfid protection"
+    "men's blue earrings",
+    "huggie hoops for men",
+    "electric blue jewelry",
+    "textured men's earrings",
+    "streetwear jewelry",
+    "THE UNCUT BRAND",
+    "stainless steel hoops",
+    "masculine earrings"
   ]
 }
