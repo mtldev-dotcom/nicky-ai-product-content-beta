@@ -12,7 +12,8 @@ Product Architect is now **Feature Complete (Beta Phase)**. The app successfully
 
 ### **Core Modules**
 - **AI Content Engine:** `/api/generate` route using OpenAI GPT-4o-mini for structured product creation.
-- **Multi-Language Localizer:** Tabbed interface for 5 global languages with root-synchronization logic.
+- **Auto-Translation Engine:** `/api/translate` route that automatically localizes product copy, SEO metadata, and variant options when a new language is activated.
+- **Multi-Language Localizer:** Tabbed interface for 5 global languages with root-synchronization logic and AI auto-fill.
 - **Enhanced Media Pipeline:** 
   - Drag-and-drop gallery reordering via Framer Motion.
   - Health-based visual borders (Emerald for Synced, Amber for External).
@@ -26,6 +27,7 @@ Product Architect is now **Feature Complete (Beta Phase)**. The app successfully
 | Feature | Status | Test Case |
 | :--- | :--- | :--- |
 | **AI Generation** | ✅ Working | Enter prompt -> Hydrates Title, Description, and Localization. |
+| **Auto-Translate** | ✅ Working | Activate a new language -> AI populates all fields and variants. |
 | **Media R2 Sync** | ✅ Working | Sync external URL -> Re-uploads to private bucket. |
 | **DND Reordering** | ✅ Working | Drag image to new position -> JSON order updates instantly. |
 | **Health Signals**| ✅ Working | Unsynced images show Amber border and sync checkbox. |

@@ -12,9 +12,12 @@ import {
   Hash,
   Sparkles,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -29,16 +32,82 @@ export default function LocalizePage() {
     localization, 
     activeLanguages, 
     toggleLanguage, 
-    updateLocalization 
+    updateLocalization,
+    options,
+    bulkUpdate
   } = useProductStore();
   
   const [selectedLang, setSelectedLang] = useState('en');
+  const [isTranslating, setIsTranslating] = useState(false);
   
   const currentLoc = localization[selectedLang] || {};
   const isActive = activeLanguages.includes(selectedLang);
 
   const handleUpdate = (field: keyof Localization, value: any) => {
     updateLocalization(selectedLang, { [field]: value });
+  };
+
+  const handleToggleLanguage = async () => {
+    const nextActive = !isActive;
+    toggleLanguage(selectedLang);
+
+    // Auto-translate if activating a non-English language and EN content exists
+    if (nextActive && selectedLang !== 'en' && localization.en.title) {
+      setIsTranslating(true);
+      try {
+        const res = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source: localization.en,
+            targetLang: LANGUAGES.find(l => l.code === selectedLang)?.name,
+            selectedLang: selectedLang,
+            options: options.map(o => ({ 
+              name: o.name, 
+              translations: o.translations,
+              values: o.values 
+            }))
+          }),
+        });
+
+        const data = await res.json();
+        
+        if (res.ok) {
+          // Update Localization
+          updateLocalization(selectedLang, data.localization);
+          
+          // Update Options translations
+          const updatedOptions = options.map((opt, idx) => {
+            const translatedOpt = data.options?.[idx];
+            if (!translatedOpt) return opt;
+
+            const langKey = selectedLang;
+            // Defensive access to translations
+            const optTranslation = translatedOpt.translations?.[langKey] || translatedOpt.name || opt.name;
+
+            return {
+              ...opt,
+              translations: { ...opt.translations, [langKey]: optTranslation },
+              values: opt.values.map((v, vIdx) => {
+                const translatedVal = translatedOpt.values?.[vIdx];
+                const valTranslation = translatedVal?.translations?.[langKey] || translatedVal?.value || v.value;
+                
+                return {
+                  ...v,
+                  translations: { ...v.translations, [langKey]: valTranslation }
+                };
+              })
+            };
+          });
+          
+          bulkUpdate({ options: updatedOptions });
+        }
+      } catch (err) {
+        console.error('Auto-translate failed:', err);
+      } finally {
+        setIsTranslating(false);
+      }
+    }
   };
 
   return (
@@ -76,6 +145,17 @@ export default function LocalizePage() {
         </div>
       </header>
 
+      {isTranslating && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3 text-indigo-400"
+        >
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm font-medium">AI is auto-localizing content for {LANGUAGES.find(l => l.code === selectedLang)?.name}...</span>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Main Content Area */}
         <div className="lg:col-span-8 space-y-6">
@@ -86,7 +166,8 @@ export default function LocalizePage() {
                 Product Copy
               </h2>
               <button 
-                onClick={() => toggleLanguage(selectedLang)}
+                onClick={handleToggleLanguage}
+                disabled={isTranslating}
                 className="flex items-center gap-2 text-sm font-medium transition-colors"
               >
                 <span className={isActive ? "text-indigo-400" : "text-zinc-500"}>
@@ -126,12 +207,33 @@ export default function LocalizePage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">Description</label>
                 <textarea 
-                  rows={6}
+                  rows={4}
                   className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
                   value={currentLoc.description || ''}
                   onChange={(e) => handleUpdate('description', e.target.value)}
                   placeholder="Professional product description..."
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">Short Description</label>
+                  <textarea 
+                    rows={3}
+                    className="w-full bg-zinc-900/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
+                    value={currentLoc.short_description || ''}
+                    onChange={(e) => handleUpdate('short_description', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400">Long Description</label>
+                  <textarea 
+                    rows={3}
+                    className="w-full bg-zinc-900/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
+                    value={currentLoc.long_description || ''}
+                    onChange={(e) => handleUpdate('long_description', e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -240,9 +342,21 @@ export default function LocalizePage() {
               </div>
             </div>
           </section>
+
+          {/* Translation Status Info */}
+          {!isActive && selectedLang !== 'en' && localization.en.title && (
+            <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-2">
+              <div className="flex items-center gap-2 text-indigo-400">
+                <Sparkles className="w-4 h-4" />
+                <h3 className="text-xs font-bold uppercase">Ready to Auto-Translate</h3>
+              </div>
+              <p className="text-[10px] text-zinc-500 leading-relaxed">
+                Activating this language will automatically translate your English content using AI.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-

@@ -16,7 +16,14 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function VariantsPage() {
-  const { options, addOption, updateOption, removeOption } = useProductStore();
+  const { 
+    options, 
+    addOption, 
+    updateOption, 
+    removeOption, 
+    addOptionValue, 
+    removeOptionValue 
+  } = useProductStore();
   const [newOptionName, setNewOptionName] = useState('');
 
   const handleAddOption = () => {
@@ -106,17 +113,17 @@ export default function VariantsPage() {
                 <div className="p-6 space-y-4">
                   <div className="flex flex-wrap gap-2">
                     <AnimatePresence>
-                      {option.values.map((val) => (
+                      {option.values.map((val, vIdx) => (
                         <motion.span 
-                          key={val}
+                          key={`${vIdx}-${val.value}`}
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
                           className="pl-3 pr-1 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm flex items-center gap-2 group"
                         >
-                          {val}
+                          {val.translations?.en || val.value}
                           <button 
-                            onClick={() => updateOption(option.id, option.values.filter(v => v !== val))}
+                            onClick={() => removeOptionValue(option.id, vIdx)}
                             className="p-1 hover:bg-indigo-500/20 rounded transition-colors"
                           >
                             <X className="w-3 h-3" />
@@ -132,8 +139,8 @@ export default function VariantsPage() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           const val = e.currentTarget.value.trim();
-                          if (val && !option.values.includes(val)) {
-                            updateOption(option.id, [...option.values, val]);
+                          if (val && !option.values.some(v => v.value === val)) {
+                            addOptionValue(option.id, val);
                             e.currentTarget.value = '';
                           }
                         }

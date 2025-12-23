@@ -2,30 +2,41 @@ import { create } from 'zustand';
 
 export interface Localization {
   title: string;
+  subtitle: string;
   description: string;
-  subtitle?: string;
-  features?: string[];
-  metadata_title?: string;
-  metadata_description?: string;
-  keywords?: string[];
+  short_description: string;
+  long_description: string;
+  features: string[];
+  metadata_title: string;
+  metadata_description: string;
+  keywords: string[];
+}
+
+export interface ProductOptionValue {
+  value: string; // The "raw" value like "black" or "18"
+  translations: Record<string, string>; // { en: "Black", fr: "Noir" }
 }
 
 export interface ProductOption {
   id: string;
-  name: string; // e.g., "Size"
-  values: string[]; // e.g., ["S", "M", "L"]
+  name: string; // e.g., "Color"
+  translations: Record<string, string>; // { en: "Color", fr: "Couleur" }
+  values: ProductOptionValue[];
 }
 
 export interface ProductState {
-  // Root properties (Synchronized with EN)
+  // Medusa Top-level
   title: string;
+  subtitle: string;
   description: string;
+  handle: string;
+  status: 'draft' | 'published';
   thumbnail: string;
   sku: string;
   price: number;
   
   // Metadata localization
-  activeLanguages: string[]; // e.g., ["en", "es", "fr", "de", "ja"]
+  activeLanguages: string[];
   localization: Record<string, Localization>;
   
   // Media
@@ -42,17 +53,25 @@ export interface ProductState {
   setImages: (images: string[]) => void;
   reorderImages: (images: string[]) => void;
   setThumbnail: (url: string) => void;
+  
+  // Enhanced Option Actions
   addOption: (name: string) => void;
-  updateOption: (id: string, values: string[]) => void;
+  updateOption: (id: string, name: string, translations: Record<string, string>) => void;
+  addOptionValue: (optionId: string, value: string) => void;
+  updateOptionValue: (optionId: string, valueIndex: number, translations: Record<string, string>) => void;
+  removeOptionValue: (optionId: string, valueIndex: number) => void;
   removeOption: (id: string) => void;
+  
   resetStore: () => void;
   bulkUpdate: (data: Partial<ProductState>) => void;
 }
 
 const INITIAL_LOCALIZATION: Localization = {
   title: '',
-  description: '',
   subtitle: '',
+  description: '',
+  short_description: '',
+  long_description: '',
   features: [],
   metadata_title: '',
   metadata_description: '',
@@ -61,7 +80,10 @@ const INITIAL_LOCALIZATION: Localization = {
 
 export const useProductStore = create<ProductState>((set, get) => ({
   title: '',
+  subtitle: '',
   description: '',
+  handle: '',
+  status: 'draft',
   thumbnail: '',
   sku: '',
   price: 0,
@@ -80,13 +102,19 @@ export const useProductStore = create<ProductState>((set, get) => ({
   updateRoot: (data) => set((state) => {
     const newState = { ...state, ...data };
     
-    // Sync logic: If EN title/description changes, update root
-    if (data.title || data.description) {
+    // Auto-slugify handle if title changes and no handle provided
+    if (data.title && !data.handle) {
+      newState.handle = data.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+    }
+
+    if (data.title || data.description || data.subtitle) {
       const enLoc = state.localization.en;
       newState.localization.en = {
         ...enLoc,
         title: data.title ?? enLoc.title,
+        subtitle: data.subtitle ?? enLoc.subtitle,
         description: data.description ?? enLoc.description,
+        long_description: data.description ?? enLoc.long_description,
       };
     }
     
@@ -102,11 +130,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
       },
     };
 
-    // Sync logic: If updating EN, sync back to root
     if (lang === 'en') {
       return {
         ...nextState,
         title: newLoc.title ?? state.title,
+        subtitle: newLoc.subtitle ?? state.subtitle,
         description: newLoc.description ?? state.description,
       };
     }
@@ -121,38 +149,61 @@ export const useProductStore = create<ProductState>((set, get) => ({
   })),
 
   setImages: (images) => set((state) => {
-    // Vault logic: 3-6 images
     const vault = images.slice(0, 6);
-    const thumbnail = images.length > 0 ? images[0] : '';
-    
+    const thumb = images.length > 0 ? images[0] : '';
     return {
       images,
       vault: vault.length >= 3 ? vault : [],
-      thumbnail: thumbnail || state.thumbnail,
+      thumbnail: state.thumbnail || thumb,
     };
   }),
 
-  reorderImages: (images) => set((state) => {
-    const vault = images.slice(0, 6);
-    // When reordering, we keep the existing thumbnail unless it's no longer in the list
-    // If it's the first time reordering, the first image usually becomes the thumb
-    const newThumbnail = images.includes(state.thumbnail) ? state.thumbnail : (images[0] || '');
-    
-    return {
-      images,
-      vault: vault.length >= 3 ? vault : [],
-      thumbnail: newThumbnail,
-    };
-  }),
+  reorderImages: (images) => set((state) => ({
+    images,
+    vault: images.slice(0, 6),
+    thumbnail: images.includes(state.thumbnail) ? state.thumbnail : (images[0] || ''),
+  })),
 
   setThumbnail: (url) => set({ thumbnail: url }),
 
   addOption: (name) => set((state) => ({
-    options: [...state.options, { id: crypto.randomUUID(), name, values: [] }],
+    options: [...state.options, { 
+      id: crypto.randomUUID(), 
+      name, 
+      translations: { en: name },
+      values: [] 
+    }],
   })),
 
-  updateOption: (id, values) => set((state) => ({
-    options: state.options.map((opt) => (opt.id === id ? { ...opt, values } : opt)),
+  updateOption: (id, name, translations) => set((state) => ({
+    options: state.options.map((opt) => (opt.id === id ? { ...opt, name, translations } : opt)),
+  })),
+
+  addOptionValue: (optionId, value) => set((state) => ({
+    options: state.options.map((opt) => 
+      opt.id === optionId 
+        ? { ...opt, values: [...opt.values, { value, translations: { en: value } }] } 
+        : opt
+    ),
+  })),
+
+  updateOptionValue: (optionId, valueIndex, translations) => set((state) => ({
+    options: state.options.map((opt) => 
+      opt.id === optionId 
+        ? { 
+            ...opt, 
+            values: opt.values.map((v, i) => i === valueIndex ? { ...v, translations } : v) 
+          } 
+        : opt
+    ),
+  })),
+
+  removeOptionValue: (optionId, valueIndex) => set((state) => ({
+    options: state.options.map((opt) => 
+      opt.id === optionId 
+        ? { ...opt, values: opt.values.filter((_, i) => i !== valueIndex) } 
+        : opt
+    ),
   })),
 
   removeOption: (id) => set((state) => ({
@@ -161,7 +212,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   resetStore: () => set({
     title: '',
+    subtitle: '',
     description: '',
+    handle: '',
+    status: 'draft',
     thumbnail: '',
     sku: '',
     price: 0,
@@ -180,4 +234,3 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   bulkUpdate: (data) => set((state) => ({ ...state, ...data })),
 }));
-

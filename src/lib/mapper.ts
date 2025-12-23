@@ -25,7 +25,16 @@ export function mapExternalToProduct(rawJson: any): Partial<ProductState> {
   const options = (rawJson.options || []).map((opt: any) => ({
     id: crypto.randomUUID(),
     name: opt.title || opt.name || 'Option',
-    values: Array.isArray(opt.values) ? opt.values.map((v: any) => typeof v === 'string' ? v : (v.value || v.label)) : []
+    translations: { en: opt.title || opt.name || 'Option' },
+    values: Array.isArray(opt.values) 
+      ? opt.values.map((v: any) => {
+          const val = typeof v === 'string' ? v : (v.value || v.label || '');
+          return {
+            value: val,
+            translations: { en: val }
+          };
+        }) 
+      : []
   }));
 
   // Setup Localization (EN by default)

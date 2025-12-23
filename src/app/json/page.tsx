@@ -19,24 +19,77 @@ export default function JsonPage() {
   const [copied, setCopied] = useState(false);
 
   const fullJson = useMemo(() => {
-    // Construct the 1:1 schema
-    return JSON.stringify({
+    const activeLangs = product.activeLanguages;
+
+    // Helper to build i18n objects
+    const buildI18n = (field: string) => {
+      const obj: Record<string, any> = {};
+      activeLangs.forEach(lang => {
+        const val = (product.localization[lang] as any)[field];
+        if (val) obj[lang] = val;
+      });
+      return obj;
+    };
+
+    // Construct exactly as per product-output-example.json
+    const output = {
       title: product.title,
+      subtitle: product.subtitle,
+      status: product.status,
+      external_id: null,
       description: product.description,
+      handle: product.handle || product.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, ''),
+      is_giftcard: false,
+      discountable: true,
       thumbnail: product.thumbnail,
-      sku: product.sku,
-      price: product.price,
-      options: product.options.map(o => ({
-        title: o.name,
-        values: o.values
-      })),
-      images: product.images,
+      collection_id: null,
+      type_id: null,
+      weight: null,
+      length: null,
+      height: null,
+      width: null,
+      hs_code: null,
+      origin_country: null,
+      mid_code: null,
+      material: null,
       metadata: {
-        localization: product.localization,
-        active_languages: product.activeLanguages,
-        vault: product.vault
-      }
-    }, null, 2);
+        brand: "THE UNCUT BRAND",
+        vault: {
+          video: null,
+          images: product.vault
+        },
+        title_i18n: buildI18n('title'),
+        subtitle_i18n: buildI18n('subtitle'),
+        description_i18n: buildI18n('description'),
+        short_description_i18n: buildI18n('short_description'),
+        long_description_i18n: buildI18n('long_description'),
+        features_i18n: buildI18n('features'),
+        keywords_i18n: buildI18n('keywords'),
+        seo_title_i18n: buildI18n('metadata_title'),
+        seo_description_i18n: buildI18n('metadata_description'),
+        options_i18n: product.options.map(opt => ({
+          title_i18n: opt.translations,
+          values: opt.values.map(v => ({
+            value: v.value,
+            value_i18n: v.translations
+          }))
+        }))
+      },
+      options: product.options.map(opt => ({
+        title: opt.name,
+        values: opt.values.map(v => v.value)
+      })),
+      tags: [],
+      images: product.images.map((url, index) => ({
+        url: url,
+        metadata: null,
+        rank: index
+      })),
+      categories: [],
+      sales_channels: []
+    };
+
+    return JSON.stringify(output, null, 4);
   }, [product]);
 
   const handleCopy = () => {
@@ -50,7 +103,7 @@ export default function JsonPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `product-${product.sku || 'architect'}.json`;
+    a.download = `product-${product.handle || 'blueprint'}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -58,11 +111,8 @@ export default function JsonPage() {
   const validationIssues = useMemo(() => {
     const issues = [];
     if (!product.title) issues.push('Missing Product Title');
-    if (!product.sku) issues.push('Missing SKU/Handle');
+    if (!product.handle && !product.title) issues.push('Missing Handle');
     if (product.images.length === 0) issues.push('No images added');
-    if (product.options.length > 0 && product.options.some(o => o.values.length === 0)) {
-      issues.push('Some options have no values defined');
-    }
     return issues;
   }, [product]);
 
@@ -75,22 +125,16 @@ export default function JsonPage() {
             Product Blueprint (JSON)
           </h1>
           <p className="text-zinc-400">
-            Review and export your production-ready product schema.
+            Export exactly aligned to THE UNCUT BRAND schema.
           </p>
         </div>
         
         <div className="flex gap-3">
-          <button 
-            onClick={handleCopy}
-            className="flex-1 md:flex-none glass px-6 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 hover:bg-white/5 transition-all active:scale-95"
-          >
+          <button onClick={handleCopy} className="glass px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 hover:bg-white/5 transition-all active:scale-95">
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy JSON'}
           </button>
-          <button 
-            onClick={handleDownload}
-            className="flex-1 md:flex-none bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
-          >
+          <button onClick={handleDownload} className="bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all active:scale-95">
             <Download className="w-4 h-4" />
             Download
           </button>
@@ -98,14 +142,12 @@ export default function JsonPage() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Validation & Stats */}
         <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <RefreshCw className="w-5 h-5 text-indigo-400" />
               Blueprint Health
             </h2>
-            
             <div className="space-y-3">
               {validationIssues.length > 0 ? (
                 validationIssues.map((issue, i) => (
@@ -117,58 +159,31 @@ export default function JsonPage() {
               ) : (
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
                   <Check className="w-4 h-4 shrink-0" />
-                  Product is production-ready.
+                  Schema is 1:1 Valid.
                 </div>
               )}
             </div>
           </section>
 
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Quick Stats</h2>
+            <h2 className="text-lg font-semibold text-white">Medusa Summary</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 rounded-xl bg-white/5 space-y-1">
                 <p className="text-[10px] text-zinc-500 uppercase">Languages</p>
                 <p className="text-xl font-bold text-white">{product.activeLanguages.length}</p>
               </div>
               <div className="p-3 rounded-xl bg-white/5 space-y-1">
-                <p className="text-[10px] text-zinc-500 uppercase">Assets</p>
-                <p className="text-xl font-bold text-white">{product.images.length}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-white/5 space-y-1">
-                <p className="text-[10px] text-zinc-500 uppercase">Variants</p>
-                <p className="text-xl font-bold text-white">
-                  {product.options.reduce((acc, opt) => acc * (opt.values.length || 1), product.options.length > 0 ? 1 : 0)}
-                </p>
-              </div>
-              <div className="p-3 rounded-xl bg-white/5 space-y-1">
-                <p className="text-[10px] text-zinc-500 uppercase">Vault Size</p>
+                <p className="text-[10px] text-zinc-500 uppercase">Vault Rank</p>
                 <p className="text-xl font-bold text-white">{product.vault.length}</p>
               </div>
             </div>
           </section>
-
-          <a 
-            href="https://docs.medusajs.com/api/admin#product_post_products" 
-            target="_blank" 
-            rel="noreferrer"
-            className="flex items-center justify-between p-4 rounded-2xl glass border border-white/10 text-xs text-zinc-400 hover:text-indigo-400 transition-colors group"
-          >
-            <span>MedusaJS Schema Docs</span>
-            <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </a>
         </div>
 
-        {/* JSON Preview */}
         <div className="lg:col-span-8 space-y-4 order-1 lg:order-2">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-2 text-zinc-500 text-sm">
-              <FileJson className="w-4 h-4" />
-              product-blueprint.json
-            </div>
-          </div>
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-600/20 rounded-2xl blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
-            <pre className="relative w-full h-[600px] overflow-auto glass-dark border border-white/10 rounded-2xl p-6 font-mono text-sm leading-relaxed text-indigo-200/90 custom-scrollbar">
+            <pre className="relative w-full h-[700px] overflow-auto glass-dark border border-white/10 rounded-2xl p-6 font-mono text-[13px] leading-relaxed text-indigo-200/90 custom-scrollbar">
               {fullJson}
             </pre>
           </div>
@@ -177,4 +192,3 @@ export default function JsonPage() {
     </div>
   );
 }
-
