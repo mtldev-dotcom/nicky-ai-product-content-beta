@@ -58,6 +58,7 @@ export default function ProductDetailsPage() {
     tags,
     categories,
     sales_channels,
+    shipping_options,
     shipping_weight,
     shipping_dimensions,
     updateRoot
@@ -71,6 +72,7 @@ export default function ProductDetailsPage() {
     categories: any[];
     sales_channels: any[];
     product_types: any[];
+    shipping_options: any[];
   } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   
@@ -136,6 +138,12 @@ export default function ProductDetailsPage() {
         if (!taxonomyOptions) {
           fetchTaxonomy(currentOrgId);
         }
+
+        // Trigger translation for current selected language if it's active but empty
+        const currentIsActive = [...currentActive, ...missing].includes(selectedLang);
+        if (currentIsActive && selectedLang !== 'en' && localization.en.title && !localization[selectedLang]?.title && !isTranslating) {
+          translateCurrentLang();
+        }
       }
     };
 
@@ -146,66 +154,71 @@ export default function ProductDetailsPage() {
     updateLocalization(selectedLang, { [field]: value });
   };
 
+  const translateCurrentLang = async () => {
+    if (selectedLang === 'en' || !localization.en.title) return;
+    
+    setIsTranslating(true);
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: localization.en,
+          targetLang: ALL_LANGUAGES.find(l => l.code === selectedLang)?.name,
+          selectedLang: selectedLang,
+          options: options.map(o => ({ 
+            name: o.name, 
+            translations: o.translations,
+            values: o.values 
+          }))
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (res.ok) {
+        // Update Localization
+        updateLocalization(selectedLang, data.localization);
+        
+        // Update Options translations
+        const updatedOptions = options.map((opt, idx) => {
+          const translatedOpt = data.options?.[idx];
+          if (!translatedOpt) return opt;
+
+          const langKey = selectedLang;
+          const optTranslation = translatedOpt.translations?.[langKey] || translatedOpt.name || opt.name;
+
+          return {
+            ...opt,
+            translations: { ...opt.translations, [langKey]: optTranslation },
+            values: opt.values.map((v, vIdx) => {
+              const translatedVal = translatedOpt.values?.[vIdx];
+              const valTranslation = translatedVal?.translations?.[langKey] || translatedVal?.value || v.value;
+              
+              return {
+                ...v,
+                translations: { ...v.translations, [langKey]: valTranslation }
+              };
+            })
+          };
+        });
+        
+        bulkUpdate({ options: updatedOptions });
+      }
+    } catch (err) {
+      console.error('Translation failed:', err);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleToggleLanguage = async () => {
     const nextActive = !isActive;
     toggleLanguage(selectedLang);
 
-    // Auto-translate if activating a non-English language and EN content exists
-    if (nextActive && selectedLang !== 'en' && localization.en.title) {
-      setIsTranslating(true);
-      try {
-        const res = await fetch('/api/translate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            source: localization.en,
-            targetLang: ALL_LANGUAGES.find(l => l.code === selectedLang)?.name,
-            selectedLang: selectedLang,
-            options: options.map(o => ({ 
-              name: o.name, 
-              translations: o.translations,
-              values: o.values 
-            }))
-          }),
-        });
-
-        const data = await res.json();
-        
-        if (res.ok) {
-          // Update Localization
-          updateLocalization(selectedLang, data.localization);
-          
-          // Update Options translations
-          const updatedOptions = options.map((opt, idx) => {
-            const translatedOpt = data.options?.[idx];
-            if (!translatedOpt) return opt;
-
-            const langKey = selectedLang;
-            // Defensive access to translations
-            const optTranslation = translatedOpt.translations?.[langKey] || translatedOpt.name || opt.name;
-
-            return {
-              ...opt,
-              translations: { ...opt.translations, [langKey]: optTranslation },
-              values: opt.values.map((v, vIdx) => {
-                const translatedVal = translatedOpt.values?.[vIdx];
-                const valTranslation = translatedVal?.translations?.[langKey] || translatedVal?.value || v.value;
-                
-                return {
-                  ...v,
-                  translations: { ...v.translations, [langKey]: valTranslation }
-                };
-              })
-            };
-          });
-          
-          bulkUpdate({ options: updatedOptions });
-        }
-      } catch (err) {
-        console.error('Auto-translate failed:', err);
-      } finally {
-        setIsTranslating(false);
-      }
+    // Auto-translate if activating a non-English language and it's currently empty
+    if (nextActive && selectedLang !== 'en' && localization.en.title && !currentLoc.title) {
+      await translateCurrentLang();
     }
   };
 
@@ -264,11 +277,22 @@ export default function ProductDetailsPage() {
                 <Type className="w-5 h-5 text-indigo-400" />
                 Product Copy
               </h2>
-              <button 
-                onClick={handleToggleLanguage}
-                disabled={isTranslating}
-                className="flex items-center gap-2 text-sm font-medium transition-colors"
-              >
+              <div className="flex items-center gap-4">
+                {selectedLang !== 'en' && isActive && (
+                  <button
+                    onClick={translateCurrentLang}
+                    disabled={isTranslating || !localization.en.title}
+                    className="flex items-center gap-2 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("w-3 h-3", isTranslating && "animate-spin")} />
+                    Sync with AI
+                  </button>
+                )}
+                <button 
+                  onClick={handleToggleLanguage}
+                  disabled={isTranslating}
+                  className="flex items-center gap-2 text-sm font-medium transition-colors"
+                >
                 <span className={isActive ? "text-indigo-400" : "text-zinc-500"}>
                   {isActive ? 'Active' : 'Inactive'}
                 </span>
@@ -533,6 +557,38 @@ export default function ProductDetailsPage() {
                   ))}
                   {(!taxonomyOptions || taxonomyOptions.sales_channels.length === 0) && (
                     <div className="text-[10px] text-zinc-600 italic">No sales channels found.</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                  Shipping Options
+                </label>
+                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 no-scrollbar">
+                  {taxonomyOptions?.shipping_options.map(so => (
+                    <label key={so.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/20 border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
+                      <input 
+                        type="checkbox"
+                        className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/50"
+                        checked={shipping_options.includes(so.id)}
+                        onChange={(e) => {
+                          const newOptions = e.target.checked 
+                            ? [...shipping_options, so.id]
+                            : shipping_options.filter(id => id !== so.id);
+                          updateRoot({ shipping_options: newOptions });
+                        }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs text-zinc-300">{so.name}</span>
+                        <span className="text-[8px] text-zinc-600 uppercase tracking-tighter">
+                          {so.price_type === 'flat_rate' ? `Flat Rate: ${(so.amount / 100).toFixed(2)}` : 'Calculated'}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                  {(!taxonomyOptions || taxonomyOptions.shipping_options.length === 0) && (
+                    <div className="text-[10px] text-zinc-600 italic">No shipping options found.</div>
                   )}
                 </div>
               </div>

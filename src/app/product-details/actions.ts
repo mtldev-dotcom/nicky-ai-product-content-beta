@@ -36,7 +36,8 @@ export async function getMedusaTaxonomy(orgId: string) {
       'collections',
       'product-categories',
       'sales-channels',
-      'product-types'
+      'product-types',
+      'shipping-options'
     ];
 
     const results = await Promise.all(
@@ -61,7 +62,7 @@ export async function getMedusaTaxonomy(orgId: string) {
       })
     );
 
-    const [collections, categories, channels, types] = results;
+    const [collections, categories, channels, types, shippingOptions] = results;
 
     return {
       success: true,
@@ -69,7 +70,8 @@ export async function getMedusaTaxonomy(orgId: string) {
         collections: collections?.collections || [],
         categories: categories?.product_categories || [],
         sales_channels: channels?.sales_channels || [],
-        product_types: types?.product_types || []
+        product_types: types?.product_types || [],
+        shipping_options: shippingOptions?.shipping_options || []
       }
     };
   } catch (err) {

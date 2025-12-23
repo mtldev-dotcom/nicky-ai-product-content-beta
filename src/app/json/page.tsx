@@ -42,12 +42,12 @@ export default function JsonPage() {
       is_giftcard: false,
       discountable: true,
       thumbnail: product.thumbnail,
-      collection_id: null,
-      type_id: null,
-      weight: null,
-      length: null,
-      height: null,
-      width: null,
+      collection_id: product.collection_id || null,
+      type_id: product.type_id || null,
+      weight: product.shipping_weight || null,
+      length: product.shipping_dimensions?.length || null,
+      height: product.shipping_dimensions?.height || null,
+      width: product.shipping_dimensions?.width || null,
       hs_code: null,
       origin_country: null,
       mid_code: null,
@@ -77,14 +77,15 @@ export default function JsonPage() {
         title: opt.name,
         values: opt.values.map(v => v.value)
       })),
-      tags: [],
+      tags: product.tags.map(t => ({ value: t })),
       images: product.images.map((url, index) => ({
         url: url,
         metadata: null,
         rank: index
       })),
-      categories: [],
-      sales_channels: []
+      categories: product.categories.map(c => ({ id: c })),
+      sales_channels: product.sales_channels.map(sc => ({ id: sc })),
+      shipping_options: product.shipping_options.map(so => ({ id: so }))
     };
 
     return JSON.stringify(output, null, 4);
