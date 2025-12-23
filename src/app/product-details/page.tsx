@@ -125,6 +125,14 @@ export default function ProductDetailsPage() {
         // Load settings to get active languages
         await settings.loadFromDb(currentOrgId);
         
+        // Auto-activate languages from organization settings for this product session
+        const orgLangs = useSettingsStore.getState().activeLanguages;
+        const currentActive = useProductStore.getState().activeLanguages;
+        const missing = orgLangs.filter(l => !currentActive.includes(l));
+        if (missing.length > 0) {
+          bulkUpdate({ activeLanguages: [...currentActive, ...missing] });
+        }
+        
         if (!taxonomyOptions) {
           fetchTaxonomy(currentOrgId);
         }
