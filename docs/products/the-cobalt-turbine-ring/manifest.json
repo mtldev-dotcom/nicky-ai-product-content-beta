@@ -1,0 +1,64 @@
+{
+  "protocol_id": "a155c41d-5975-4b4b-b64d-b53c7f7bae7d",
+  "brand": "THE UNCUT BRAND",
+  "en": {
+    "title": "The Cobalt Turbine Ring",
+    "tagline": "Precision engineered for the unapologetic.",
+    "shortDescription": "A bold fusion of midnight black and electric blue, designed for the man who moves with intent and leaves nothing to chance.",
+    "longDescription": "Dominate your aesthetic with the Cobalt Turbine Ring. This isn't just an accessory; it's a statement of industrial power. Featuring a sleek, polished black exterior that encases a vibrant, scalloped electric blue center, this ring captures the essence of modern machinery and high-speed luxury. Engineered for the man who values confidence and bold design, it offers a weight and texture that commands attention from every angle. Whether you're in the boardroom or on the streets, the Cobalt Turbine ensures your presence is felt.",
+    "features": [
+      "Premium high-grade stainless steel construction",
+      "Vibrant electric blue ion-plated scalloped center",
+      "Deep midnight black polished finish",
+      "Ergonomic comfort-fit interior",
+      "Scratch-resistant and tarnish-proof durability"
+    ],
+    "seoTitle": "Men's Black and Electric Blue Scalloped Ring | THE UNCUT BRAND",
+    "seoDescription": "Elevate your style with the Cobalt Turbine Ring. A luxury black and blue men's ring featuring industrial design and premium craftsmanship. Shop THE UNCUT BRAND.",
+    "keywords": [
+      "Men's Luxury Ring",
+      "Black and Blue Ring",
+      "Industrial Jewelry",
+      "Statement Ring for Men",
+      "THE UNCUT BRAND",
+      "Modern Men's Fashion"
+    ]
+  },
+  "fr": {
+    "title": "La Bague Turbine Cobalt",
+    "tagline": "L'ingénierie de précision pour ceux qui ne s'excusent jamais.",
+    "shortDescription": "Une fusion audacieuse de noir minuit et de bleu électrique, conçue pour l'homme qui agit avec détermination et ne laisse rien au hasard.",
+    "longDescription": "Dominez votre esthétique avec la bague Turbine Cobalt. Plus qu'un simple accessoire, c'est une affirmation de puissance industrielle. Arborant un extérieur noir poli et élégant qui renferme un centre festonné bleu électrique vibrant, cette bague capture l'essence de la machinerie moderne et du luxe à grande vitesse. Conçue pour l'homme qui privilégie la confiance et le design audacieux, elle offre un poids et une texture qui attirent l'attention sous tous les angles. Que vous soyez en réunion ou dans la rue, la Turbine Cobalt garantit que votre présence est remarquée.",
+    "features": [
+      "Construction en acier inoxydable de qualité supérieure",
+      "Centre festonné avec placage ionique bleu électrique",
+      "Finition polie noir minuit profond",
+      "Intérieur ergonomique pour un confort optimal",
+      "Durabilité résistante aux rayures et au ternissement"
+    ],
+    "seoTitle": "Bague Homme Noir et Bleu Électrique | THE UNCUT BRAND",
+    "seoDescription": "Rehaussez votre style avec la bague Turbine Cobalt. Une bague de luxe pour homme noire et bleue au design industriel. Découvrez l'excellence chez THE UNCUT BRAND.",
+    "keywords": [
+      "Bague de luxe pour homme",
+      "Bague noire et bleue",
+      "Bijoux industriels",
+      "Bague de caractère homme",
+      "THE UNCUT BRAND",
+      "Mode masculine moderne"
+    ]
+  },
+  "vault": {
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-cobalt-turbine-ring/renders/the-cobalt-turbine-ring-render-1.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-cobalt-turbine-ring/renders/the-cobalt-turbine-ring-render-2.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-cobalt-turbine-ring/renders/the-cobalt-turbine-ring-render-3.png"
+    ],
+    "video": null
+  },
+  "metadata": {
+    "created_at_utc": "2025-12-22T03:22:29.033Z",
+    "human_readable": "12/21/2025, 10:22:29 PM",
+    "engine": "Gemini 3 Pro Cinematic v2.5",
+    "status": "verified"
+  }
+}

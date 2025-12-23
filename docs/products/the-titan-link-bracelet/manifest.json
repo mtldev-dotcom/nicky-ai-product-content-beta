@@ -1,0 +1,66 @@
+{
+  "protocol_id": "3dc6da46-caac-4ff4-af6e-9e0f8810a4a1",
+  "brand": "THE UNCUT BRAND",
+  "en": {
+    "title": "The Titan Link Bracelet",
+    "tagline": "Unyielding strength. Unapologetic style.",
+    "shortDescription": "A powerhouse on the wrist, the Titan Link features a sophisticated double-braided architecture designed for the man who leads.",
+    "longDescription": "Elevate your wrist game with a piece that demands immediate respect. THE UNCUT BRAND introduces a masterclass in industrial elegance with the Titan Link. Crafted with a dense, double-woven structure, this bracelet merges the raw power of classic chainwork with a high-polished, luxury finish. It is not just an accessory; it is an armor of confidence, engineered to transition seamlessly from high-stakes boardrooms to the midnight streets. Built for those who refuse to blend in.",
+    "features": [
+      "Premium surgical-grade stainless steel base",
+      "Signature double-braided weave for maximum durability",
+      "Reinforced custom lobster clasp with branding",
+      "Water, heat, and sweat resistant",
+      "High-polish mirror finish"
+    ],
+    "seoTitle": "Men's Silver Braided Chain Bracelet - The Titan Link | THE UNCUT BRAND",
+    "seoDescription": "Shop the Titan Link: a bold, double-braided silver-toned bracelet for men. Luxury craftsmanship meets industrial strength. Free shipping on premium men's jewelry.",
+    "keywords": [
+      "men's luxury bracelet",
+      "silver chain bracelet",
+      "braided jewelry for men",
+      "bold men's accessories",
+      "THE UNCUT BRAND",
+      "streetwear jewelry",
+      "heavyweight bracelet"
+    ]
+  },
+  "fr": {
+    "title": "Le Bracelet Titan Link",
+    "tagline": "Force inébranlable. Style sans compromis.",
+    "shortDescription": "Une démonstration de puissance au poignet, le Titan Link arbore une architecture sophistiquée à double tressage pour l'homme qui mène.",
+    "longDescription": "Rehaussez votre allure avec une pièce qui impose un respect immédiat. THE UNCUT BRAND présente une leçon d'élégance industrielle avec le Titan Link. Conçu avec une structure dense à double tissage, ce bracelet fusionne la force brute des chaînes classiques avec une finition luxueuse hautement polie. Plus qu'un simple accessoire, c'est une armure de confiance, conçue pour passer sans effort des salles de conseil aux rues nocturnes. Créé pour ceux qui refusent de passer inaperçus.",
+    "features": [
+      "Base en acier inoxydable de qualité chirurgicale",
+      "Tissage signature à double tresse pour une durabilité maximale",
+      "Fermoir mousqueton personnalisé et renforcé",
+      "Résistant à l'eau, à la chaleur et à la sueur",
+      "Finition polie miroir de haute qualité"
+    ],
+    "seoTitle": "Bracelet Chaîne Tressée Argent pour Homme - Titan Link | THE UNCUT BRAND",
+    "seoDescription": "Achetez le Titan Link : un bracelet argenté audacieux à double tressage pour homme. L'artisanat de luxe rencontre la force industrielle. Livraison gratuite.",
+    "keywords": [
+      "bracelet de luxe homme",
+      "chaîne argent homme",
+      "bijoux tressés homme",
+      "accessoires audacieux",
+      "THE UNCUT BRAND",
+      "bijoux streetwear",
+      "bracelet massif"
+    ]
+  },
+  "vault": {
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-titan-link-bracelet/renders/the-titan-link-bracelet-render-1.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-titan-link-bracelet/renders/the-titan-link-bracelet-render-2.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-titan-link-bracelet/renders/the-titan-link-bracelet-render-3.png"
+    ],
+    "video": null
+  },
+  "metadata": {
+    "created_at_utc": "2025-12-22T03:36:27.371Z",
+    "human_readable": "12/21/2025, 10:36:27 PM",
+    "engine": "Gemini 3 Pro Cinematic v2.5",
+    "status": "verified"
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "protocol_id": "4a68c765-11f7-467d-bca1-224265451832",
+  "brand": "THE UNCUT BRAND",
+  "en": {
+    "title": "Obsidian Cross Pendant",
+    "tagline": "Bold Devotion. Unapologetic Style.",
+    "shortDescription": "A minimalist masterpiece in matte black, designed for the man who commands respect and defies tradition.",
+    "longDescription": "The Obsidian Cross Pendant isn't just a symbol—it's an architectural statement. Crafted from high-grade 316L stainless steel with a deep matte black PVD finish, this piece offers a sharp, clean silhouette that strips away the noise. It bridges the gap between classic religious symbolism and modern urban rebellion. Whether worn as a solitary focal point or layered for a more aggressive look, it is built to endure the elements while maintaining its sophisticated edge. This is jewelry for the man who values strength and subtle luxury.",
+    "features": [
+      "Premium 316L Stainless Steel",
+      "Scratch-Resistant Matte Black PVD Coating",
+      "Reinforced Box Chain for Daily Durability",
+      "Water, Sweat, and Heat Resistant",
+      "Hypoallergenic and Lead-Free"
+    ],
+    "seoTitle": "Men's Matte Black Cross Necklace | THE UNCUT BRAND",
+    "seoDescription": "Elevate your style with the Obsidian Cross Pendant. A bold, minimalist black cross necklace for men crafted from premium stainless steel. Shop THE UNCUT BRAND.",
+    "keywords": [
+      "men's black cross necklace",
+      "matte black pendant",
+      "minimalist jewelry for men",
+      "stainless steel cross",
+      "urban luxury accessories",
+      "bold men's jewelry"
+    ]
+  },
+  "fr": {
+    "title": "Pendentif Croix Obsidienne",
+    "tagline": "Dévotion Audacieuse. Style Sans Compromis.",
+    "shortDescription": "Un chef-d'œuvre minimaliste en noir mat, conçu pour l'homme qui impose le respect et défie les traditions.",
+    "longDescription": "Le Pendentif Croix Obsidienne n'est pas un simple symbole—c'est une affirmation architecturale. Forgé dans un acier inoxydable 316L de haute qualité avec une finition PVD noir mat profond, cette pièce offre une silhouette nette et tranchante qui élimine le superflu. Elle fait le pont entre le symbolisme religieux classique et la rébellion urbaine moderne. Qu'elle soit portée seule ou superposée pour un look plus agressif, elle est conçue pour résister aux éléments tout en conservant son élégance sophistiquée. C'est le bijou de l'homme qui privilégie la force et le luxe discret.",
+    "features": [
+      "Acier Inoxydable 316L de Qualité Supérieure",
+      "Revêtement PVD Noir Mat Anti-Rayures",
+      "Chaîne Box Renforcée pour une Durabilité Quotidienne",
+      "Résistant à l'Eau, à la Transpiration et à la Chaleur",
+      "Hypoallergénique et sans Plomb"
+    ],
+    "seoTitle": "Collier Croix Noir Mat pour Homme | THE UNCUT BRAND",
+    "seoDescription": "Affirmez votre style avec le Pendentif Croix Obsidienne. Un collier croix noir minimaliste pour homme en acier inoxydable premium. Découvrez THE UNCUT BRAND.",
+    "keywords": [
+      "collier croix homme noir",
+      "pendentif noir mat",
+      "bijoux minimalistes homme",
+      "croix acier inoxydable",
+      "accessoires luxe urbain",
+      "bijoux audacieux homme"
+    ]
+  },
+  "vault": {
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cross-pendant/renders/obsidian-cross-pendant-render-1.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cross-pendant/renders/obsidian-cross-pendant-render-2.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cross-pendant/renders/obsidian-cross-pendant-render-3.png",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cross-pendant/renders/obsidian-cross-pendant-render-4.png"
+    ],
+    "video": null
+  },
+  "metadata": {
+    "created_at_utc": "2025-12-22T03:27:43.537Z",
+    "human_readable": "12/21/2025, 10:27:43 PM",
+    "engine": "Gemini 3 Pro Cinematic v2.5",
+    "status": "verified"
+  }
+}
