@@ -17,6 +17,8 @@ Product Architect has successfully transitioned from a single-user utility to a 
 - **Cloud-Synced Stores:** Zustand stores now persist `ProductData` and `Settings` to the database.
 - **Enhanced Media Pipeline:** Organization-specific R2/S3 paths and secure server-side credential handling.
 - **Store Integration Layer:** Encrypted support for MedusaJS API endpoints and Admin keys.
+- **Live Taxonomy Connector:** Real-time fetching of store collections, categories, and channels from the MedusaJS API.
+- **Localization Management:** Global organization settings to control supported languages and markets.
 
 ## 3. What Works (Functional Testing)
 | Feature | Status | Test Case |
@@ -27,6 +29,8 @@ Product Architect has successfully transitioned from a single-user utility to a 
 | **Brand Personality**| ✅ Working | Set voice to "Luxury" -> AI generates sophisticated copy. |
 | **Key Encryption** | ✅ Working | Keys saved to DB (OpenAI, R2, Medusa) are encrypted. |
 | **Store Integration**| ✅ Working | Configure Medusa URL/Key -> Save -> Verify Persistence. |
+| **Taxonomy Sync** | ✅ Working | Click Refresh in Product Details -> Medusa data populates dropdowns. |
+| **Market Activation**| ✅ Working | Toggle "French" in Settings -> Visibility updates in Header. |
 | **Cloud Persistence**| ✅ Working | Refresh page -> Product and settings load from Supabase. |
 
 ## 4. Final Testing Procedure
