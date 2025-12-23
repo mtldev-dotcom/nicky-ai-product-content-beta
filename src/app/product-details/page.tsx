@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useProductStore, Localization } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
@@ -103,58 +103,11 @@ export default function ProductDetailsPage() {
     }
   };
 
-  useEffect(() => {
-    const init = async () => {
-      let currentOrgId = organizationId;
-
-      if (!currentOrgId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: membership } = await supabase
-            .from('organization_members')
-            .select('organization_id')
-            .eq('user_id', user.id)
-            .single();
-
-          if (membership) {
-            currentOrgId = membership.organization_id;
-            setOrganizationId(currentOrgId);
-          }
-        }
-      }
-
-      if (currentOrgId) {
-        // Load settings to get active languages
-        await settings.loadFromDb(currentOrgId);
-        
-        // Auto-activate languages from organization settings for this product session
-        const orgLangs = useSettingsStore.getState().activeLanguages;
-        const currentActive = useProductStore.getState().activeLanguages;
-        const missing = orgLangs.filter(l => !currentActive.includes(l));
-        if (missing.length > 0) {
-          bulkUpdate({ activeLanguages: [...currentActive, ...missing] });
-        }
-        
-        if (!taxonomyOptions) {
-          fetchTaxonomy(currentOrgId);
-        }
-
-        // Trigger translation for current selected language if it's active but empty
-        const currentIsActive = [...currentActive, ...missing].includes(selectedLang);
-        if (currentIsActive && selectedLang !== 'en' && localization.en.title && !localization[selectedLang]?.title && !isTranslating) {
-          translateCurrentLang();
-        }
-      }
-    };
-
-    init();
-  }, [organizationId, taxonomyOptions]);
-
   const handleUpdate = (field: keyof Localization, value: any) => {
     updateLocalization(selectedLang, { [field]: value });
   };
 
-  const translateCurrentLang = async () => {
+  const translateCurrentLang = useCallback(async () => {
     if (selectedLang === 'en' || !localization.en.title) return;
     
     setIsTranslating(true);
@@ -210,7 +163,55 @@ export default function ProductDetailsPage() {
     } finally {
       setIsTranslating(false);
     }
-  };
+  }, [selectedLang, localization.en, options, updateLocalization, bulkUpdate]);
+
+  useEffect(() => {
+    const init = async () => {
+      let currentOrgId = organizationId;
+
+      if (!currentOrgId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: membership } = await supabase
+            .from('organization_members')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .single();
+
+          if (membership) {
+            currentOrgId = membership.organization_id;
+            setOrganizationId(currentOrgId);
+          }
+        }
+      }
+
+      if (currentOrgId) {
+        // Load settings to get active languages
+        await settings.loadFromDb(currentOrgId);
+        
+        // Auto-activate languages from organization settings for this product session
+        const orgLangs = useSettingsStore.getState().activeLanguages;
+        const currentActive = useProductStore.getState().activeLanguages;
+        const missing = orgLangs.filter(l => !currentActive.includes(l));
+        if (missing.length > 0) {
+          bulkUpdate({ activeLanguages: [...currentActive, ...missing] });
+        }
+        
+        if (!taxonomyOptions) {
+          fetchTaxonomy(currentOrgId);
+        }
+      }
+    };
+
+    init();
+  }, [organizationId, taxonomyOptions]);
+
+  // Trigger translation when switching to an active but empty language
+  useEffect(() => {
+    if (isActive && selectedLang !== 'en' && localization.en.title && !currentLoc.title && !isTranslating) {
+      translateCurrentLang();
+    }
+  }, [selectedLang, isActive, localization.en.title, currentLoc.title, isTranslating, translateCurrentLang]);
 
   const handleToggleLanguage = async () => {
     const nextActive = !isActive;
@@ -293,15 +294,16 @@ export default function ProductDetailsPage() {
                   disabled={isTranslating}
                   className="flex items-center gap-2 text-sm font-medium transition-colors"
                 >
-                <span className={isActive ? "text-indigo-400" : "text-zinc-500"}>
-                  {isActive ? 'Active' : 'Inactive'}
-                </span>
-                {isActive ? (
-                  <ToggleRight className="w-8 h-8 text-indigo-500" />
-                ) : (
-                  <ToggleLeft className="w-8 h-8 text-zinc-600" />
-                )}
-              </button>
+                  <span className={isActive ? "text-indigo-400" : "text-zinc-500"}>
+                    {isActive ? 'Active' : 'Inactive'}
+                  </span>
+                  {isActive ? (
+                    <ToggleRight className="w-8 h-8 text-indigo-500" />
+                  ) : (
+                    <ToggleLeft className="w-8 h-8 text-zinc-600" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="space-y-4">
