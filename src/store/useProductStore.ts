@@ -43,6 +43,8 @@ export interface ProductState {
   addOption: (name: string) => void;
   updateOption: (id: string, values: string[]) => void;
   removeOption: (id: string) => void;
+  resetStore: () => void;
+  bulkUpdate: (data: Partial<ProductState>) => void;
 }
 
 const INITIAL_LOCALIZATION: Localization = {
@@ -139,5 +141,26 @@ export const useProductStore = create<ProductState>((set, get) => ({
   removeOption: (id) => set((state) => ({
     options: state.options.filter((opt) => opt.id !== id),
   })),
+
+  resetStore: () => set({
+    title: '',
+    description: '',
+    thumbnail: '',
+    sku: '',
+    price: 0,
+    activeLanguages: ['en'],
+    localization: {
+      en: { ...INITIAL_LOCALIZATION },
+      es: { ...INITIAL_LOCALIZATION },
+      fr: { ...INITIAL_LOCALIZATION },
+      de: { ...INITIAL_LOCALIZATION },
+      ja: { ...INITIAL_LOCALIZATION },
+    },
+    images: [],
+    vault: [],
+    options: [],
+  }),
+
+  bulkUpdate: (data) => set((state) => ({ ...state, ...data })),
 }));
 

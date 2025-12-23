@@ -1,7 +1,7 @@
 # Product Architect: Progress Report & Production Roadmap
 
 ## 1. Executive Summary
-Product Architect is currently in its **Alpha Phase (Foundation & Core Logic)**. We have successfully established the high-fidelity "Obsidian" UI, the central state management for complex product schemas, and the critical AI/Media pipelines.
+Product Architect is currently in its **Alpha Phase (Foundation & Core Logic)**. We have successfully established the high-fidelity "Obsidian" UI, the central state management for complex product schemas, the critical AI/Media pipelines, and a smart JSON import engine.
 
 ## 2. What Has Been Done
 ### **Architecture & UI/UX**
@@ -15,9 +15,9 @@ Product Architect is currently in its **Alpha Phase (Foundation & Core Logic)**.
 - **AI Content Engine:** `/api/generate` route using OpenAI GPT-4o-mini for structured product creation.
 - **Multi-Language Localizer:** Tabbed interface for EN, ES, FR, DE, and JA with root-synchronization logic.
 - **Media Pipeline:**
-  - Bulk URL Import.
-  - Direct-to-R2 uploads via S3 Presigned URLs.
+  - Bulk URL Import & Direct-to-R2 uploads via S3 Presigned URLs.
   - Server-side "Bucket Syncing" to proxy and save external assets.
+- **Smart Import Module:** Heuristic JSON mapping engine that translates MedusaJS, Shopify, or generic product JSONs into our internal Obsidian schema.
 - **Settings:** Secure local-only persistence for API and Storage credentials.
 
 ## 3. What Works (Functional Testing)
@@ -27,18 +27,20 @@ Product Architect is currently in its **Alpha Phase (Foundation & Core Logic)**.
 | **Localization Sync** | ✅ Working | Edit "EN" title -> Root "title" updates automatically. |
 | **R2 Uploads** | ✅ Working | Select file in Media -> Uploads to R2 -> Returns public URL. |
 | **URL Syncing** | ✅ Working | Click "Sync to R2" on external URL -> Moves asset to private bucket. |
+| **Smart Import** | ✅ Working | Upload an external JSON -> Store hydrates with mapped Title, SKU, Price, and Options. |
 | **Persistence** | ✅ Working | Refresh page -> Settings (API keys) remain in LocalStorage. |
 
 ## 4. Testing Procedure
 To verify the current build:
 1. **Environment:** Ensure `.env.local` contains valid `OPENAI_API_KEY` and `S3_` credentials.
-2. **Dashboard:** Enter "A tactical waterproof backpack" and click Generate.
-3. **Localizer:** Verify the content matches the prompt; toggle "Spanish" to active.
-4. **Media:** Paste `https://picsum.photos/400` into Bulk Import, then click "Sync to R2".
-5. **Settings:** Verify you can hide/show the API keys and save them.
+2. **AI Flow:** Enter "A tactical waterproof backpack" on Dashboard and click Create.
+3. **Import Flow:** Click "Import JSON" and select a MedusaJS or generic product file.
+4. **Localizer:** Verify the content matches the input; toggle "Spanish" to active.
+5. **Media:** Paste `https://picsum.photos/400` into Bulk Import, then click "Sync to R2".
+6. **Settings:** Verify you can hide/show the API keys and save them.
 
 ## 5. What Needs To Be Done
-### **Module 4: Variant & Option Architect (Pending)**
+### **Module 4: Variant & Option Architect (In Progress)**
 - Build the UI to add attributes (Size, Color).
 - Implement localized values for options.
 - Map variants to the final JSON schema.
@@ -58,4 +60,3 @@ To move from Alpha to Production, the following are required:
 
 ---
 **End Goal:** A self-contained, high-performance command center where an operator can go from "Idea" to "Production JSON" with all assets vaulted in under 3 minutes.
-
