@@ -56,7 +56,7 @@ export interface ProductState {
   tags: string[];
   categories: string[];
   sales_channels: string[];
-  shipping_options: string[];
+  shipping_profile_id: string;
   shipping_weight: number;
   shipping_dimensions: { length: number; width: number; height: number };
   
@@ -121,7 +121,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   tags: [],
   categories: [],
   sales_channels: [],
-  shipping_options: [],
+  shipping_profile_id: '',
   shipping_weight: 0,
   shipping_dimensions: { length: 0, width: 0, height: 0 },
 
@@ -267,6 +267,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     tags: [],
     categories: [],
     sales_channels: [],
+    shipping_profile_id: '',
     shipping_weight: 0,
     shipping_dimensions: { length: 0, width: 0, height: 0 },
   }),
@@ -303,7 +304,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         tags: state.tags,
         categories: state.categories,
         sales_channels: state.sales_channels,
-        shipping_options: state.shipping_options,
+        shipping_profile_id: state.shipping_profile_id,
         shipping_weight: state.shipping_weight,
         shipping_dimensions: state.shipping_dimensions,
       }

@@ -58,7 +58,7 @@ export default function ProductDetailsPage() {
     tags,
     categories,
     sales_channels,
-    shipping_options,
+    shipping_profile_id,
     shipping_weight,
     shipping_dimensions,
     updateRoot
@@ -72,7 +72,7 @@ export default function ProductDetailsPage() {
     categories: any[];
     sales_channels: any[];
     product_types: any[];
-    shipping_options: any[];
+    shipping_profiles: any[];
   } | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   
@@ -565,34 +565,21 @@ export default function ProductDetailsPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Shipping Options
+                  Shipping Profile
                 </label>
-                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 no-scrollbar">
-                  {taxonomyOptions?.shipping_options.map(so => (
-                    <label key={so.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/20 border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
-                      <input 
-                        type="checkbox"
-                        className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/50"
-                        checked={shipping_options.includes(so.id)}
-                        onChange={(e) => {
-                          const newOptions = e.target.checked 
-                            ? [...shipping_options, so.id]
-                            : shipping_options.filter(id => id !== so.id);
-                          updateRoot({ shipping_options: newOptions });
-                        }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs text-zinc-300">{so.name}</span>
-                        <span className="text-[8px] text-zinc-600 uppercase tracking-tighter">
-                          {so.price_type === 'flat_rate' ? `Flat Rate: ${(so.amount / 100).toFixed(2)}` : 'Calculated'}
-                        </span>
-                      </div>
-                    </label>
+                <select 
+                  className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
+                  value={shipping_profile_id || ''}
+                  onChange={(e) => updateRoot({ shipping_profile_id: e.target.value })}
+                >
+                  <option value="">None</option>
+                  {taxonomyOptions?.shipping_profiles.map(sp => (
+                    <option key={sp.id} value={sp.id}>{sp.name}</option>
                   ))}
-                  {(!taxonomyOptions || taxonomyOptions.shipping_options.length === 0) && (
-                    <div className="text-[10px] text-zinc-600 italic">No shipping options found.</div>
-                  )}
-                </div>
+                </select>
+                {(!taxonomyOptions || taxonomyOptions.shipping_profiles.length === 0) && (
+                  <div className="text-[10px] text-zinc-600 italic">No shipping profiles found.</div>
+                )}
               </div>
 
               <div className="space-y-2">

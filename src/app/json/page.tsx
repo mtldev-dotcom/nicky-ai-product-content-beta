@@ -85,7 +85,7 @@ export default function JsonPage() {
       })),
       categories: product.categories.map(c => ({ id: c })),
       sales_channels: product.sales_channels.map(sc => ({ id: sc })),
-      shipping_options: product.shipping_options.map(so => ({ id: so }))
+      shipping_profile_id: product.shipping_profile_id || null
     };
 
     return JSON.stringify(output, null, 4);
