@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
+import { cn } from '@/lib/utils';
 import {
   Shield,
   Key,
