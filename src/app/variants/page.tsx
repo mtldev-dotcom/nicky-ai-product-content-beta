@@ -22,9 +22,27 @@ export default function VariantsPage() {
     updateOption, 
     removeOption, 
     addOptionValue, 
-    removeOptionValue 
+    removeOptionValue,
+    bulkUpdate
   } = useProductStore();
   const [newOptionName, setNewOptionName] = useState('');
+
+  // Automatically add a default option if none exist
+  React.useEffect(() => {
+    if (options.length === 0) {
+      bulkUpdate({
+        options: [{
+          id: crypto.randomUUID(),
+          name: 'Default option',
+          translations: { en: 'Default option' },
+          values: [{ 
+            value: 'Default option value', 
+            translations: { en: 'Default option value' } 
+          }]
+        }]
+      });
+    }
+  }, []); // Only run once on mount
 
   const handleAddOption = () => {
     if (!newOptionName.trim()) return;

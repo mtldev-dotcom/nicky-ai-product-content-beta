@@ -1,65 +1,43 @@
 {
-  "protocol_id": "130e7055-cdba-424f-8d33-0eea486a3046",
-  "brand": "THE UNCUT BRAND",
-  "en": {
-    "title": "THE CRIMSON STEALTH BAND",
-    "tagline": "Dormant Fire, Unapologetic Power.",
-    "shortDescription": "A masterclass in contrast, featuring a matte black brushed exterior split by a precision crimson groove and a high-polish red interior.",
-    "longDescription": "Dominate the room with the Crimson Stealth Band. Engineered for the man who values mystery as much as impact, this ring balances a rugged, matte black brushed finish with a lethal flash of metallic red. The vibrant interior isn't just a detail—it's a hidden fire that reflects your inner drive. Crafted from high-grade materials for daily resilience and designed with a comfort-fit interior, this piece is built for those who lead without asking for permission. It’s not just a ring; it’s your signature.",
-    "features": [
-      "Premium matte black brushed finish",
-      "Signature crimson precision-cut center groove",
-      "High-polish metallic red comfort-fit interior",
-      "Scratch-resistant industrial-grade construction",
-      "Corrosion-resistant and hypoallergenic"
-    ],
-    "seoTitle": "Men's Black and Red Brushed Steel Ring | THE UNCUT BRAND",
-    "seoDescription": "Elevate your style with the Crimson Stealth Band. A luxury men's ring featuring matte black brushed steel and a bold red interior. Shop THE UNCUT BRAND.",
-    "keywords": [
-      "Men's Jewelry",
-      "Black and Red Ring",
-      "Brushed Steel Band",
-      "Luxury Men's Accessories",
-      "Streetwear Jewelry",
-      "Bold Men's Ring",
-      "THE UNCUT BRAND"
-    ]
-  },
-  "fr": {
-    "title": "L'ANNEAU CRIMSON STEALTH",
-    "tagline": "Feu Latent, Puissance Absolue.",
-    "shortDescription": "Une leçon de contraste, alliant un extérieur noir mat brossé à une rainure cramoisie de précision et un intérieur rouge poli.",
-    "longDescription": "Dominez l'espace avec l'Anneau Crimson Stealth. Conçue pour l'homme qui cultive autant le mystère que l'impact, cette bague équilibre un fini noir mat brossé robuste avec un éclat mortel de rouge métallique. L'intérieur vibrant n'est pas qu'un détail—c'est un feu caché qui reflète votre détermination intérieure. Fabriquée avec des matériaux de haute qualité pour une résilience quotidienne et dotée d'un design ergonomique, cette pièce est faite pour ceux qui dirigent sans demander de permission. Ce n'est pas seulement une bague ; c'est votre signature.",
-    "features": [
-      "Finition premium noir mat brossé",
-      "Rainure centrale de précision rouge cramoisi",
-      "Intérieur 'Comfort-fit' en rouge métallique poli",
-      "Construction de grade industriel résistante aux rayures",
-      "Résistant à la corrosion et hypoallergénique"
-    ],
-    "seoTitle": "Bague Homme Noir et Rouge Acier Brossé | THE UNCUT BRAND",
-    "seoDescription": "Affirmez votre style avec l'Anneau Crimson Stealth. Une bague de luxe pour homme alliant acier brossé noir et intérieur rouge audacieux. Découvrez THE UNCUT BRAND.",
-    "keywords": [
-      "Bijoux Homme",
-      "Bague Noir et Rouge",
-      "Anneau Acier Brossé",
-      "Accessoires de Luxe Homme",
-      "Bijoux Streetwear",
-      "Bague Audacieuse",
-      "THE UNCUT BRAND"
-    ]
-  },
-  "vault": {
-    "images": [
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-crimson-stealth-band/renders/the-crimson-stealth-band-render-1.png",
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-crimson-stealth-band/renders/the-crimson-stealth-band-render-2.png"
-    ],
-    "video": null
-  },
-  "metadata": {
-    "created_at_utc": "2025-12-22T03:26:07.337Z",
-    "human_readable": "12/21/2025, 10:26:07 PM",
-    "engine": "Gemini 3 Pro Cinematic v2.5",
-    "status": "verified"
-  }
+  "title": "The Crimson Stealth Band",
+  "description": "Dominate the room with the Crimson Stealth Band. Engineered for the man who values mystery as much as impact, this ring balances a rugged, matte black brushed finish with a lethal flash of metallic red. The vibrant interior isn't just a detail—it's a hidden fire that reflects your inner drive. Crafted from high-grade materials for daily resilience and designed with a comfort-fit interior, this piece is built for those who lead without asking for permission. It’s not just a ring; it’s your signature.",
+  "subtitle": "Dormant Fire, Unapologetic Power.",
+  "sku": "UNCUT-RING-CRIMSON-STEALTH-001",
+  "price": 49,
+  "images": [
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-crimson-stealth-band/renders/the-crimson-stealth-band-render-1.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-crimson-stealth-band/renders/the-crimson-stealth-band-render-2.png"
+  ],
+  "options": [
+    {
+      "name": "Color",
+      "values": [
+        "Matte Black & Crimson"
+      ]
+    },
+    {
+      "name": "Finish",
+      "values": [
+        "Matte Brushed & High-Polish"
+      ]
+    }
+  ],
+  "features": [
+    "Premium matte black brushed finish",
+    "Signature crimson precision-cut center groove",
+    "High-polish metallic red comfort-fit interior",
+    "Scratch-resistant industrial-grade construction",
+    "Corrosion-resistant and hypoallergenic"
+  ],
+  "metadata_title": "Men's Black and Red Brushed Steel Ring | THE UNCUT BRAND",
+  "metadata_description": "Elevate your style with the Crimson Stealth Band. A luxury men's ring featuring matte black brushed steel and a bold red interior. Shop THE UNCUT BRAND.",
+  "keywords": [
+    "Men's Jewelry",
+    "Black and Red Ring",
+    "Brushed Steel Band",
+    "Luxury Men's Accessories",
+    "Streetwear Jewelry",
+    "Bold Men's Ring",
+    "THE UNCUT BRAND"
+  ]
 }

@@ -14,8 +14,21 @@ import {
   EyeOff,
   UserCircle,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Store,
+  Globe,
+  Lock,
+  Languages,
+  Check
 } from 'lucide-react';
+
+const ALL_LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+];
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
@@ -30,9 +43,14 @@ export default function SettingsPage() {
     brandName: '',
     brandVoice: '',
     customInstructions: '',
+    storePlatform: 'medusa',
+    medusaUrl: '',
+    medusaApiKey: '',
+    activeLanguages: [] as string[],
   });
 
   const [showKey, setShowKey] = useState(false);
+  const [showMedusaKey, setShowMedusaKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const supabase = createClient();
 
@@ -66,8 +84,12 @@ export default function SettingsPage() {
       brandName: settings.brandName,
       brandVoice: settings.brandVoice,
       customInstructions: settings.customInstructions,
+      storePlatform: settings.storePlatform,
+      medusaUrl: settings.medusaUrl,
+      medusaApiKey: settings.medusaApiKey,
+      activeLanguages: settings.activeLanguages,
     });
-  }, [settings.openaiApiKey, settings.r2AccountId, settings.r2AccessKeyId, settings.r2SecretAccessKey, settings.r2BucketName, settings.r2PublicUrl, settings.brandName, settings.brandVoice, settings.customInstructions]);
+  }, [settings.openaiApiKey, settings.r2AccountId, settings.r2AccessKeyId, settings.r2SecretAccessKey, settings.r2BucketName, settings.r2PublicUrl, settings.brandName, settings.brandVoice, settings.customInstructions, settings.storePlatform, settings.medusaUrl, settings.medusaApiKey, settings.activeLanguages]);
 
   const handleSave = async () => {
     if (!orgId) return;
@@ -84,6 +106,12 @@ export default function SettingsPage() {
       brandName: localState.brandName,
       brandVoice: localState.brandVoice,
       customInstructions: localState.customInstructions,
+    });
+    settings.setStoreSettings({
+      storePlatform: localState.storePlatform,
+      medusaUrl: localState.medusaUrl,
+      medusaApiKey: localState.medusaApiKey,
+      activeLanguages: localState.activeLanguages,
     });
 
     await settings.saveToDb(orgId);
@@ -105,6 +133,142 @@ export default function SettingsPage() {
       </header>
 
       <div className="grid gap-8">
+        {/* Store Integration */}
+        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Store className="w-5 h-5 text-indigo-400" />
+              Store Integration
+            </h2>
+            <div className="flex gap-2">
+              <select 
+                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500/50"
+                value={localState.storePlatform}
+                onChange={(e) => setLocalState({ ...localState, storePlatform: e.target.value })}
+              >
+                <option value="medusa">MedusaJS</option>
+                <option value="shopify" disabled>Shopify (Coming Soon)</option>
+                <option value="none">No Integration</option>
+              </select>
+            </div>
+          </div>
+
+          {localState.storePlatform === 'medusa' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-zinc-500" />
+                  Medusa API URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://your-medusa-server.com"
+                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                  value={localState.medusaUrl}
+                  onChange={(e) => setLocalState({ ...localState, medusaUrl: e.target.value })}
+                />
+                <p className="text-[10px] text-zinc-500 italic px-1">
+                  The backend URL of your MedusaJS installation.
+                </p>
+              </div>
+
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-zinc-500" />
+                  Medusa API Key (Admin)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showMedusaKey ? "text" : "password"}
+                    placeholder="medusa_admin_..."
+                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                    value={localState.medusaApiKey}
+                    onChange={(e) => setLocalState({ ...localState, medusaApiKey: e.target.value })}
+                  />
+                  <button
+                    onClick={() => setShowMedusaKey(!showMedusaKey)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  >
+                    {showMedusaKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-zinc-500 italic px-1">
+                  Used to sync products and media directly to your MedusaJS catalog.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {localState.storePlatform === 'none' && (
+            <div className="bg-zinc-900/50 border border-dashed border-white/10 rounded-xl p-8 text-center">
+              <p className="text-zinc-500 text-sm">
+                No store integration selected. You can still generate content and download it manually.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* Localization & Markets */}
+        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Languages className="w-5 h-5 text-indigo-400" />
+              Localization & Supported Markets
+            </h2>
+            <div className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
+              Global reach
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-400">
+              Select the languages your organization supports. These will be available for AI content generation and translation in the Product Architect command center.
+            </p>
+            
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {ALL_LANGUAGES.map((lang) => {
+                const isActive = localState.activeLanguages.includes(lang.code);
+                return (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      const newLangs = isActive
+                        ? localState.activeLanguages.filter(c => c !== lang.code)
+                        : [...localState.activeLanguages, lang.code];
+                      
+                      // Ensure at least one language is active
+                      if (newLangs.length === 0) return;
+                      
+                      setLocalState({ ...localState, activeLanguages: newLangs });
+                    }}
+                    className={cn(
+                      "flex flex-col items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden group",
+                      isActive 
+                        ? "bg-indigo-500/10 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/5" 
+                        : "bg-zinc-900/50 border-white/5 text-zinc-500 hover:border-white/10"
+                    )}
+                  >
+                    <span className="text-3xl filter group-hover:scale-110 transition-transform duration-300">
+                      {lang.flag}
+                    </span>
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                      {lang.name}
+                    </span>
+                    {isActive && (
+                      <div className="absolute top-2 right-2">
+                        <Check className="w-3 h-3 text-indigo-400" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-zinc-500 italic px-1">
+              Note: English (US) is the default base language for all AI generation.
+            </p>
+          </div>
+        </section>
+
         {/* AI Configuration */}
         <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
           <div className="flex items-center justify-between">

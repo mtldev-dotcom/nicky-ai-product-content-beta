@@ -19,6 +19,10 @@ export async function saveEncryptedSettings(orgId: string, settings: any) {
     brand_name: settings.brandName,
     brand_voice: settings.brandVoice,
     custom_instructions: settings.customInstructions,
+    store_platform: settings.storePlatform || 'medusa',
+    medusa_url: settings.medusaUrl,
+    medusa_api_key: settings.medusaApiKey ? encrypt(settings.medusaApiKey) : null,
+    active_languages: settings.activeLanguages || ['en'],
     updated_at: new Date().toISOString(),
   };
 
@@ -55,6 +59,10 @@ export async function loadEncryptedSettings(orgId: string) {
     brandName: data.brand_name || '',
     brandVoice: data.brand_voice || '',
     customInstructions: data.custom_instructions || '',
+    storePlatform: data.store_platform || 'medusa',
+    medusaUrl: data.medusa_url || '',
+    medusaApiKey: data.medusa_api_key ? decrypt(data.medusa_api_key) : '',
+    activeLanguages: data.active_languages || ['en'],
   };
 }
 

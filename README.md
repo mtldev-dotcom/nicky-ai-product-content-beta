@@ -15,14 +15,25 @@ The "command center" now supports image-based input. Upload a product photo, and
 ### 3. Brand Personality Engine
 Align your AI agents with your organization's unique identity. Configure Brand Name, Voice (Minimalist, Luxury, etc.), and custom style instructions that are dynamically applied to all copy generation and translations.
 
-### 4. Enterprise-Grade Security
-- **Credential Encryption:** All API keys (OpenAI, R2) are encrypted using AES-256-GCM before being stored.
+### 4. Product Details & Localization
+Align your product data across global markets. 
+- **Active Market Filtering:** Configure supported languages (English, Spanish, French, German, Japanese) at the organization level to reduce UI clutter.
+- **AI Translation:** Manage high-fidelity copy, features, and SEO metadata with automated AI translation that respects your brand's unique voice.
+
+### 5. Store Integration & Sync
+Directly connect your product orchestration pipeline to your storefront. 
+- **Platform Selection:** Support for MedusaJS (with Shopify and others in development).
+- **Encrypted Credentials:** Store URLs and Admin API keys are vaulted using enterprise-grade encryption.
+- **Live Taxonomy Sync:** Real-time fetching of Collections, Product Categories, Sales Channels, and Product Types directly from your MedusaJS backend.
+- **Logistics Baseline:** Define default shipping weights and dimensions to streamline the catalog entry process.
+
+### 6. Enterprise-Grade Security
+- **Credential Encryption:** All API keys (OpenAI, R2, Medusa) are encrypted using AES-256-GCM before being stored.
 - **Server-Side Processing:** Decryption and API calls happen exclusively on the server to prevent exposure of sensitive keys to the browser.
 
-### 5. High-Fidelity Media Pipeline
-- **Smart Sync:** One-click syncing of external images to your private Cloudflare R2 bucket.
-- **Tenant Isolation:** Media assets are automatically organized into tenant-specific paths.
-- **Vaulting Logic:** Automated optimization for frontend gallery delivery.
+### 7. Smart Variant Architecting
+- **Default State:** New products automatically initialize with a standard "Default option" to ensure compatibility with modern headless commerce schemas.
+- **Multi-Attribute Support:** Build complex option sets (Size, Color, Material) with multi-language value translations.
 
 ## 🛠️ Technical Stack
 

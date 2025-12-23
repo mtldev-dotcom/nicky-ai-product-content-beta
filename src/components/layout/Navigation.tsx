@@ -17,7 +17,7 @@ import { signOut } from '@/app/login/actions';
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dash', href: '/' },
-  { icon: Languages, label: 'Translate', href: '/localize' },
+  { icon: Languages, label: 'Details', href: '/product-details' },
   { icon: ImageIcon, label: 'Media', href: '/media' },
   { icon: Layers, label: 'Variants', href: '/variants' },
   { icon: Database, label: 'JSON', href: '/json' },

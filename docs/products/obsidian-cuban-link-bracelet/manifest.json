@@ -1,63 +1,42 @@
 {
-  "protocol_id": "66876e0c-2fe5-41c2-9941-e71d1edcd89c",
-  "brand": "THE UNCUT BRAND",
-  "en": {
-    "title": "Obsidian Cuban Link Bracelet",
-    "tagline": "Redefine the dark side of elegance.",
-    "shortDescription": "A statement piece for the modern rebel. The Obsidian Cuban Link combines classic architecture with a bold, midnight-black finish.",
-    "longDescription": "Crafted for those who lead where others follow, the Obsidian Cuban Link Bracelet is more than an accessory—it's an armor of confidence. Featuring precision-cut links and a sleek PVD matte black finish, this piece offers a weight that commands respect without saying a word. Designed to withstand the hustle of city life, its unapologetic presence defines your wrist game whether you're in a boardroom or a backroom.",
-    "features": [
-      "Premium Grade 316L Stainless Steel",
-      "Reinforced PVD Matte Black Finish",
-      "Signature Secure Fold-Over Clasp",
-      "Water, Sweat, and Heat Resistant",
-      "12mm Bold Link Profile"
-    ],
-    "seoTitle": "Men's Black Cuban Link Bracelet | Luxury Streetwear | THE UNCUT BRAND",
-    "seoDescription": "Elevate your style with the Obsidian Cuban Link. A heavy-duty, matte black men's bracelet designed for the bold and unapologetic. Shop THE UNCUT BRAND.",
-    "keywords": [
-      "black cuban link",
-      "men's designer bracelet",
-      "matte black jewelry",
-      "luxury men's accessories",
-      "stainless steel bracelet",
-      "urban luxury jewelry"
-    ]
-  },
-  "fr": {
-    "title": "Bracelet Gourmette Obsidian",
-    "tagline": "Redéfinissez le côté sombre de l'élégance.",
-    "shortDescription": "Une pièce de caractère pour le rebelle moderne. La Gourmette Obsidian combine une architecture classique avec une finition noir minuit audacieuse.",
-    "longDescription": "Conçu pour ceux qui dirigent là où les autres suivent, le Bracelet Gourmette Obsidian est bien plus qu'un simple accessoire—c'est une armure de confiance. Dotée de maillons coupés avec précision et d'une finition noire mate PVD, cette pièce impose le respect par son poids et son allure sans dire un seul mot. Créé pour résister à l'intensité de la vie urbaine, son design sans compromis définit votre style, du bureau aux soirées privées.",
-    "features": [
-      "Acier Inoxydable 316L de Qualité Supérieure",
-      "Finition Noir Mat PVD Renforcée",
-      "Fermoir à Rabat Sécurisé Signature",
-      "Résistant à l'Eau, à la Sueur et à la Chaleur",
-      "Profil de Maillon Audacieux de 12mm"
-    ],
-    "seoTitle": "Bracelet Gourmette Noir Homme | Streetwear de Luxe | THE UNCUT BRAND",
-    "seoDescription": "Sublimez votre look avec la Gourmette Obsidian. Un bracelet noir mat pour homme, conçu pour l'audace et la durabilité. Découvrez THE UNCUT BRAND.",
-    "keywords": [
-      "gourmette noire homme",
-      "bracelet cubain noir",
-      "bijoux luxe homme",
-      "accessoires homme tendance",
-      "bracelet acier inoxydable",
-      "bijoux urbains chic"
-    ]
-  },
-  "vault": {
-    "images": [
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cuban-link-bracelet/renders/obsidian-cuban-link-bracelet-render-1.png",
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cuban-link-bracelet/renders/obsidian-cuban-link-bracelet-render-2.png"
-    ],
-    "video": null
-  },
-  "metadata": {
-    "created_at_utc": "2025-12-22T03:38:42.025Z",
-    "human_readable": "12/21/2025, 10:38:42 PM",
-    "engine": "Gemini 3 Pro Cinematic v2.5",
-    "status": "verified"
-  }
+  "title": "Obsidian Cuban Link Bracelet",
+  "description": "Crafted for those who lead where others follow, the Obsidian Cuban Link Bracelet is more than an accessory—it's an armor of confidence. Featuring precision-cut links and a sleek PVD matte black finish, this piece offers a weight that commands respect without saying a word. Designed to withstand the hustle of city life, its unapologetic presence defines your wrist game whether you're in a boardroom or a backroom.",
+  "subtitle": "Redefine the dark side of elegance.",
+  "sku": "UNCUT-BRAC-OBSIDIAN-CUBAN-001",
+  "price": 69,
+  "images": [
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cuban-link-bracelet/renders/obsidian-cuban-link-bracelet-render-1.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/obsidian-cuban-link-bracelet/renders/obsidian-cuban-link-bracelet-render-2.png"
+  ],
+  "options": [
+    {
+      "name": "Color",
+      "values": [
+        "Midnight Black"
+      ]
+    },
+    {
+      "name": "Finish",
+      "values": [
+        "PVD Matte Black"
+      ]
+    }
+  ],
+  "features": [
+    "Premium Grade 316L Stainless Steel",
+    "Reinforced PVD Matte Black Finish",
+    "Signature Secure Fold-Over Clasp",
+    "Water, Sweat, and Heat Resistant",
+    "12mm Bold Link Profile"
+  ],
+  "metadata_title": "Men's Black Cuban Link Bracelet | Luxury Streetwear | THE UNCUT BRAND",
+  "metadata_description": "Elevate your style with the Obsidian Cuban Link. A heavy-duty, matte black men's bracelet designed for the bold and unapologetic. Shop THE UNCUT BRAND.",
+  "keywords": [
+    "black cuban link",
+    "men's designer bracelet",
+    "matte black jewelry",
+    "luxury men's accessories",
+    "stainless steel bracelet",
+    "urban luxury jewelry"
+  ]
 }

@@ -1,68 +1,45 @@
 {
-  "protocol_id": "686c9e59-dbaa-4cfb-9604-5846c28baa40",
-  "brand": "THE UNCUT BRAND",
-  "en": {
-    "title": "THE STEALTH SPINNER | MIDNIGHT BLACK",
-    "tagline": "Precision in motion. Power in silence.",
-    "shortDescription": "An industrial-grade spinner ring engineered for the man who never stops moving.",
-    "longDescription": "Engineered for the modern vanguard, THE STEALTH SPINNER is a masterclass in industrial luxury. This isn't just a ring; it's a tactile experience designed for the restless and the bold. Featuring a unique rotating center with a dual-track gear design, it offers a satisfying mechanical motion without sacrificing its aggressive aesthetic. Finished in a deep, unapologetic black, it is built to withstand the daily grind while maintaining a sharp, sophisticated edge. Wear it as a statement of intent—momentum is everything.",
-    "features": [
-      "Premium 316L Stainless Steel Construction",
-      "Functional Dual-Track Spinner Mechanism",
-      "Scratch-Resistant PVD Black Coating",
-      "Industrial Gear-Inspired Texture",
-      "Water, Sweat, and Heat Resistant",
-      "Signature Comfort-Fit Interior"
-    ],
-    "seoTitle": "Men's Black Spinner Ring | Industrial Gear Design | THE UNCUT BRAND",
-    "seoDescription": "Shop THE STEALTH SPINNER. A luxury black rotating ring for men featuring a bold industrial gear design and premium stainless steel finish. Free shipping available.",
-    "keywords": [
-      "men's black ring",
-      "spinner ring for men",
-      "fidget ring",
-      "industrial jewelry",
-      "THE UNCUT BRAND",
-      "luxury men's accessories",
-      "streetwear jewelry"
-    ]
-  },
-  "fr": {
-    "title": "LE STEALTH SPINNER | NOIR MINUIT",
-    "tagline": "La précision en mouvement. La puissance dans le silence.",
-    "shortDescription": "Une bague rotative de qualité industrielle conçue pour l'homme qui ne s'arrête jamais.",
-    "longDescription": "Conçue pour l'avant-garde moderne, la bague STEALTH SPINNER est une leçon de luxe industriel. Ce n'est pas seulement un bijou ; c'est une expérience tactile pensée pour les esprits agités et audacieux. Dotée d'un centre rotatif unique avec un design d'engrenage à double rail, elle offre un mouvement mécanique fluide sans sacrifier son esthétique agressive. Finie dans un noir profond et sans compromis, elle est bâtie pour résister au quotidien tout en conservant une allure tranchante et sophistiquée. Portez-la comme une déclaration d'intention : le mouvement est tout.",
-    "features": [
-      "Construction en Acier Inoxydable 316L de Qualité Supérieure",
-      "Mécanisme Spinner à Double Rail Fonctionnel",
-      "Revêtement PVD Noir Résistant aux Rayures",
-      "Texture Inspirée des Engrenages Industriels",
-      "Résistant à l'Eau, à la Sueur et à la Chaleur",
-      "Intérieur Comfort-Fit Signature"
-    ],
-    "seoTitle": "Bague Rotative Noire Homme | Design Industriel | THE UNCUT BRAND",
-    "seoDescription": "Découvrez le STEALTH SPINNER. Une bague rotative de luxe pour homme au design industriel audacieux en acier inoxydable noir de haute qualité.",
-    "keywords": [
-      "bague noire homme",
-      "bague rotative",
-      "bijoux industriels",
-      "THE UNCUT BRAND",
-      "accessoires luxe homme",
-      "bague anti-stress",
-      "streetwear de luxe"
-    ]
-  },
-  "vault": {
-    "images": [
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-0.png",
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-1.png",
-      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-2.png"
-    ],
-    "video": null
-  },
-  "metadata": {
-    "created_at_utc": "2025-12-22T03:03:59.702Z",
-    "human_readable": "12/21/2025, 10:03:59 PM",
-    "engine": "Gemini 3 Pro Cinematic v2.5",
-    "status": "verified"
-  }
+  "title": "The Stealth Spinner | Midnight Black",
+  "description": "Engineered for the modern vanguard, THE STEALTH SPINNER is a masterclass in industrial luxury. This isn't just a ring; it's a tactile experience designed for the restless and the bold. Featuring a unique rotating center with a dual-track gear design, it offers a satisfying mechanical motion without sacrificing its aggressive aesthetic. Finished in a deep, unapologetic black, it is built to withstand the daily grind while maintaining a sharp, sophisticated edge. Wear it as a statement of intent—momentum is everything.",
+  "subtitle": "Precision in motion. Power in silence.",
+  "sku": "UNCUT-RING-STEALTH-SPINNER-BLACK-001",
+  "price": 49,
+  "images": [
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-0.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-1.png",
+    "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/products/the-stealth-spinner-midnight-black/renders/the-stealth-spinner-_-midnight-black-render-2.png"
+  ],
+  "options": [
+    {
+      "name": "Color",
+      "values": [
+        "Midnight Black"
+      ]
+    },
+    {
+      "name": "Finish",
+      "values": [
+        "PVD Black Coating"
+      ]
+    }
+  ],
+  "features": [
+    "Premium 316L Stainless Steel Construction",
+    "Functional Dual-Track Spinner Mechanism",
+    "Scratch-Resistant PVD Black Coating",
+    "Industrial Gear-Inspired Texture",
+    "Water, Sweat, and Heat Resistant",
+    "Signature Comfort-Fit Interior"
+  ],
+  "metadata_title": "Men's Black Spinner Ring | Industrial Gear Design | THE UNCUT BRAND",
+  "metadata_description": "Shop THE STEALTH SPINNER. A luxury black rotating ring for men featuring a bold industrial gear design and premium stainless steel finish. Free shipping available.",
+  "keywords": [
+    "men's black ring",
+    "spinner ring for men",
+    "fidget ring",
+    "industrial jewelry",
+    "THE UNCUT BRAND",
+    "luxury men's accessories",
+    "streetwear jewelry"
+  ]
 }

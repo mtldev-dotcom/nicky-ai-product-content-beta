@@ -11,10 +11,15 @@ interface SettingsState {
   brandName: string;
   brandVoice: string;
   customInstructions: string;
+  storePlatform: string;
+  medusaUrl: string;
+  medusaApiKey: string;
+  activeLanguages: string[];
   isSaving: boolean;
   setOpenaiApiKey: (key: string) => void;
-  setR2Settings: (settings: Partial<Omit<SettingsState, 'setOpenaiApiKey' | 'setR2Settings' | 'saveToDb' | 'loadFromDb' | 'isSaving'>>) => void;
+  setR2Settings: (settings: Partial<Pick<SettingsState, 'r2AccountId' | 'r2AccessKeyId' | 'r2SecretAccessKey' | 'r2BucketName' | 'r2PublicUrl'>>) => void;
   setBrandSettings: (settings: Partial<Pick<SettingsState, 'brandName' | 'brandVoice' | 'customInstructions'>>) => void;
+  setStoreSettings: (settings: Partial<Pick<SettingsState, 'storePlatform' | 'medusaUrl' | 'medusaApiKey' | 'activeLanguages'>>) => void;
   saveToDb: (organizationId: string) => Promise<void>;
   loadFromDb: (organizationId: string) => Promise<void>;
 }
@@ -29,10 +34,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   brandName: '',
   brandVoice: '',
   customInstructions: '',
+  storePlatform: 'medusa',
+  medusaUrl: '',
+  medusaApiKey: '',
+  activeLanguages: ['en'],
   isSaving: false,
   setOpenaiApiKey: (openaiApiKey) => set({ openaiApiKey }),
   setR2Settings: (settings) => set((state) => ({ ...state, ...settings })),
   setBrandSettings: (settings) => set((state) => ({ ...state, ...settings })),
+  setStoreSettings: (settings) => set((state) => ({ ...state, ...settings })),
   
   loadFromDb: async (organizationId: string) => {
     try {

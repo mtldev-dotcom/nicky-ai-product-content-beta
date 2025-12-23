@@ -50,6 +50,15 @@ export interface ProductState {
   // Variants/Options
   options: ProductOption[];
   
+  // Taxonomy/Store Integration
+  collection_id: string;
+  type_id: string;
+  tags: string[];
+  categories: string[];
+  sales_channels: string[];
+  shipping_weight: number;
+  shipping_dimensions: { length: number; width: number; height: number };
+  
   // Actions
   updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'ignoredUrls'>>) => void;
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
@@ -106,6 +115,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
   vault: [],
   ignoredUrls: [],
   options: [],
+  collection_id: '',
+  type_id: '',
+  tags: [],
+  categories: [],
+  sales_channels: [],
+  shipping_weight: 0,
+  shipping_dimensions: { length: 0, width: 0, height: 0 },
 
   updateRoot: (data) => set((state) => {
     const newState = { ...state, ...data };
@@ -244,6 +260,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
     vault: [],
     ignoredUrls: [],
     options: [],
+    collection_id: '',
+    type_id: '',
+    tags: [],
+    categories: [],
+    sales_channels: [],
+    shipping_weight: 0,
+    shipping_dimensions: { length: 0, width: 0, height: 0 },
   }),
 
   setOrganizationId: (id) => set({ organizationId: id }),
@@ -273,6 +296,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
         vault: state.vault,
         ignoredUrls: state.ignoredUrls,
         options: state.options,
+        collection_id: state.collection_id,
+        type_id: state.type_id,
+        tags: state.tags,
+        categories: state.categories,
+        sales_channels: state.sales_channels,
+        shipping_weight: state.shipping_weight,
+        shipping_dimensions: state.shipping_dimensions,
       }
     };
 

@@ -91,7 +91,7 @@ export default function Dashboard() {
         // Save to DB immediately after generation
         await saveToDb();
         
-        router.push('/localize');
+        router.push('/product-details');
       } else {
         alert(data.error || 'Generation failed');
       }
@@ -116,7 +116,7 @@ export default function Dashboard() {
         bulkUpdate(mappedData);
         // Save to DB immediately after import
         saveToDb();
-        router.push('/localize');
+        router.push('/product-details');
       } catch (err) {
         alert('Invalid JSON file');
       } finally {

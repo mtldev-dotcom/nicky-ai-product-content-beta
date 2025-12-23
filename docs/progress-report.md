@@ -12,9 +12,11 @@ Product Architect has successfully transitioned from a single-user utility to a 
 
 ### **Core Modules (Enhanced)**
 - **AI Vision Engine:** `/api/generate` now supports multi-modal input (Image + Text) for visual product analysis.
+- **Product Details Hub:** Centralized management for copy, features, and multi-language SEO metadata.
 - **Brand Personality Engine:** Organization-wide settings for Brand Name, Voice, and Custom Style Guidelines.
 - **Cloud-Synced Stores:** Zustand stores now persist `ProductData` and `Settings` to the database.
 - **Enhanced Media Pipeline:** Organization-specific R2/S3 paths and secure server-side credential handling.
+- **Store Integration Layer:** Encrypted support for MedusaJS API endpoints and Admin keys.
 
 ## 3. What Works (Functional Testing)
 | Feature | Status | Test Case |
@@ -23,7 +25,8 @@ Product Architect has successfully transitioned from a single-user utility to a 
 | **Data Isolation** | ✅ Working | Org A cannot see or edit Org B's products or settings. |
 | **AI Vision** | ✅ Working | Upload image -> AI analyzes materials/colors/details. |
 | **Brand Personality**| ✅ Working | Set voice to "Luxury" -> AI generates sophisticated copy. |
-| **Key Encryption** | ✅ Working | Keys saved to DB are encrypted; decrypted only on the server. |
+| **Key Encryption** | ✅ Working | Keys saved to DB (OpenAI, R2, Medusa) are encrypted. |
+| **Store Integration**| ✅ Working | Configure Medusa URL/Key -> Save -> Verify Persistence. |
 | **Cloud Persistence**| ✅ Working | Refresh page -> Product and settings load from Supabase. |
 
 ## 4. Final Testing Procedure
@@ -32,12 +35,13 @@ To verify the SaaS build:
 2. **Visual Architecting:** Use the Dashboard image upload to generate a product from a photo.
 3. **Personality Test:** Change "Brand Voice" in Settings and regenerate to see style shifts.
 4. **Credential Security:** Check Supabase Dashboard to confirm API keys are stored as encrypted strings.
+5. **Store Integration:** Save MedusaJS credentials and verify they persist securely.
 
 ## 5. What's Next (Scaling & Polish)
+- [ ] **Direct Sync:** Implement the actual data push from Product JSON to MedusaJS/Shopify APIs.
 - [ ] **Product Library:** A dedicated page to browse and search the full catalog.
 - [ ] **Team Invitations:** UI to invite team members to an organization via email.
 - [ ] **Usage Analytics:** Dashboard showing AI token usage and media storage metrics.
-- [ ] **Schema Export:** Direct sync connectors for MedusaJS and Shopify APIs.
 
 ---
 **Status:** SaaS Migration Complete - Feature Set Expanded.
