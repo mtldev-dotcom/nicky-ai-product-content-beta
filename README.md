@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Product Architect
 
-## Getting Started
+**Product Architect** is a high-fidelity e-commerce utility designed to bridge the gap between creative product ideation and rigid data schema requirements. It serves as a "command center" for product data, allowing operators to move from a simple concept to a fully localized, media-rich JSON blueprint in minutes.
 
-First, run the development server:
+![Obsidian Theme](https://img.shields.io/badge/Theme-Obsidian-indigo)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-blue)
+
+---
+
+## 🚀 Key Features
+
+### 1. AI Content Generation
+Interpret product concepts through an intelligent prompt bar. Powered by OpenAI's `gpt-4o-mini`, the system generates:
+- Human-centric titles and punchy subtitles.
+- Professional, brand-aligned descriptions.
+- SEO-optimized metadata and keyword lists.
+
+### 2. Multi-Language Localizer
+A tabbed interface for 5 global languages (EN, ES, FR, DE, JA) featuring:
+- **Auto-Translation**: Activating a language triggers an AI pass that localizes all product copy and attributes.
+- **Root Synchronization**: Changes to English (EN) properties automatically sync with root product fields.
+
+### 3. Media Management Pipeline
+A 10X workflow for asset handling:
+- **Bulk Import**: Paste a list of URLs to instantly populate your gallery.
+- **Cloud Sync**: One-click "Bucket Sync" to re-upload external images to your private Cloudflare R2/S3 bucket.
+- **DND Reordering**: Drag-and-drop gallery management with real-time thumbnail promotion and vaulting logic (3-6 images).
+- **Health Signals**: Visual indicators (Emerald/Amber) for synced vs. external assets.
+
+### 4. Variant & Option Architect
+A robust builder for product attributes (Size, Color, Material):
+- **Localized Options**: Define attribute names and values with automatic translation support.
+- **Schema Mapping**: Options are structured for 1:1 compatibility with MedusaJS and headless platforms.
+
+### 5. Smart Import & Export
+- **Heuristic Import**: Upload existing JSON (Medusa, Shopify, or Custom) and watch the app map fields automatically.
+- **JSON Blueprint**: A syntax-highlighted review center with real-time "Health Checks" to ensure production-ready status before export.
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Styling**: Tailwind CSS v4 + Framer Motion
+- **State**: Zustand (with persistence)
+- **Icons**: Lucide React
+- **AI**: OpenAI GPT-4o-mini
+- **Storage**: AWS S3 SDK (Cloudflare R2 compatible)
+
+---
+
+## ⚙️ Environment Setup
+
+Create a `.env.local` file in the root directory:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_key
+
+# Cloudflare R2 / S3 Configuration
+S3_ACCESS_KEY_ID=your_access_key
+S3_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET=your_bucket_name
+S3_REGION=auto
+S3_ENDPOINT=https://your_id.r2.cloudflarestorage.com
+S3_FILE_URL=https://pub-your_id.r2.dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠 Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+2. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+3. **Configure Settings**:
+   Navigate to the **Settings** tab in-app to manage your API keys and Storage credentials (stored locally in your browser).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📐 Schema Compliance
 
-## Deploy on Vercel
+The output JSON is strictly aligned with **THE UNCUT BRAND** internal schema, ensuring 1:1 compatibility with MedusaJS admin endpoints and custom headless frontends.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📝 Roadmap
+
+- [ ] Clerk/NextAuth Integration for secure multi-user access.
+- [ ] Bulk Image Compression before R2 upload.
+- [ ] Direct "Publish to Medusa" API integration.
+- [ ] Custom Prompt Engineering for varied brand tones.
+
+---
+
+Built by THE UNCUT BRAND.
