@@ -31,6 +31,22 @@
             "en": "Urban Chain Bracelet",
             "fr": "Bracelet Chaîne Urbain"
         },
+        "subtitle_i18n": {
+            "en": "Bold Style. Modern Edge.",
+            "fr": "Style Audacieux. Modernité Affirmée."
+        },
+        "description_i18n": {
+            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
+            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
+        },
+        "short_description_i18n": {
+            "en": "Premium stainless steel chain bracelet with modern design.",
+            "fr": "Bracelet chaîne en acier inoxydable premium au design moderne."
+        },
+        "long_description_i18n": {
+            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
+            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
+        },
         "features_i18n": {
             "en": [
                 "Premium Stainless Steel",
@@ -59,108 +75,91 @@
                 "accessoires modernes"
             ]
         },
-        "subtitle_i18n": {
-            "en": "Bold Style. Modern Edge.",
-            "fr": "Style Audacieux. Modernité Affirmée."
-        },
         "seo_title_i18n": {
             "en": "Urban Chain Bracelet | THE UNCUT BRAND",
             "fr": "Bracelet Chaîne Urbain | THE UNCUT BRAND"
-        },
-        "description_i18n": {
-            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
-            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
         },
         "seo_description_i18n": {
             "en": "Modern stainless steel chain bracelet. Bold style for the modern man.",
             "fr": "Bracelet chaîne moderne en acier inoxydable. Style audacieux pour l'homme moderne."
         },
-        "long_description_i18n": {
-            "en": "A sleek chain bracelet crafted from premium stainless steel. Perfect for layering or wearing solo. Built to last with a modern aesthetic.",
-            "fr": "Un bracelet chaîne élégant fabriqué en acier inoxydable premium. Parfait pour superposer ou porter seul. Conçu pour durer avec une esthétique moderne."
-        },
-        "short_description_i18n": {
-            "en": "Premium stainless steel chain bracelet with modern design.",
-            "fr": "Bracelet chaîne en acier inoxydable premium au design moderne."
-        }
-    },
-    "type": null,
-    "collection": null,
-    "options": [
-        {
-            "title": "Color",
-            "metadata": {
+        "options_i18n": [
+            {
                 "title_i18n": {
                     "en": "Color",
                     "fr": "Couleur"
-                }
-            },
-            "values": [
-                {
-                    "value": "black",
-                    "metadata": {
+                },
+                "values": [
+                    {
+                        "value": "black",
                         "value_i18n": {
                             "en": "Black",
                             "fr": "Noir"
                         }
-                    }
-                },
-                {
-                    "value": "gold",
-                    "metadata": {
+                    },
+                    {
+                        "value": "gold",
                         "value_i18n": {
                             "en": "Gold",
                             "fr": "Or"
                         }
-                    }
-                },
-                {
-                    "value": "silver",
-                    "metadata": {
+                    },
+                    {
+                        "value": "silver",
                         "value_i18n": {
                             "en": "Silver",
                             "fr": "Argent"
                         }
                     }
-                }
+                ]
+            },
+            {
+                "title_i18n": {
+                    "en": "Length",
+                    "fr": "Longueur"
+                },
+                "unit": "cm",
+                "values": [
+                    {
+                        "value": "18",
+                        "value_i18n": {
+                            "en": "18cm",
+                            "fr": "18cm"
+                        }
+                    },
+                    {
+                        "value": "20",
+                        "value_i18n": {
+                            "en": "20cm",
+                            "fr": "20cm"
+                        }
+                    },
+                    {
+                        "value": "22",
+                        "value_i18n": {
+                            "en": "22cm",
+                            "fr": "22cm"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "options": [
+        {
+            "title": "Color",
+            "values": [
+                "black",
+                "gold",
+                "silver"
             ]
         },
         {
             "title": "Length",
-            "metadata": {
-                "title_i18n": {
-                    "en": "Length",
-                    "fr": "Longueur"
-                }
-            },
             "values": [
-                {
-                    "value": "18",
-                    "metadata": {
-                        "value_i18n": {
-                            "en": "18",
-                            "fr": "18"
-                        }
-                    }
-                },
-                {
-                    "value": "20",
-                    "metadata": {
-                        "value_i18n": {
-                            "en": "20",
-                            "fr": "20"
-                        }
-                    }
-                },
-                {
-                    "value": "22",
-                    "metadata": {
-                        "value_i18n": {
-                            "en": "22",
-                            "fr": "22"
-                        }
-                    }
-                }
+                "18",
+                "20",
+                "22"
             ]
         }
     ],

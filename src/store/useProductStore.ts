@@ -40,6 +40,8 @@ export interface ProductState {
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
   toggleLanguage: (lang: string) => void;
   setImages: (images: string[]) => void;
+  reorderImages: (images: string[]) => void;
+  setThumbnail: (url: string) => void;
   addOption: (name: string) => void;
   updateOption: (id: string, values: string[]) => void;
   removeOption: (id: string) => void;
@@ -129,6 +131,21 @@ export const useProductStore = create<ProductState>((set, get) => ({
       thumbnail: thumbnail || state.thumbnail,
     };
   }),
+
+  reorderImages: (images) => set((state) => {
+    const vault = images.slice(0, 6);
+    // When reordering, we keep the existing thumbnail unless it's no longer in the list
+    // If it's the first time reordering, the first image usually becomes the thumb
+    const newThumbnail = images.includes(state.thumbnail) ? state.thumbnail : (images[0] || '');
+    
+    return {
+      images,
+      vault: vault.length >= 3 ? vault : [],
+      thumbnail: newThumbnail,
+    };
+  }),
+
+  setThumbnail: (url) => set({ thumbnail: url }),
 
   addOption: (name) => set((state) => ({
     options: [...state.options, { id: crypto.randomUUID(), name, values: [] }],

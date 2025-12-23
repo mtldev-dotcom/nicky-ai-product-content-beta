@@ -12,13 +12,15 @@ import {
   Loader2,
   ImagePlus,
   ArrowDownToLine,
-  Star
+  Star,
+  GripVertical,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 export default function MediaPage() {
-  const { images, setImages, thumbnail } = useProductStore();
+  const { images, reorderImages, setThumbnail, setImages, thumbnail } = useProductStore();
   const [bulkUrls, setBulkUrls] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [syncingUrls, setSyncingUrls] = useState<string[]>([]);
@@ -44,7 +46,6 @@ export default function MediaPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        // 1. Get presigned URL
         const res = await fetch('/api/media/presigned', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -53,7 +54,6 @@ export default function MediaPage() {
         
         const { presignedUrl, publicUrl } = await res.json();
 
-        // 2. Upload directly to R2
         await fetch(presignedUrl, {
           method: 'PUT',
           body: file,
@@ -165,72 +165,132 @@ export default function MediaPage() {
                 {images.length} assets
               </span>
             </h2>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-bold">
+              <span className="flex items-center gap-1 text-emerald-500">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" /> Synced
+              </span>
+              <span className="flex items-center gap-1 text-amber-500">
+                <div className="w-2 h-2 rounded-full bg-amber-500" /> Unsynced
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <Reorder.Group 
+            axis="y" 
+            values={images} 
+            onReorder={reorderImages}
+            className="grid grid-cols-2 sm:grid-cols-3 gap-4"
+          >
             <AnimatePresence>
-              {images.map((url, idx) => {
-                const isSynced = url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev');
+              {images.map((url) => {
+                const isSynced = url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
                 const isSyncing = syncingUrls.includes(url);
                 const isThumbnail = url === thumbnail;
 
                 return (
-                  <motion.div 
+                  <Reorder.Item
                     key={url}
+                    value={url}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="relative aspect-square rounded-2xl overflow-hidden glass border border-white/10 group"
+                    className={cn(
+                      "relative aspect-square rounded-2xl overflow-hidden glass transition-all duration-300 group cursor-grab active:cursor-grabbing border-2",
+                      isSynced ? "border-emerald-500/30" : "border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                    )}
                   >
-                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
                     
+                    {/* Reorder Handle */}
+                    <div className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
+                      <GripVertical className="w-4 h-4 text-white/70" />
+                    </div>
+
+                    {/* Sync Status Badge (Mobile visible, Desktop hover) */}
+                    {!isSynced && (
+                      <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-amber-500 text-white shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <AlertTriangle className="w-3 h-3" />
+                      </div>
+                    )}
+
                     {/* Overlay Actions */}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                       <div className="flex justify-between items-start">
-                        {isThumbnail ? (
-                          <div className="bg-amber-500 text-white p-1.5 rounded-lg shadow-lg">
-                            <Star className="w-4 h-4 fill-white" />
-                          </div>
-                        ) : <div />}
                         <button 
-                          onClick={() => removeImage(url)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setThumbnail(url);
+                          }}
+                          className={cn(
+                            "p-1.5 rounded-lg transition-all",
+                            isThumbnail 
+                              ? "bg-amber-500 text-white shadow-lg scale-110" 
+                              : "bg-white/10 text-white/50 hover:text-white hover:bg-white/20"
+                          )}
+                        >
+                          <Star className={cn("w-4 h-4", isThumbnail && "fill-white")} />
+                        </button>
+                        
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImage(url);
+                          }}
                           className="bg-red-500/80 hover:bg-red-500 text-white p-1.5 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
 
-                      <div className="flex justify-center gap-2">
+                      <div className="flex flex-col gap-2">
                         {!isSynced && (
-                          <button 
-                            onClick={() => handleSyncToBucket(url)}
-                            disabled={isSyncing}
-                            className="w-full bg-white/10 hover:bg-indigo-500 text-white py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 backdrop-blur-md transition-all border border-white/10"
-                          >
-                            {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Cloud className="w-4 h-4" />}
-                            {isSyncing ? 'Syncing...' : 'Sync to R2'}
-                          </button>
+                          <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
+                            <input 
+                              type="checkbox"
+                              checked={false}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleSyncToBucket(url);
+                              }}
+                              className="w-4 h-4 rounded border-amber-500 text-amber-500 focus:ring-amber-500 bg-transparent"
+                            />
+                            <span className="text-[10px] font-bold text-amber-500 uppercase">Auto-Sync</span>
+                            {isSyncing && <Loader2 className="w-3 h-3 animate-spin text-amber-500 ml-auto" />}
+                          </div>
                         )}
-                        {isSynced && (
-                          <div className="w-full bg-emerald-500/20 text-emerald-400 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 backdrop-blur-md border border-emerald-500/30">
-                            <Check className="w-4 h-4" />
+                        
+                        {!isSynced ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSyncToBucket(url);
+                            }}
+                            disabled={isSyncing}
+                            className="w-full bg-white/10 hover:bg-indigo-500 text-white py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md transition-all border border-white/10"
+                          >
+                            {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cloud className="w-3 h-3" />}
+                            {isSyncing ? 'Syncing...' : 'Push to R2'}
+                          </button>
+                        ) : (
+                          <div className="w-full bg-emerald-500/20 text-emerald-400 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md border border-emerald-500/30">
+                            <Check className="w-3 h-3" />
                             Vaulted
                           </div>
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </Reorder.Item>
                 );
               })}
             </AnimatePresence>
+          </Reorder.Group>
             
-            {images.length === 0 && (
-              <div className="col-span-full py-20 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-zinc-600 gap-2">
-                <ImagePlus className="w-12 h-12" />
-                <p>No images yet. Start by importing URLs.</p>
-              </div>
-            )}
-          </div>
+          {images.length === 0 && (
+            <div className="py-20 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center text-zinc-600 gap-2">
+              <ImagePlus className="w-12 h-12" />
+              <p>No images yet. Start by importing URLs.</p>
+            </div>
+          )}
 
           {/* Vault Indicator */}
           {images.length >= 3 && images.length <= 6 && (
@@ -253,4 +313,3 @@ export default function MediaPage() {
     </div>
   );
 }
-
