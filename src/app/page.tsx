@@ -1,22 +1,62 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
 import { useRouter } from 'next/navigation';
 import { mapExternalToProduct } from '@/lib/mapper';
+import { createClient } from '@/utils/supabase/client';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [prompt, setPrompt] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const { updateRoot, updateLocalization, bulkUpdate, resetStore } = useProductStore();
+  const { updateRoot, updateLocalization, bulkUpdate, resetStore, setOrganizationId, saveToDb } = useProductStore();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const getOrg = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: membership } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (membership) {
+          setOrganizationId(membership.organization_id);
+        }
+      }
+    };
+    getOrg();
+  }, [setOrganizationId, supabase]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Basic size check (approx 4MB)
+    if (file.size > 4.5 * 1024 * 1024) {
+      alert('Image is too large. Please select an image under 4MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setSelectedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() && !selectedImage) return;
     
     setIsLoading(true);
     resetStore(); // Start fresh
@@ -24,7 +64,10 @@ export default function Dashboard() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ 
+          prompt,
+          image: selectedImage
+        }),
       });
       
       const data = await res.json();
@@ -44,6 +87,9 @@ export default function Dashboard() {
           metadata_description: data.metadata_description,
           keywords: data.keywords,
         });
+        
+        // Save to DB immediately after generation
+        await saveToDb();
         
         router.push('/localize');
       } else {
@@ -68,6 +114,8 @@ export default function Dashboard() {
         const mappedData = mapExternalToProduct(json);
         resetStore();
         bulkUpdate(mappedData);
+        // Save to DB immediately after import
+        saveToDb();
         router.push('/localize');
       } catch (err) {
         alert('Invalid JSON file');
@@ -101,22 +149,64 @@ export default function Dashboard() {
         <div className="lg:col-span-8 relative group">
           <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
           <div className="relative glass-dark rounded-2xl p-2 flex flex-col md:flex-row items-stretch md:items-center gap-2 border border-white/10 shadow-2xl h-full">
-            <input 
-              type="text"
-              placeholder="e.g., A minimalist recycled leather wallet..."
-              className="flex-1 bg-transparent border-none focus:ring-0 text-lg px-4 py-4 text-white placeholder:text-zinc-600 outline-none"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-              disabled={isLoading || isImporting}
-            />
+            <div className="flex-1 flex items-center gap-2 px-2">
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={imageInputRef} 
+                accept="image/*"
+                onChange={handleImageSelect}
+              />
+              <button 
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isLoading || isImporting}
+                className={cn(
+                  "p-3 rounded-xl transition-all active:scale-90",
+                  selectedImage 
+                    ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
+                    : "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
+                )}
+                title="Add reference image"
+              >
+                <ImagePlus className="w-5 h-5" />
+              </button>
+
+              <AnimatePresence>
+                {selectedImage && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/10 flex-shrink-0"
+                  >
+                    <img src={selectedImage} alt="Analysis Target" className="w-full h-full object-cover" />
+                    <button 
+                      onClick={() => setSelectedImage(null)}
+                      className="absolute top-0 right-0 p-0.5 bg-black/60 text-white rounded-bl-lg hover:text-red-400"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <input 
+                type="text"
+                placeholder={selectedImage ? "Describe what to focus on..." : "e.g., A minimalist recycled leather wallet..."}
+                className="flex-1 bg-transparent border-none focus:ring-0 text-lg py-4 text-white placeholder:text-zinc-600 outline-none"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                disabled={isLoading || isImporting}
+              />
+            </div>
             <button 
               onClick={handleGenerate}
-              disabled={isLoading || isImporting || !prompt.trim()}
+              disabled={isLoading || isImporting || (!prompt.trim() && !selectedImage)}
               className="bg-indigo-500 hover:bg-indigo-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95 group/btn"
             >
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-              {isLoading ? 'Generating...' : 'Create'}
+              {isLoading ? 'Analyzing...' : 'Create'}
             </button>
           </div>
         </div>

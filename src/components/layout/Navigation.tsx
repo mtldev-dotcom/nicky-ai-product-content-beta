@@ -9,9 +9,11 @@ import {
   Image as ImageIcon, 
   Layers, 
   Settings,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { signOut } from '@/app/login/actions';
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dash', href: '/' },
@@ -57,6 +59,18 @@ export const Navigation = () => {
             );
           })}
         </div>
+
+        <div className="mt-auto">
+          <button 
+            onClick={() => signOut()}
+            className="p-3 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300 group relative"
+          >
+            <LogOut className="w-6 h-6" />
+            <span className="absolute left-full ml-4 px-2 py-1 bg-zinc-900 text-zinc-200 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-white/5 z-[60]">
+              Sign Out
+            </span>
+          </button>
+        </div>
       </nav>
 
       {/* Mobile Bottom Bar */}
@@ -79,6 +93,15 @@ export const Navigation = () => {
             </Link>
           );
         })}
+        <button 
+          onClick={() => signOut()}
+          className="flex flex-col items-center gap-1 text-zinc-500 hover:text-red-400 transition-all duration-300"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="text-[10px] font-medium uppercase tracking-tighter">
+            Exit
+          </span>
+        </button>
       </nav>
     </>
   );

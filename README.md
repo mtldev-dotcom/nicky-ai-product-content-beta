@@ -1,104 +1,56 @@
-# Product Architect
+# Product Architect — AI-Powered E-commerce Content (SaaS Edition)
 
-**Product Architect** is a high-fidelity e-commerce utility designed to bridge the gap between creative product ideation and rigid data schema requirements. It serves as a "command center" for product data, allowing operators to move from a simple concept to a fully localized, media-rich JSON blueprint in minutes.
-
-![Obsidian Theme](https://img.shields.io/badge/Theme-Obsidian-indigo)
-![Next.js](https://img.shields.io/badge/Next.js-15-black)
-![Tailwind](https://img.shields.io/badge/Tailwind-v4-blue)
-
----
+Product Architect is a professional, multi-tenant SaaS utility for e-commerce operators. It bridges the gap between creative product ideation and rigid data schema requirements, allowing users to move from an image or a simple concept to a fully localized, media-rich JSON object in minutes.
 
 ## 🚀 Key Features
 
-### 1. AI Content Generation
-Interpret product concepts through an intelligent prompt bar. Powered by OpenAI's `gpt-4o-mini`, the system generates:
-- Human-centric titles and punchy subtitles.
-- Professional, brand-aligned descriptions.
-- SEO-optimized metadata and keyword lists.
+### 1. Visual Product Orchestration (AI Vision)
+The "command center" now supports image-based input. Upload a product photo, and our AI (powered by GPT-4o-mini Vision) will analyze materials, textures, colors, and design elements to hydrate your product blueprint.
 
-### 2. Multi-Language Localizer
-A tabbed interface for 5 global languages (EN, ES, FR, DE, JA) featuring:
-- **Auto-Translation**: Activating a language triggers an AI pass that localizes all product copy and attributes.
-- **Root Synchronization**: Changes to English (EN) properties automatically sync with root product fields.
+### 2. Multi-Tenant SaaS Infrastructure
+- **Secure Auth:** Powered by Supabase, with organizational workspaces.
+- **Data Isolation:** PostgreSQL Row Level Security (RLS) ensures your catalog data is visible only to your team.
+- **Cloud Sync:** Every generation, import, and setting change is persisted to the cloud in real-time.
 
-### 3. Media Management Pipeline
-A 10X workflow for asset handling:
-- **Bulk Import**: Paste a list of URLs to instantly populate your gallery.
-- **Cloud Sync**: One-click "Bucket Sync" to re-upload external images to your private Cloudflare R2/S3 bucket.
-- **DND Reordering**: Drag-and-drop gallery management with real-time thumbnail promotion and vaulting logic (3-6 images).
-- **Health Signals**: Visual indicators (Emerald/Amber) for synced vs. external assets.
+### 3. Brand Personality Engine
+Align your AI agents with your organization's unique identity. Configure Brand Name, Voice (Minimalist, Luxury, etc.), and custom style instructions that are dynamically applied to all copy generation and translations.
 
-### 4. Variant & Option Architect
-A robust builder for product attributes (Size, Color, Material):
-- **Localized Options**: Define attribute names and values with automatic translation support.
-- **Schema Mapping**: Options are structured for 1:1 compatibility with MedusaJS and headless platforms.
+### 4. Enterprise-Grade Security
+- **Credential Encryption:** All API keys (OpenAI, R2) are encrypted using AES-256-GCM before being stored.
+- **Server-Side Processing:** Decryption and API calls happen exclusively on the server to prevent exposure of sensitive keys to the browser.
 
-### 5. Smart Import & Export
-- **Heuristic Import**: Upload existing JSON (Medusa, Shopify, or Custom) and watch the app map fields automatically.
-- **JSON Blueprint**: A syntax-highlighted review center with real-time "Health Checks" to ensure production-ready status before export.
+### 5. High-Fidelity Media Pipeline
+- **Smart Sync:** One-click syncing of external images to your private Cloudflare R2 bucket.
+- **Tenant Isolation:** Media assets are automatically organized into tenant-specific paths.
+- **Vaulting Logic:** Automated optimization for frontend gallery delivery.
 
----
+## 🛠️ Technical Stack
 
-## 🛠 Tech Stack
+- **Frontend:** Next.js 15 (App Router) + Tailwind CSS v4
+- **State:** Zustand (with Supabase persistence)
+- **Backend:** Supabase (Auth, Postgres, RLS)
+- **AI:** OpenAI GPT-4o-mini (Vision & Chat)
+- **Storage:** Cloudflare R2 / AWS S3
+- **Security:** AES-256-GCM Encryption
 
-- **Framework**: Next.js 15 (App Router)
-- **Styling**: Tailwind CSS v4 + Framer Motion
-- **State**: Zustand (with persistence)
-- **Icons**: Lucide React
-- **AI**: OpenAI GPT-4o-mini
-- **Storage**: AWS S3 SDK (Cloudflare R2 compatible)
+## 🏁 Getting Started
 
----
-
-## ⚙️ Environment Setup
-
-Create a `.env.local` file in the root directory:
-
-```bash
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_key
-
-# Cloudflare R2 / S3 Configuration
-S3_ACCESS_KEY_ID=your_access_key
-S3_SECRET_ACCESS_KEY=your_secret_key
-S3_BUCKET=your_bucket_name
-S3_REGION=auto
-S3_ENDPOINT=https://your_id.r2.cloudflarestorage.com
-S3_FILE_URL=https://pub-your_id.r2.dev
-```
-
----
-
-## 🛠 Getting Started
-
-1. **Install Dependencies**:
+1. **Environment Setup:**
+   Create a `.env.local` file with the following:
    ```bash
-   npm install
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   ENCRYPTION_KEY=... # 64-character hex string
    ```
 
-2. **Run Development Server**:
+2. **Database Setup:**
+   Run the SQL migrations provided in `src/utils/supabase/` or use the Supabase CLI.
+
+3. **Install & Run:**
    ```bash
+   npm install
    npm run dev
    ```
 
-3. **Configure Settings**:
-   Navigate to the **Settings** tab in-app to manage your API keys and Storage credentials (stored locally in your browser).
-
 ---
-
-## 📐 Schema Compliance
-
-The output JSON is strictly aligned with **THE UNCUT BRAND** internal schema, ensuring 1:1 compatibility with MedusaJS admin endpoints and custom headless frontends.
-
----
-
-## 📝 Roadmap
-
-- [ ] Clerk/NextAuth Integration for secure multi-user access.
-- [ ] Bulk Image Compression before R2 upload.
-- [ ] Direct "Publish to Medusa" API integration.
-- [ ] Custom Prompt Engineering for varied brand tones.
-
----
-
-Built by THE UNCUT BRAND.
+Developed for high-fidelity e-commerce catalog orchestration.

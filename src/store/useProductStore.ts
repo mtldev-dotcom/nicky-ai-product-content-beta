@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { createClient } from '@/utils/supabase/client';
 
 export interface Localization {
   title: string;
@@ -25,6 +26,10 @@ export interface ProductOption {
 }
 
 export interface ProductState {
+  id?: string;
+  organizationId?: string;
+  isSaving: boolean;
+  
   // Medusa Top-level
   title: string;
   subtitle: string;
@@ -64,6 +69,9 @@ export interface ProductState {
   
   resetStore: () => void;
   bulkUpdate: (data: Partial<ProductState>) => void;
+  setOrganizationId: (id: string) => void;
+  setIsSaving: (saving: boolean) => void;
+  saveToDb: () => Promise<void>;
 }
 
 const INITIAL_LOCALIZATION: Localization = {
@@ -88,6 +96,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   sku: '',
   price: 0,
   activeLanguages: ['en'],
+  isSaving: false,
   localization: {
     en: { ...INITIAL_LOCALIZATION },
     es: { ...INITIAL_LOCALIZATION },
@@ -231,6 +240,59 @@ export const useProductStore = create<ProductState>((set, get) => ({
     vault: [],
     options: [],
   }),
+
+  setOrganizationId: (id) => set({ organizationId: id }),
+  setIsSaving: (saving) => set({ isSaving: saving }),
+
+  saveToDb: async () => {
+    const state = get();
+    if (!state.organizationId) return;
+
+    set({ isSaving: true });
+    const supabase = createClient();
+
+    const productData = {
+      organization_id: state.organizationId,
+      title: state.title,
+      handle: state.handle,
+      status: state.status,
+      sku: state.sku,
+      price: state.price,
+      data: {
+        subtitle: state.subtitle,
+        description: state.description,
+        thumbnail: state.thumbnail,
+        activeLanguages: state.activeLanguages,
+        localization: state.localization,
+        images: state.images,
+        vault: state.vault,
+        options: state.options,
+      }
+    };
+
+    try {
+      if (state.id) {
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', state.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from('products')
+          .insert(productData)
+          .select()
+          .single();
+        if (error) throw error;
+        set({ id: data.id });
+      }
+    } catch (err) {
+      console.error('Error saving product:', err);
+      alert('Failed to save product to cloud');
+    } finally {
+      set({ isSaving: false });
+    }
+  },
 
   bulkUpdate: (data) => set((state) => ({ ...state, ...data })),
 }));

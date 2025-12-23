@@ -4,15 +4,20 @@ import React from 'react';
 import { Navigation } from './Navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export const Shell = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/onboarding';
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 flex flex-col md:flex-row">
-      <Navigation />
+      {!isAuthPage && <Navigation />}
       
-      <main className="flex-1 flex flex-col md:pl-20 pb-24 md:pb-0">
+      <main className={cn(
+        "flex-1 flex flex-col pb-24 md:pb-0",
+        !isAuthPage && "md:pl-20"
+      )}>
         <AnimatePresence mode="wait">
           <motion.div
             key={pathname}

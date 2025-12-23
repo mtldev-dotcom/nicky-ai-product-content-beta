@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { createClient } from '@/utils/supabase/server';
+import { decrypt } from '@/lib/crypto';
 
 export async function POST(req: Request) {
   try {
@@ -13,8 +11,55 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing source or target language' }, { status: 400 });
     }
 
-    const systemPrompt = `You are a professional multi-lingual translator for "THE UNCUT BRAND".
-    Translate the following product data into ${targetLang}.
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get organization for user
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 403 });
+    }
+
+    // Get organization settings
+    const { data: settings } = await supabase
+      .from('organization_settings')
+      .select('*')
+      .eq('organization_id', membership.organization_id)
+      .single();
+
+    let apiKey = settings?.openai_api_key;
+    if (apiKey) {
+      try {
+        apiKey = decrypt(apiKey);
+      } catch (e) {
+        console.error('Decryption failed for OpenAI API key:', e);
+      }
+    } else {
+      apiKey = process.env.OPENAI_API_KEY;
+    }
+
+    if (!apiKey) {
+      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+    }
+
+    const brandName = settings?.brand_name || 'a professional brand';
+    const brandVoice = settings?.brand_voice || 'professional, clear, and engaging';
+    const customInstructions = settings?.custom_instructions || '';
+
+    const openai = new OpenAI({ apiKey });
+
+    const systemPrompt = `You are a professional multi-lingual translator for ${brandName}.
+    Translate the following product data into ${targetLang} while maintaining the brand's ${brandVoice} voice.
+    ${customInstructions ? `Special Instructions: ${customInstructions}` : ''}
     
     CRITICAL: You must return the EXACT same JSON structure as provided.
     For options, ensure each option has a "translations" object containing the key "${selectedLang}".
