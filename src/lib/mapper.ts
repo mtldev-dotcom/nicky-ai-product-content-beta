@@ -55,6 +55,7 @@ export function mapExternalToProduct(rawJson: any): Partial<ProductState> {
     price,
     images,
     options,
+    ignoredUrls: [],
     localization: {
       en: enLoc,
       es: { title: '', description: '' },

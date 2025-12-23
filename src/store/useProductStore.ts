@@ -5,8 +5,6 @@ export interface Localization {
   title: string;
   subtitle: string;
   description: string;
-  short_description: string;
-  long_description: string;
   features: string[];
   metadata_title: string;
   metadata_description: string;
@@ -47,17 +45,19 @@ export interface ProductState {
   // Media
   images: string[];
   vault: string[];
+  ignoredUrls: string[];
   
   // Variants/Options
   options: ProductOption[];
   
   // Actions
-  updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options'>>) => void;
+  updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'ignoredUrls'>>) => void;
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
   toggleLanguage: (lang: string) => void;
   setImages: (images: string[]) => void;
   reorderImages: (images: string[]) => void;
   setThumbnail: (url: string) => void;
+  toggleIgnoreSync: (url: string) => void;
   
   // Enhanced Option Actions
   addOption: (name: string) => void;
@@ -78,8 +78,6 @@ const INITIAL_LOCALIZATION: Localization = {
   title: '',
   subtitle: '',
   description: '',
-  short_description: '',
-  long_description: '',
   features: [],
   metadata_title: '',
   metadata_description: '',
@@ -106,6 +104,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
   images: [],
   vault: [],
+  ignoredUrls: [],
   options: [],
 
   updateRoot: (data) => set((state) => {
@@ -123,7 +122,6 @@ export const useProductStore = create<ProductState>((set, get) => ({
         title: data.title ?? enLoc.title,
         subtitle: data.subtitle ?? enLoc.subtitle,
         description: data.description ?? enLoc.description,
-        long_description: data.description ?? enLoc.long_description,
       };
     }
     
@@ -174,6 +172,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
   })),
 
   setThumbnail: (url) => set({ thumbnail: url }),
+
+  toggleIgnoreSync: (url) => set((state) => ({
+    ignoredUrls: state.ignoredUrls.includes(url)
+      ? state.ignoredUrls.filter((u) => u !== url)
+      : [...state.ignoredUrls, url],
+  })),
 
   addOption: (name) => set((state) => ({
     options: [...state.options, { 
@@ -238,6 +242,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     },
     images: [],
     vault: [],
+    ignoredUrls: [],
     options: [],
   }),
 
@@ -266,6 +271,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         localization: state.localization,
         images: state.images,
         vault: state.vault,
+        ignoredUrls: state.ignoredUrls,
         options: state.options,
       }
     };

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
 import { useRouter } from 'next/navigation';
@@ -126,6 +126,47 @@ export default function Dashboard() {
     reader.readAsText(file);
   };
 
+  const handleDownloadDemo = () => {
+    const demoProduct = {
+      title: "Minimalist Recycled Leather Wallet",
+      description: "Hand-crafted from 100% recycled premium leather, this slim wallet combines sustainability with timeless design. Featuring a precision-cut silhouette and reinforced stitching for ultimate longevity.",
+      subtitle: "Sustainability meets sophisticated design.",
+      sku: "WL-MIN-001",
+      price: 45.00,
+      images: [
+        "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1550520920-27af500dae7a?auto=format&fit=crop&q=80&w=800"
+      ],
+      options: [
+        {
+          name: "Color",
+          values: ["Obsidian Black", "Arctic White", "Saddle Brown"]
+        },
+        {
+          name: "Size",
+          values: ["Slim", "Executive"]
+        }
+      ],
+      features: [
+        "100% recycled leather",
+        "Holds up to 8 cards",
+        "RFID protection layer",
+        "Hand-stitched durability"
+      ],
+      metadata_title: "Minimalist Wallet | Recycled Leather | The Uncut Brand",
+      metadata_description: "Shop our handcrafted minimalist wallet made from recycled leather. Sustainable, slim, and built to last.",
+      keywords: ["wallet", "leather", "minimalist", "sustainable", "recycled", "rfid protection"]
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(demoProduct, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "product-demo.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
   return (
     <div className="space-y-12">
       {/* Header Section */}
@@ -211,12 +252,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Import Button */}
-        <div className="lg:col-span-4">
+        {/* Import & Demo Actions */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading || isImporting}
-            className="w-full h-full glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
+            className="w-full flex-1 glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
           >
             <input 
               type="file" 
@@ -234,6 +275,22 @@ export default function Dashboard() {
                 <UploadCloud className="w-3 h-3 text-zinc-500" />
               </p>
               <p className="text-xs text-zinc-500">Shopify, Medusa, or custom</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={handleDownloadDemo}
+            className="w-full glass rounded-2xl p-4 border border-white/10 hover:border-emerald-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-all">
+              <FileDown className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <p className="text-white font-semibold flex items-center gap-2">
+                Download Demo
+                <Sparkles className="w-3 h-3 text-zinc-500" />
+              </p>
+              <p className="text-xs text-zinc-500">Best outcome blueprint</p>
             </div>
           </button>
         </div>

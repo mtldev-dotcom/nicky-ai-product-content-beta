@@ -20,10 +20,11 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 
 export default function MediaPage() {
-  const { images, reorderImages, setThumbnail, setImages, thumbnail } = useProductStore();
+  const { images, reorderImages, setThumbnail, setImages, thumbnail, ignoredUrls, toggleIgnoreSync } = useProductStore();
   const [bulkUrls, setBulkUrls] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [syncingUrls, setSyncingUrls] = useState<string[]>([]);
+  const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleBulkImport = () => {
@@ -184,8 +185,10 @@ export default function MediaPage() {
             <AnimatePresence>
               {images.map((url) => {
                 const isSynced = url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
+                const isIgnored = ignoredUrls.includes(url);
                 const isSyncing = syncingUrls.includes(url);
                 const isThumbnail = url === thumbnail;
+                const isFullVisible = expandedUrl === url;
 
                 return (
                   <Reorder.Item
@@ -196,25 +199,39 @@ export default function MediaPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     className={cn(
                       "relative aspect-square rounded-2xl overflow-hidden glass transition-all duration-300 group cursor-grab active:cursor-grabbing border-2",
-                      isSynced ? "border-emerald-500/30" : "border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                      (isSynced || isIgnored) ? "border-emerald-500/30" : "border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]"
                     )}
                   >
                     <img src={url} alt="" className="w-full h-full object-cover pointer-events-none" />
                     
+                    {/* URL Display */}
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedUrl(isFullVisible ? null : url);
+                      }}
+                      className={cn(
+                        "absolute bottom-0 left-0 right-0 p-2 bg-black/60 backdrop-blur-md text-[10px] text-zinc-300 font-mono transition-all cursor-pointer z-10",
+                        isFullVisible ? "h-auto break-all whitespace-normal" : "truncate h-8 flex items-center"
+                      )}
+                    >
+                      {url}
+                    </div>
+
                     {/* Reorder Handle */}
-                    <div className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-2 left-2 p-1.5 rounded-lg bg-black/40 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-20">
                       <GripVertical className="w-4 h-4 text-white/70" />
                     </div>
 
                     {/* Sync Status Badge (Mobile visible, Desktop hover) */}
-                    {!isSynced && (
-                      <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-amber-500 text-white shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    {!isSynced && !isIgnored && (
+                      <div className="absolute top-2 right-2 p-1.5 rounded-lg bg-amber-500 text-white shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20">
                         <AlertTriangle className="w-3 h-3" />
                       </div>
                     )}
 
                     {/* Overlay Actions */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 z-30">
                       <div className="flex justify-between items-start">
                         <button 
                           onClick={(e) => {
@@ -242,39 +259,45 @@ export default function MediaPage() {
                         </button>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 mb-6">
                         {!isSynced && (
-                          <div className="flex items-center gap-2 p-2 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-500/30">
-                            <input 
-                              type="checkbox"
-                              checked={false}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleSyncToBucket(url);
-                              }}
-                              className="w-4 h-4 rounded border-amber-500 text-amber-500 focus:ring-amber-500 bg-transparent"
-                            />
-                            <span className="text-[10px] font-bold text-amber-500 uppercase">Auto-Sync</span>
-                            {isSyncing && <Loader2 className="w-3 h-3 animate-spin text-amber-500 ml-auto" />}
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2 p-2 rounded-xl bg-white/5 backdrop-blur-md border border-white/10">
+                              <input 
+                                type="checkbox"
+                                checked={isIgnored}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleIgnoreSync(url);
+                                }}
+                                className="w-4 h-4 rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent"
+                              />
+                              <span className="text-[10px] font-bold text-zinc-300 uppercase">Ignore Sync</span>
+                            </div>
+
+                            {!isIgnored && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSyncToBucket(url);
+                                }}
+                                disabled={isSyncing}
+                                className="w-full bg-white/10 hover:bg-indigo-500 text-white py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md transition-all border border-white/10"
+                              >
+                                {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cloud className="w-3 h-3" />}
+                                {isSyncing ? 'Syncing...' : 'Push to R2'}
+                              </button>
+                            )}
                           </div>
                         )}
                         
-                        {!isSynced ? (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSyncToBucket(url);
-                            }}
-                            disabled={isSyncing}
-                            className="w-full bg-white/10 hover:bg-indigo-500 text-white py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md transition-all border border-white/10"
-                          >
-                            {isSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Cloud className="w-3 h-3" />}
-                            {isSyncing ? 'Syncing...' : 'Push to R2'}
-                          </button>
-                        ) : (
-                          <div className="w-full bg-emerald-500/20 text-emerald-400 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md border border-emerald-500/30">
+                        {(isSynced || isIgnored) && (
+                          <div className={cn(
+                            "w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 backdrop-blur-md border",
+                            isSynced ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+                          )}>
                             <Check className="w-3 h-3" />
-                            Vaulted
+                            {isSynced ? 'Vaulted' : 'Pinned External'}
                           </div>
                         )}
                       </div>

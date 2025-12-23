@@ -18,6 +18,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').then(mod => mod.RichTextEditor), {
+  ssr: false,
+  loading: () => <div className="w-full h-[150px] bg-zinc-900/50 border border-white/10 rounded-2xl animate-pulse" />
+});
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -206,35 +212,13 @@ export default function LocalizePage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-zinc-400">Description</label>
-                <textarea 
-                  rows={4}
-                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
+                <RichTextEditor 
                   value={currentLoc.description || ''}
-                  onChange={(e) => handleUpdate('description', e.target.value)}
+                  onChange={(val) => handleUpdate('description', val)}
                   placeholder="Professional product description..."
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Short Description</label>
-                  <textarea 
-                    rows={3}
-                    className="w-full bg-zinc-900/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
-                    value={currentLoc.short_description || ''}
-                    onChange={(e) => handleUpdate('short_description', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-400">Long Description</label>
-                  <textarea 
-                    rows={3}
-                    className="w-full bg-zinc-900/30 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none"
-                    value={currentLoc.long_description || ''}
-                    onChange={(e) => handleUpdate('long_description', e.target.value)}
-                  />
-                </div>
-              </div>
             </div>
           </section>
 

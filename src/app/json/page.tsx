@@ -61,8 +61,6 @@ export default function JsonPage() {
         title_i18n: buildI18n('title'),
         subtitle_i18n: buildI18n('subtitle'),
         description_i18n: buildI18n('description'),
-        short_description_i18n: buildI18n('short_description'),
-        long_description_i18n: buildI18n('long_description'),
         features_i18n: buildI18n('features'),
         keywords_i18n: buildI18n('keywords'),
         seo_title_i18n: buildI18n('metadata_title'),
@@ -112,7 +110,19 @@ export default function JsonPage() {
     const issues = [];
     if (!product.title) issues.push('Missing Product Title');
     if (!product.handle && !product.title) issues.push('Missing Handle');
-    if (product.images.length === 0) issues.push('No images added');
+    if (product.images.length === 0) {
+      issues.push('No images added');
+    } else {
+      const unsyncedCount = product.images.filter(url => {
+        const isSynced = url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
+        const isIgnored = (product as any).ignoredUrls?.includes(url);
+        return !isSynced && !isIgnored;
+      }).length;
+      
+      if (unsyncedCount > 0) {
+        issues.push(`${unsyncedCount} images pending cloud sync or ignore`);
+      }
+    }
     return issues;
   }, [product]);
 
