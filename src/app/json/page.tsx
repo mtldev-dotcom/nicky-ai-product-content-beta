@@ -65,18 +65,31 @@ export default function JsonPage() {
         keywords_i18n: buildI18n('keywords'),
         seo_title_i18n: buildI18n('metadata_title'),
         seo_description_i18n: buildI18n('metadata_description'),
-        options_i18n: product.options.map(opt => ({
-          title_i18n: opt.translations,
-          values: opt.values.map(v => ({
-            value: v.value,
-            value_i18n: v.translations
-          }))
-        }))
+        options_i18n: product.options.length > 0 
+          ? product.options.map(opt => ({
+              title_i18n: opt.translations,
+              values: opt.values.map(v => ({
+                value: v.value,
+                value_i18n: v.translations
+              }))
+            }))
+          : [{
+              title_i18n: { en: "Default option" },
+              values: [{
+                value: "Default option value",
+                value_i18n: { en: "Default option value" }
+              }]
+            }]
       },
-      options: product.options.map(opt => ({
-        title: opt.name,
-        values: opt.values.map(v => v.value)
-      })),
+      options: product.options.length > 0 
+        ? product.options.map(opt => ({
+            title: opt.name,
+            values: opt.values.map(v => v.value)
+          }))
+        : [{
+            title: "Default option",
+            values: ["Default option value"]
+          }],
       tags: product.tags.map(t => ({ value: t })),
       images: product.images.map((url, index) => ({
         url: url,
