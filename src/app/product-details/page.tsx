@@ -178,8 +178,8 @@ export default function ProductDetailsPage() {
             .eq('user_id', user.id)
             .single();
 
-          if (membership) {
-            currentOrgId = membership.organization_id;
+          if (membership?.organization_id) {
+            currentOrgId = membership.organization_id as string;
             setOrganizationId(currentOrgId);
           }
         }

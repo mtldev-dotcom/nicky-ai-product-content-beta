@@ -10,7 +10,8 @@ import {
   FileJson,
   AlertTriangle,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Box
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +31,71 @@ export default function JsonPage() {
       });
       return obj;
     };
+
+    // Helper to generate variants from options (Fallback if store variants are empty)
+    const getVariants = () => {
+      if (product.variants && product.variants.length > 0) {
+        return product.variants.map(v => ({
+          title: v.title,
+          sku: v.sku,
+          options: v.options,
+          prices: v.prices,
+          manage_inventory: v.manage_inventory,
+          allow_backorder: v.allow_backorder,
+          // Medusa v2 Admin API does not accept inventory levels in the product/variant create payload.
+          // These levels must be managed via the Inventory API after creation.
+        }));
+      }
+
+      // Fallback legacy generation if no variants in store
+      if (product.options.length === 0) {
+        const title = `${product.title || 'Draft Product'} - Default Variant`;
+        const sku = `${product.handle || 'product'}-default`;
+        return [{
+          title,
+          sku,
+          options: {},
+          prices: [{ amount: (product.price || 0), currency_code: "usd" }],
+          manage_inventory: true
+        }];
+      }
+
+      const combinations: any[] = [[]];
+      product.options.forEach(option => {
+        const nextCombinations: any[] = [];
+        combinations.forEach(combination => {
+          option.values.forEach(value => {
+            nextCombinations.push([...combination, { name: option.name, value: value.value }]);
+          });
+        });
+        if (nextCombinations.length > 0) {
+          combinations.length = 0;
+          combinations.push(...nextCombinations);
+        }
+      });
+
+      return combinations.map(combo => {
+        const variantValuesTitle = combo.map((c: any) => c.value).join(' / ');
+        const title = `${product.title || 'Draft Product'} - ${variantValuesTitle}`;
+        const variantOptions = combo.reduce((acc: any, curr: any) => {
+          acc[curr.name] = curr.value;
+          return acc;
+        }, {});
+        
+        const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+        const sku = `${product.handle || 'product'}-${slugifiedOptions}`;
+
+        return {
+          title,
+          sku,
+          options: variantOptions,
+          prices: [{ amount: (product.price || 0), currency_code: "usd" }],
+          manage_inventory: true
+        };
+      });
+    };
+
+    const variants = getVariants();
 
     // Construct exactly as per product-output-example.json
     const output = {
@@ -90,6 +156,7 @@ export default function JsonPage() {
             title: "Default option",
             values: ["Default option value"]
           }],
+      variants: variants,
       tags: product.tags.map(t => ({ value: t })),
       images: product.images.map((url, index) => ({
         url: url,
@@ -187,6 +254,13 @@ export default function JsonPage() {
                 </div>
               )}
             </div>
+            
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] leading-relaxed">
+              <p className="font-bold uppercase mb-1 flex items-center gap-1">
+                <Box className="w-3 h-3" /> Medusa v2 Note
+              </p>
+              Inventory levels must be managed via the Inventory API after product creation. The 'inventory' field is omitted from this export to prevent API errors.
+            </div>
           </section>
 
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
@@ -195,6 +269,12 @@ export default function JsonPage() {
               <div className="p-3 rounded-xl bg-white/5 space-y-1">
                 <p className="text-[10px] text-zinc-500 uppercase">Languages</p>
                 <p className="text-xl font-bold text-white">{product.activeLanguages.length}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/5 space-y-1">
+                <p className="text-[10px] text-zinc-500 uppercase">Variants</p>
+                <p className="text-xl font-bold text-white">
+                  {JSON.parse(fullJson).variants?.length || 0}
+                </p>
               </div>
               <div className="p-3 rounded-xl bg-white/5 space-y-1">
                 <p className="text-[10px] text-zinc-500 uppercase">Vault Rank</p>

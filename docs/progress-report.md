@@ -17,7 +17,9 @@ Product Architect has successfully transitioned from a single-user utility to a 
 - **Cloud-Synced Stores:** Zustand stores now persist `ProductData` and `Settings` to the database.
 - **Enhanced Media Pipeline:** Organization-specific R2/S3 paths and secure server-side credential handling.
 - **Store Integration Layer:** Encrypted support for MedusaJS API endpoints and Admin keys.
-- **Live Taxonomy Connector:** Real-time fetching of store collections, categories, and channels from the MedusaJS API.
+- **Live Taxonomy Connector:** Real-time fetching of store collections, categories, channels, active currencies, and stock locations from the MedusaJS API.
+- **Smart Variant Architect:** Recursive Cartesian generator for complex variants with collision-resistant SKUs and descriptive titles.
+- **Multi-Currency Pricing:** Support for major currency units (decimals) with dynamic currency selection from the store's active config.
 - **Localization Management:** Global organization settings to control supported languages and markets.
 
 ## 3. What Works (Functional Testing)
@@ -30,6 +32,9 @@ Product Architect has successfully transitioned from a single-user utility to a 
 | **Key Encryption** | ✅ Working | Keys saved to DB (OpenAI, R2, Medusa) are encrypted. |
 | **Store Integration**| ✅ Working | Configure Medusa URL/Key -> Save -> Verify Persistence. |
 | **Taxonomy Sync** | ✅ Working | Click Refresh in Product Details -> Medusa data populates dropdowns. |
+| **Variant Engine** | ✅ Working | Define Color/Size -> Generate -> Multi-currency variants created. |
+| **SKU Uniqueness** | ✅ Working | SKUs prepended with product handle to prevent global collisions. |
+| **Decimal Pricing** | ✅ Working | Price entered as 56.00 remains 56.00 in exported JSON. |
 | **Market Activation**| ✅ Working | Toggle "French" in Settings -> Visibility updates in Header. |
 | **Cloud Persistence**| ✅ Working | Refresh page -> Product and settings load from Supabase. |
 

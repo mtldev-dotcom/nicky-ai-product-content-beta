@@ -32,8 +32,11 @@ Directly connect your product orchestration pipeline to your storefront.
 - **Server-Side Processing:** Decryption and API calls happen exclusively on the server to prevent exposure of sensitive keys to the browser.
 
 ### 7. Smart Variant Architecting
-- **Default State:** New products automatically initialize with a standard "Default option" to ensure compatibility with modern headless commerce schemas.
-- **Multi-Attribute Support:** Build complex option sets (Size, Color, Material) with multi-language value translations.
+- **Recursive Generation:** Automatically generate the Cartesian product of all attributes (e.g., Color x Size x Material).
+- **Multi-Currency Pricing:** Define specific price points for every active currency in your MedusaJS store using major currency units (decimals).
+- **Collision Resistance:** Automated SKU and Title generation logic incorporates product identity to prevent global data conflicts.
+- **Inventory Readiness:** Map stock levels to specific MedusaJS Stock Locations.
+- **Quick Add:** One-click "Default Variant" setup for rapid catalog prototyping.
 
 ## 🛠️ Technical Stack
 

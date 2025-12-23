@@ -23,6 +23,23 @@ export interface ProductOption {
   values: ProductOptionValue[];
 }
 
+export interface ProductVariant {
+  id: string;
+  title: string;
+  sku: string;
+  manage_inventory: boolean;
+  allow_backorder: boolean;
+  prices: {
+    amount: number;
+    currency_code: string;
+  }[];
+  options: Record<string, string>; // e.g., { "Color": "Black" }
+  inventory: {
+    location_id: string;
+    stocked_quantity: number;
+  }[];
+}
+
 export interface ProductState {
   id?: string;
   organizationId?: string;
@@ -49,6 +66,7 @@ export interface ProductState {
   
   // Variants/Options
   options: ProductOption[];
+  variants: ProductVariant[];
   
   // Taxonomy/Store Integration
   collection_id: string;
@@ -61,7 +79,7 @@ export interface ProductState {
   shipping_dimensions: { length: number; width: number; height: number };
   
   // Actions
-  updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'ignoredUrls'>>) => void;
+  updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'variants' | 'ignoredUrls'>>) => void;
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
   toggleLanguage: (lang: string) => void;
   setImages: (images: string[]) => void;
@@ -76,6 +94,10 @@ export interface ProductState {
   updateOptionValue: (optionId: string, valueIndex: number, translations: Record<string, string>) => void;
   removeOptionValue: (optionId: string, valueIndex: number) => void;
   removeOption: (id: string) => void;
+  
+  // Variant Actions
+  setVariants: (variants: ProductVariant[]) => void;
+  updateVariant: (id: string, data: Partial<ProductVariant>) => void;
   
   resetStore: () => void;
   bulkUpdate: (data: Partial<ProductState>) => void;
@@ -116,6 +138,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   vault: [],
   ignoredUrls: [],
   options: [],
+  variants: [],
   collection_id: '',
   type_id: '',
   tags: [],
@@ -241,6 +264,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
     options: state.options.filter((opt) => opt.id !== id),
   })),
 
+  setVariants: (variants) => set({ variants }),
+
+  updateVariant: (id, data) => set((state) => ({
+    variants: state.variants.map((v) => (v.id === id ? { ...v, ...data } : v)),
+  })),
+
   resetStore: () => set({
     title: '',
     subtitle: '',
@@ -262,6 +291,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     vault: [],
     ignoredUrls: [],
     options: [],
+    variants: [],
     collection_id: '',
     type_id: '',
     tags: [],
@@ -299,6 +329,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         vault: state.vault,
         ignoredUrls: state.ignoredUrls,
         options: state.options,
+        variants: state.variants,
         collection_id: state.collection_id,
         type_id: state.type_id,
         tags: state.tags,

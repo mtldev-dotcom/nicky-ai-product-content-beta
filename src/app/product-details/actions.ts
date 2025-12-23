@@ -37,7 +37,9 @@ export async function getMedusaTaxonomy(orgId: string) {
       'product-categories',
       'sales-channels',
       'product-types',
-      'shipping-profiles'
+      'shipping-profiles',
+      'stores',
+      'stock-locations'
     ];
 
     const results = await Promise.all(
@@ -62,7 +64,10 @@ export async function getMedusaTaxonomy(orgId: string) {
       })
     );
 
-    const [collections, categories, channels, types, shippingProfiles] = results;
+    const [collections, categories, channels, types, shippingProfiles, stores, stockLocations] = results;
+
+    // Extract supported currencies from the first store (Medusa v2 usually has one primary store)
+    const activeCurrencies = stores?.stores?.[0]?.supported_currencies?.map((sc: any) => sc.currency) || [];
 
     return {
       success: true,
@@ -71,7 +76,9 @@ export async function getMedusaTaxonomy(orgId: string) {
         categories: categories?.product_categories || [],
         sales_channels: channels?.sales_channels || [],
         product_types: types?.product_types || [],
-        shipping_profiles: shippingProfiles?.shipping_profiles || []
+        shipping_profiles: shippingProfiles?.shipping_profiles || [],
+        currencies: activeCurrencies,
+        stock_locations: stockLocations?.stock_locations || []
       }
     };
   } catch (err) {
