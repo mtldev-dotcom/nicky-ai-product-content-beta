@@ -4,10 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useRouter } from 'next/navigation';
 import { mapExternalToProduct } from '@/lib/mapper';
 import { createClient } from '@/utils/supabase/client';
 import { cn } from '@/lib/utils';
+import { translateAllActiveLanguages } from '@/lib/translations';
 
 export default function Dashboard() {
   const [prompt, setPrompt] = useState('');
@@ -15,6 +17,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const { updateRoot, updateLocalization, bulkUpdate, resetStore, setOrganizationId, saveToDb } = useProductStore();
+  const settings = useSettingsStore();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +94,17 @@ export default function Dashboard() {
         // Save to DB immediately after generation
         await saveToDb();
         
+        // Load settings to get active languages before translating
+        const orgId = useProductStore.getState().organizationId;
+        if (orgId) {
+          await settings.loadFromDb(orgId);
+        }
+        
+        // Start background translations for all active languages
+        translateAllActiveLanguages().catch(err => {
+          console.error('Background translation error:', err);
+        });
+        
         router.push('/product-details');
       } else {
         alert(data.error || 'Generation failed');
@@ -108,14 +122,26 @@ export default function Dashboard() {
 
     setIsImporting(true);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
         const mappedData = mapExternalToProduct(json);
         resetStore();
         bulkUpdate(mappedData);
         // Save to DB immediately after import
-        saveToDb();
+        await saveToDb();
+        
+        // Load settings to get active languages before translating
+        const orgId = useProductStore.getState().organizationId;
+        if (orgId) {
+          await settings.loadFromDb(orgId);
+        }
+        
+        // Start background translations for all active languages
+        translateAllActiveLanguages().catch(err => {
+          console.error('Background translation error:', err);
+        });
+        
         router.push('/product-details');
       } catch (err) {
         alert('Invalid JSON file');

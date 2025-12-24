@@ -18,11 +18,15 @@ import {
   Save,
   ChevronDown,
   ChevronUp,
-  Zap
+  Zap,
+  Globe,
+  Loader2,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMedusaTaxonomy } from '../product-details/actions';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 export default function VariantsPage() {
   const {
@@ -44,11 +48,82 @@ export default function VariantsPage() {
 
   const [newOptionName, setNewOptionName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [selectedLang, setSelectedLang] = useState('en');
+  const settings = useSettingsStore();
   const [taxonomy, setTaxonomy] = useState<{
     currencies: any[];
     stock_locations: any[];
   } | null>(null);
+
+  const ALL_LANGUAGES = [
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+    { code: 'fr', name: 'French', flag: '🇫🇷' },
+    { code: 'de', name: 'German', flag: '🇩🇪' },
+    { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  ];
+
+  // Filter available languages based on organization settings
+  const availableLanguages = ALL_LANGUAGES.filter(lang => 
+    (settings.activeLanguages || ['en']).includes(lang.code)
+  );
+
+  // Check translation status for each language
+  const getTranslationStatus = (langCode: string) => {
+    if (langCode === 'en') return 'complete'; // English is always complete
+    
+    let allOptionsTranslated = true;
+    let allValuesTranslated = true;
+    let someOptionsTranslated = false;
+    let someValuesTranslated = false;
+
+    options.forEach(opt => {
+      const hasOptionTranslation = !!opt.translations[langCode];
+      if (hasOptionTranslation) someOptionsTranslated = true;
+      else allOptionsTranslated = false;
+
+      opt.values.forEach(val => {
+        const hasValueTranslation = !!val.translations[langCode];
+        if (hasValueTranslation) someValuesTranslated = true;
+        else allValuesTranslated = false;
+      });
+    });
+
+    if (allOptionsTranslated && allValuesTranslated && options.length > 0) return 'complete';
+    if (someOptionsTranslated || someValuesTranslated) return 'partial';
+    return 'missing';
+  };
   const [expandedVariant, setExpandedVariant] = useState<string | null>(null);
+  const [bulkSettings, setBulkSettings] = useState({
+    prices: [] as { amount: number; currency_code: string }[],
+    manage_inventory: true,
+    location_id: '',
+    stocked_quantity: 0
+  });
+
+  useEffect(() => {
+    if (taxonomy?.currencies?.length) {
+      setBulkSettings(prev => ({
+        ...prev,
+        prices: taxonomy.currencies.map(c => ({
+          amount: prev.prices.find(p => p.currency_code === c.code)?.amount || 0,
+          currency_code: c.code
+        })),
+        location_id: prev.location_id || taxonomy.stock_locations[0]?.id || ''
+      }));
+    }
+  }, [taxonomy]);
+
+  const applyBulkSettings = () => {
+    const updatedVariants = variants.map(v => ({
+      ...v,
+      manage_inventory: bulkSettings.manage_inventory,
+      prices: [...bulkSettings.prices],
+      inventory: [{ location_id: bulkSettings.location_id, stocked_quantity: bulkSettings.stocked_quantity }]
+    }));
+    setVariants(updatedVariants);
+  };
 
   useEffect(() => {
     if (organizationId) {
@@ -93,7 +168,8 @@ export default function VariantsPage() {
 
     if (validOptions.length === 0) {
       const variantTitle = `${productTitle || 'Draft Product'} - Default Variant`;
-      const variantSku = `${handle || 'product'}-default`;
+      // Use just the product handle for default variant (no options)
+      const variantSku = handle || 'product';
 
       const existing = variants.find(v => v.title === variantTitle || v.sku === variantSku);
 
@@ -147,8 +223,11 @@ export default function VariantsPage() {
         return acc;
       }, {} as Record<string, string>);
 
+      // Format: product-name-option-value-option-value
       const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
-      const variantSku = `${handle || 'product'}-${slugifiedOptions}`;
+      const variantSku = handle 
+        ? `${handle}-${slugifiedOptions}` 
+        : `product-${slugifiedOptions}`;
 
       // Try to find existing variant to preserve data if possible (check title or SKU)
       const existing = variants.find(v => v.title === variantTitle || v.sku === variantSku);
@@ -174,6 +253,184 @@ export default function VariantsPage() {
     setTimeout(() => setIsGenerating(false), 500);
   };
 
+  const translateAllOptions = async () => {
+    if (options.length === 0) {
+      alert('No options to translate');
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      // Get organizationId from store state
+      const currentOrgId = useProductStore.getState().organizationId;
+      
+      // Load settings if not already loaded
+      if (currentOrgId && (!settings.activeLanguages || settings.activeLanguages.length === 0)) {
+        await settings.loadFromDb(currentOrgId);
+      }
+
+      // Get active languages from settings (excluding English)
+      const activeLangs = (settings.activeLanguages || ['en']).filter(lang => lang !== 'en');
+      
+      if (activeLangs.length === 0) {
+        alert('No active languages to translate to. Please activate languages in Settings.');
+        setIsTranslating(false);
+        return;
+      }
+
+      // Translate to all active languages in parallel
+      const translationPromises = activeLangs.map(async (langCode) => {
+        const langInfo = ALL_LANGUAGES.find(l => l.code === langCode);
+        if (!langInfo) return;
+
+        try {
+          // Filter out "Default" options - they should not be translated
+          const optionsToTranslate = options.filter(opt => 
+            opt.name.toLowerCase() !== 'default' && 
+            !opt.values.some(v => v.value.toLowerCase() === 'default')
+          );
+
+          // If all options are "Default", skip translation for this language
+          if (optionsToTranslate.length === 0) {
+            // Set "Default" for all languages without translating
+            const defaultOptions = options.map(opt => ({
+              ...opt,
+              translations: { ...opt.translations, [langCode]: 'Default' },
+              values: opt.values.map(v => ({
+                ...v,
+                translations: { ...v.translations, [langCode]: v.value.toLowerCase() === 'default' ? 'Default' : v.value }
+              }))
+            }));
+            return defaultOptions;
+          }
+
+          const res = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              source: { title: '', description: '', subtitle: '', features: [], metadata_title: '', metadata_description: '', keywords: [] }, // Empty source since we only need options
+              targetLang: langInfo.name,
+              selectedLang: langCode,
+              options: optionsToTranslate.map(o => ({
+                name: o.name,
+                translations: o.translations,
+                values: o.values.filter(v => v.value.toLowerCase() !== 'default')
+              }))
+            }),
+          });
+
+          const data = await res.json();
+          
+          if (res.ok && data.options) {
+            // Update options with translations, preserving "Default" options
+            let translatedIdx = 0;
+            const updatedOptions = options.map((opt) => {
+              // If this is a "Default" option, keep it as "Default" in all languages
+              if (opt.name.toLowerCase() === 'default') {
+                return {
+                  ...opt,
+                  translations: { ...opt.translations, [langCode]: 'Default' },
+                  values: opt.values.map(v => ({
+                    ...v,
+                    translations: { 
+                      ...v.translations, 
+                      [langCode]: v.value.toLowerCase() === 'default' ? 'Default' : v.value 
+                    }
+                  }))
+                };
+              }
+
+              // Get the translated option (skip "Default" options in the response)
+              const translatedOpt = data.options[translatedIdx];
+              translatedIdx++;
+
+              if (!translatedOpt) return opt;
+
+              const optTranslation = translatedOpt.translations?.[langCode] || translatedOpt.name || opt.name;
+
+              // Map values, preserving "Default" values
+              let valueIdx = 0;
+              const translatedValues = opt.values.map((v) => {
+                // If this is a "Default" value, keep it as "Default"
+                if (v.value.toLowerCase() === 'default') {
+                  return {
+                    ...v,
+                    translations: { ...v.translations, [langCode]: 'Default' }
+                  };
+                }
+
+                // Get translated value
+                const translatedVal = translatedOpt.values?.[valueIdx];
+                valueIdx++;
+                const valTranslation = translatedVal?.translations?.[langCode] || translatedVal?.value || v.value;
+                
+                return {
+                  ...v,
+                  translations: { ...v.translations, [langCode]: valTranslation }
+                };
+              });
+
+              return {
+                ...opt,
+                translations: { ...opt.translations, [langCode]: optTranslation },
+                values: translatedValues
+              };
+            });
+
+            return updatedOptions;
+          }
+        } catch (err) {
+          console.error(`Translation failed for ${langCode}:`, err);
+        }
+        return null;
+      });
+
+      // Wait for all translations to complete
+      const results = await Promise.allSettled(translationPromises);
+      
+      // Merge all translation results
+      let finalOptions = [...options];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          // Merge translations from this result
+          finalOptions = finalOptions.map((opt, idx) => {
+            const translatedOpt = result.value?.[idx];
+            if (!translatedOpt) return opt;
+
+            return {
+              ...opt,
+              translations: { ...opt.translations, ...translatedOpt.translations },
+              values: opt.values.map((v, vIdx) => {
+                const translatedVal = translatedOpt.values?.[vIdx];
+                if (!translatedVal) return v;
+
+                return {
+                  ...v,
+                  translations: { ...v.translations, ...translatedVal.translations }
+                };
+              })
+            };
+          });
+        }
+      });
+
+      // Update all options with merged translations
+      bulkUpdate({ options: finalOptions });
+      
+      // Save to DB
+      const { organizationId, saveToDb } = useProductStore.getState();
+      if (organizationId) {
+        await saveToDb();
+      }
+
+    } catch (err) {
+      console.error('Translation error:', err);
+      alert('Failed to translate options. Please try again.');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   return (
     <div className="space-y-10 pb-20">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -187,15 +444,79 @@ export default function VariantsPage() {
           </p>
         </div>
 
-        <button
-          onClick={generateVariants}
-          disabled={isGenerating || options.length === 0}
-          className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
-        >
-          {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Box className="w-4 h-4" />}
-          Generate Variants
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={translateAllOptions}
+            disabled={isTranslating || options.length === 0}
+            className={cn(
+              "border px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50",
+              isTranslating 
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : (() => {
+                    const allTranslated = availableLanguages
+                      .filter(l => l.code !== 'en')
+                      .every(lang => getTranslationStatus(lang.code) === 'complete');
+                    return allTranslated && options.length > 0
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                      : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
+                  })()
+            )}
+          >
+            {isTranslating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Globe className="w-4 h-4" />
+            )}
+            {isTranslating ? 'Translating...' : 'Translate Options'}
+            {!isTranslating && options.length > 0 && availableLanguages
+              .filter(l => l.code !== 'en')
+              .every(lang => getTranslationStatus(lang.code) === 'complete') && (
+              <Check className="w-4 h-4" />
+            )}
+          </button>
+          <button
+            onClick={generateVariants}
+            disabled={isGenerating || options.length === 0}
+            className="bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
+          >
+            {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Box className="w-4 h-4" />}
+            Generate Variants
+          </button>
+        </div>
       </header>
+
+      {/* Language Tabs */}
+      {availableLanguages.length > 1 && (
+        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
+          {availableLanguages.map((lang) => {
+            const status = getTranslationStatus(lang.code);
+            return (
+              <button
+                key={lang.code}
+                onClick={() => setSelectedLang(lang.code)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
+                  selectedLang === lang.code 
+                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                )}
+              >
+                <span>{lang.flag}</span>
+                {lang.name}
+                {status === 'complete' && (
+                  <Check className="w-3 h-3 text-emerald-300" />
+                )}
+                {status === 'partial' && (
+                  <AlertCircle className="w-3 h-3 text-yellow-400" />
+                )}
+                {status === 'missing' && lang.code !== 'en' && (
+                  <X className="w-3 h-3 text-red-400" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Attribute Builder Control */}
@@ -257,8 +578,13 @@ export default function VariantsPage() {
                     <div className="flex items-center gap-2">
                       <GripVertical className="w-3 h-3 text-zinc-600" />
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                        {option.name}
+                        {selectedLang === 'en' 
+                          ? option.name 
+                          : (option.translations[selectedLang] || option.name)}
                       </span>
+                      {selectedLang !== 'en' && !option.translations[selectedLang] && (
+                        <span className="text-[8px] text-zinc-600 italic">({option.name})</span>
+                      )}
                     </div>
                     <button
                       onClick={() => removeOption(option.id)}
@@ -270,20 +596,35 @@ export default function VariantsPage() {
 
                   <div className="p-4 space-y-3">
                     <div className="flex flex-wrap gap-1.5">
-                      {option.values.map((val, vIdx) => (
-                        <span
-                          key={`${vIdx}-${val.value}`}
-                          className="pl-2 pr-1 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] flex items-center gap-1.5"
-                        >
-                          {val.translations?.en || val.value}
-                          <button
-                            onClick={() => removeOptionValue(option.id, vIdx)}
-                            className="p-0.5 hover:bg-indigo-500/20 rounded transition-colors"
+                      {option.values.map((val, vIdx) => {
+                        const displayValue = selectedLang === 'en' 
+                          ? val.value 
+                          : (val.translations[selectedLang] || val.value);
+                        const showFallback = selectedLang !== 'en' && !val.translations[selectedLang];
+                        
+                        return (
+                          <span
+                            key={`${vIdx}-${val.value}`}
+                            className={cn(
+                              "pl-2 pr-1 py-0.5 rounded-md border text-[11px] flex items-center gap-1.5",
+                              selectedLang === 'en' || val.translations[selectedLang]
+                                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300"
+                                : "bg-yellow-500/10 border-yellow-500/20 text-yellow-300"
+                            )}
                           >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        </span>
-                      ))}
+                            {displayValue}
+                            {showFallback && (
+                              <span className="text-[8px] text-zinc-600 italic">({val.value})</span>
+                            )}
+                            <button
+                              onClick={() => removeOptionValue(option.id, vIdx)}
+                              className="p-0.5 hover:bg-indigo-500/20 rounded transition-colors"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </span>
+                        );
+                      })}
                       <input
                         type="text"
                         placeholder="Add value..."
@@ -308,6 +649,73 @@ export default function VariantsPage() {
 
         {/* Variants Management Area */}
         <div className="lg:col-span-8 space-y-6">
+          {variants.length > 0 && (
+            <section className="glass rounded-2xl border border-white/10 overflow-hidden bg-indigo-500/5">
+              <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                  <Zap className="w-3 h-3" />
+                  Bulk Actions
+                </h3>
+                <button
+                  onClick={applyBulkSettings}
+                  className="px-4 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] font-bold transition-all active:scale-95"
+                >
+                  Apply to All {variants.length} Variants
+                </button>
+              </div>
+              <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                {bulkSettings.prices.map((p, idx) => (
+                  <div key={p.currency_code} className="space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Price ({p.currency_code})</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full bg-black/40 border border-white/5 rounded-md px-2 py-1 text-[10px] text-white outline-none focus:border-indigo-500/50"
+                      value={p.amount}
+                      onChange={(e) => {
+                        const newPrices = [...bulkSettings.prices];
+                        newPrices[idx] = { ...newPrices[idx], amount: parseFloat(e.target.value) || 0 };
+                        setBulkSettings({ ...bulkSettings, prices: newPrices });
+                      }}
+                    />
+                  </div>
+                ))}
+                <div className="space-y-1">
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase">Location</span>
+                  <select
+                    className="w-full bg-black/40 border border-white/5 rounded-md px-2 py-1 text-[10px] text-white outline-none focus:border-indigo-500/50"
+                    value={bulkSettings.location_id}
+                    onChange={(e) => setBulkSettings({ ...bulkSettings, location_id: e.target.value })}
+                  >
+                    {taxonomy?.stock_locations.map(loc => (
+                      <option key={loc.id} value={loc.id}>{loc.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] text-zinc-500 font-bold uppercase">Stock</span>
+                  <input
+                    type="number"
+                    className="w-full bg-black/40 border border-white/5 rounded-md px-2 py-1 text-[10px] text-white outline-none focus:border-indigo-500/50"
+                    value={bulkSettings.stocked_quantity}
+                    onChange={(e) => setBulkSettings({ ...bulkSettings, stocked_quantity: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex items-end pb-1.5">
+                  <label className="flex items-center gap-2 cursor-pointer group/inv">
+                    <input
+                      type="checkbox"
+                      checked={bulkSettings.manage_inventory}
+                      onChange={(e) => setBulkSettings({ ...bulkSettings, manage_inventory: e.target.checked })}
+                      className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/50"
+                    />
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase group-hover/inv:text-zinc-400 transition-colors">Manage Inv.</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section className="glass rounded-2xl border border-white/10 overflow-hidden">
             <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">

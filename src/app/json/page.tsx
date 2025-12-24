@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useProductStore } from '@/store/useProductStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { 
   Database, 
   Copy, 
@@ -11,12 +12,23 @@ import {
   AlertTriangle,
   RefreshCw,
   ExternalLink,
-  Box
+  Box,
+  X,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const ALL_LANGUAGES = [
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+];
+
 export default function JsonPage() {
   const product = useProductStore();
+  const settings = useSettingsStore();
   const [copied, setCopied] = useState(false);
 
   const fullJson = useMemo(() => {
@@ -100,7 +112,7 @@ export default function JsonPage() {
     // Construct exactly as per product-output-example.json
     const output = {
       title: product.title,
-      subtitle: product.subtitle,
+      subtitle: product.subtitle || product.localization.en?.subtitle || '',
       status: product.status,
       external_id: null,
       description: product.description,
@@ -133,10 +145,26 @@ export default function JsonPage() {
         seo_description_i18n: buildI18n('metadata_description'),
         options_i18n: product.options.length > 0 
           ? product.options.map(opt => ({
-              title_i18n: opt.translations,
+              title_i18n: {
+                en: opt.name,
+                ...Object.fromEntries(
+                  Object.entries(opt.translations).map(([lang, trans]) => [
+                    lang,
+                    opt.name.toLowerCase() === 'default' ? 'Default' : trans
+                  ])
+                )
+              },
               values: opt.values.map(v => ({
                 value: v.value,
-                value_i18n: v.translations
+                value_i18n: {
+                  en: v.value,
+                  ...Object.fromEntries(
+                    Object.entries(v.translations).map(([lang, trans]) => [
+                      lang,
+                      v.value.toLowerCase() === 'default' ? 'Default' : trans
+                    ])
+                  )
+                }
               }))
             }))
           : [{
@@ -186,6 +214,166 @@ export default function JsonPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const checklist = useMemo(() => {
+    const items: Array<{ 
+      category: string; 
+      items: Array<{ 
+        label: string; 
+        status: 'complete' | 'missing' | 'partial';
+        details?: string;
+      }> 
+    }> = [];
+
+    // Check if variants have prices
+    const hasVariantPrices = () => {
+      if (product.variants && product.variants.length > 0) {
+        return product.variants.some(v => 
+          v.prices && v.prices.length > 0 && v.prices.some(p => p.amount > 0)
+        );
+      }
+      // Fallback: check root price
+      return product.price > 0;
+    };
+
+    // Required Fields
+    const requiredFields = {
+      'Product Title': !!product.title,
+      'Handle': !!(product.handle || product.title),
+      'Description': !!product.description,
+      'Price': hasVariantPrices(),
+      'Thumbnail': !!product.thumbnail,
+      'Images': product.images.length > 0,
+    };
+
+    items.push({
+      category: 'Required Fields',
+      items: Object.entries(requiredFields).map(([field, complete]) => ({
+        label: field,
+        status: complete ? 'complete' : 'missing',
+      }))
+    });
+
+    // Optional but Recommended Fields
+    const recommendedFields = {
+      'Subtitle': !!(product.subtitle || product.localization.en?.subtitle),
+      'Features': (product.localization.en?.features || []).length > 0,
+      'SEO Title': !!(product.localization.en?.metadata_title),
+      'SEO Description': !!(product.localization.en?.metadata_description),
+      'Keywords': (product.localization.en?.keywords || []).length > 0,
+      'Collection': !!product.collection_id,
+      'Product Type': !!product.type_id,
+      'Shipping Profile': !!product.shipping_profile_id,
+      'Shipping Weight': product.shipping_weight > 0,
+      'Shipping Dimensions': !!(product.shipping_dimensions?.length || product.shipping_dimensions?.width || product.shipping_dimensions?.height),
+      'Tags': product.tags.length > 0,
+      'Categories': product.categories.length > 0,
+      'Sales Channels': product.sales_channels.length > 0,
+    };
+
+    items.push({
+      category: 'Recommended Fields',
+      items: Object.entries(recommendedFields).map(([field, complete]) => ({
+        label: field,
+        status: complete ? 'complete' : 'missing',
+      }))
+    });
+
+    // Translation Status
+    const activeLangs = settings.activeLanguages || product.activeLanguages || ['en'];
+    const translationItems: Array<{ 
+      label: string; 
+      status: 'complete' | 'missing' | 'partial';
+      details?: string;
+    }> = [];
+
+    activeLangs.forEach(langCode => {
+      if (langCode === 'en') return; // Skip English
+      
+      const langInfo = ALL_LANGUAGES.find(l => l.code === langCode);
+      const loc = product.localization[langCode];
+      
+      const hasTitle = !!loc?.title;
+      const hasDescription = !!loc?.description;
+      const hasSubtitle = !!loc?.subtitle;
+      const hasFeatures = (loc?.features || []).length > 0;
+      const hasMetadata = !!(loc?.metadata_title && loc?.metadata_description);
+      
+      const completedFields = [hasTitle, hasDescription, hasSubtitle, hasFeatures, hasMetadata].filter(Boolean).length;
+      const totalFields = 5;
+      
+      let status: 'complete' | 'missing' | 'partial' = 'missing';
+      if (completedFields === totalFields) status = 'complete';
+      else if (completedFields > 0) status = 'partial';
+      
+      translationItems.push({
+        label: `${langInfo?.flag || ''} ${langInfo?.name || langCode}`,
+        status,
+        details: `${completedFields}/${totalFields} fields`
+      });
+    });
+
+    if (translationItems.length > 0) {
+      items.push({
+        category: 'Translations',
+        items: translationItems
+      });
+    }
+
+    // Options & Values Translation Status
+    if (product.options.length > 0) {
+      const optionsTranslationItems: Array<{ 
+        label: string; 
+        status: 'complete' | 'missing' | 'partial';
+        details?: string;
+      }> = [];
+
+      activeLangs.forEach(langCode => {
+        if (langCode === 'en') return;
+        
+        const langInfo = ALL_LANGUAGES.find(l => l.code === langCode);
+        let allOptionsTranslated = true;
+        let allValuesTranslated = true;
+        let someOptionsTranslated = false;
+        let someValuesTranslated = false;
+
+        product.options.forEach(opt => {
+          const hasOptionTranslation = !!opt.translations[langCode];
+          if (hasOptionTranslation) someOptionsTranslated = true;
+          else allOptionsTranslated = false;
+
+          opt.values.forEach(val => {
+            const hasValueTranslation = !!val.translations[langCode];
+            if (hasValueTranslation) someValuesTranslated = true;
+            else allValuesTranslated = false;
+          });
+        });
+
+        let status: 'complete' | 'missing' | 'partial' = 'missing';
+        if (allOptionsTranslated && allValuesTranslated) status = 'complete';
+        else if (someOptionsTranslated || someValuesTranslated) status = 'partial';
+
+        optionsTranslationItems.push({
+          label: `${langInfo?.flag || ''} ${langInfo?.name || langCode} Options`,
+          status,
+          details: status === 'complete' 
+            ? 'All translated' 
+            : status === 'partial' 
+            ? 'Partially translated' 
+            : 'Not translated'
+        });
+      });
+
+      if (optionsTranslationItems.length > 0) {
+        items.push({
+          category: 'Options & Values Translations',
+          items: optionsTranslationItems
+        });
+      }
+    }
+
+    return items;
+  }, [product, settings.activeLanguages]);
 
   const validationIssues = useMemo(() => {
     const issues = [];
@@ -260,6 +448,63 @@ export default function JsonPage() {
                 <Box className="w-3 h-3" /> Medusa v2 Note
               </p>
               Inventory levels must be managed via the Inventory API after product creation. The 'inventory' field is omitted from this export to prevent API errors.
+            </div>
+          </section>
+
+          <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Globe className="w-5 h-5 text-indigo-400" />
+              Completion Checklist
+            </h2>
+            <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+              {checklist.map((category, catIdx) => (
+                <div key={catIdx} className="space-y-2">
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                    {category.category}
+                  </h3>
+                  <div className="space-y-1.5">
+                    {category.items.map((item, itemIdx) => (
+                      <div
+                        key={itemIdx}
+                        className={cn(
+                          "flex items-center justify-between gap-2 p-2 rounded-lg text-xs transition-colors",
+                          item.status === 'complete' && "bg-emerald-500/10 border border-emerald-500/20",
+                          item.status === 'partial' && "bg-yellow-500/10 border border-yellow-500/20",
+                          item.status === 'missing' && "bg-red-500/10 border border-red-500/20"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {item.status === 'complete' ? (
+                            <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                          ) : item.status === 'partial' ? (
+                            <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />
+                          ) : (
+                            <X className="w-3 h-3 text-red-400 shrink-0" />
+                          )}
+                          <span className={cn(
+                            "truncate",
+                            item.status === 'complete' && "text-emerald-300",
+                            item.status === 'partial' && "text-yellow-300",
+                            item.status === 'missing' && "text-red-300"
+                          )}>
+                            {item.label}
+                          </span>
+                        </div>
+                        {item.details && (
+                          <span className={cn(
+                            "text-[10px] shrink-0",
+                            item.status === 'complete' && "text-emerald-400/70",
+                            item.status === 'partial' && "text-yellow-400/70",
+                            item.status === 'missing' && "text-red-400/70"
+                          )}>
+                            {item.details}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 

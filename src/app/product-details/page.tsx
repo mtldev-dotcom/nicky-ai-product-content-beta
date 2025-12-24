@@ -61,12 +61,14 @@ export default function ProductDetailsPage() {
     shipping_profile_id,
     shipping_weight,
     shipping_dimensions,
-    updateRoot
+    updateRoot,
+    translatingLanguages
   } = useProductStore();
   
   const [selectedLang, setSelectedLang] = useState('en');
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSyncingTaxonomy, setIsSyncingTaxonomy] = useState(false);
+  const [enhancingField, setEnhancingField] = useState<string | null>(null);
   const [taxonomyOptions, setTaxonomyOptions] = useState<{
     collections: any[];
     categories: any[];
@@ -105,6 +107,80 @@ export default function ProductDetailsPage() {
 
   const handleUpdate = (field: keyof Localization, value: any) => {
     updateLocalization(selectedLang, { [field]: value });
+  };
+
+  const enhanceField = async (field: keyof Localization, fieldType: string) => {
+    const currentValue = currentLoc[field];
+    setEnhancingField(`${field}-${selectedLang}`);
+    
+    try {
+      const res = await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field,
+          currentValue: Array.isArray(currentValue) ? currentValue.join(', ') : currentValue,
+          fieldType,
+          language: selectedLang
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (res.ok && data.enhanced) {
+        // For features and keywords, handle array format
+        if (field === 'features' || field === 'keywords') {
+          const enhancedArray = Array.isArray(data.enhanced) 
+            ? data.enhanced 
+            : data.enhanced.split(',').map((item: string) => item.trim()).filter(Boolean);
+          handleUpdate(field, enhancedArray);
+        } else {
+          handleUpdate(field, data.enhanced);
+        }
+      } else {
+        alert(data.error || 'Failed to enhance content');
+      }
+    } catch (err) {
+      console.error('Enhancement failed:', err);
+      alert('Network error during enhancement');
+    } finally {
+      setEnhancingField(null);
+    }
+  };
+
+  const enhanceFeature = async (index: number) => {
+    const currentFeature = (currentLoc.features || [])[index];
+    if (!currentFeature) return;
+    
+    setEnhancingField(`feature-${index}-${selectedLang}`);
+    
+    try {
+      const res = await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field: 'feature',
+          currentValue: currentFeature,
+          fieldType: 'feature',
+          language: selectedLang
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (res.ok && data.enhanced) {
+        const newFeatures = [...(currentLoc.features || [])];
+        newFeatures[index] = data.enhanced;
+        handleUpdate('features', newFeatures);
+      } else {
+        alert(data.error || 'Failed to enhance feature');
+      }
+    } catch (err) {
+      console.error('Enhancement failed:', err);
+      alert('Network error during enhancement');
+    } finally {
+      setEnhancingField(null);
+    }
   };
 
   const translateCurrentLang = useCallback(async () => {
@@ -237,35 +313,47 @@ export default function ProductDetailsPage() {
         </div>
         
         <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-          {availableLanguages.map((lang) => (
-            <button
-              key={lang.code}
-              onClick={() => setSelectedLang(lang.code)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
-                selectedLang === lang.code 
-                  ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-              )}
-            >
-              <span>{lang.flag}</span>
-              {lang.name}
-              {productActiveLanguages.includes(lang.code) && (
-                <Check className="w-3 h-3 text-indigo-200" />
-              )}
-            </button>
-          ))}
+          {availableLanguages.map((lang) => {
+            const isTranslatingLang = translatingLanguages.has(lang.code);
+            return (
+              <button
+                key={lang.code}
+                onClick={() => setSelectedLang(lang.code)}
+                disabled={isTranslatingLang}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
+                  selectedLang === lang.code 
+                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                  isTranslatingLang && "opacity-75 cursor-wait"
+                )}
+              >
+                <span>{lang.flag}</span>
+                {lang.name}
+                {isTranslatingLang ? (
+                  <Loader2 className="w-3 h-3 animate-spin text-indigo-300" />
+                ) : productActiveLanguages.includes(lang.code) ? (
+                  <Check className="w-3 h-3 text-indigo-200" />
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </header>
 
-      {isTranslating && (
+      {(isTranslating || translatingLanguages.size > 0) && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3 text-indigo-400"
         >
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm font-medium">AI is generating product details for {ALL_LANGUAGES.find(l => l.code === selectedLang)?.name}...</span>
+          <span className="text-sm font-medium">
+            {isTranslating 
+              ? `AI is generating product details for ${ALL_LANGUAGES.find(l => l.code === selectedLang)?.name}...`
+              : `Translating ${Array.from(translatingLanguages).map(l => ALL_LANGUAGES.find(lang => lang.code === l)?.name).filter(Boolean).join(', ')}...`
+            }
+          </span>
         </motion.div>
       )}
 
@@ -308,7 +396,21 @@ export default function ProductDetailsPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Title</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400">Title</label>
+                  <button
+                    onClick={() => enhanceField('title', 'title')}
+                    disabled={enhancingField === `title-${selectedLang}`}
+                    className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Enhance with AI"
+                  >
+                    {enhancingField === `title-${selectedLang}` ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 <input 
                   type="text"
                   className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-lg"
@@ -319,7 +421,21 @@ export default function ProductDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Subtitle</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400">Subtitle</label>
+                  <button
+                    onClick={() => enhanceField('subtitle', 'subtitle')}
+                    disabled={enhancingField === `subtitle-${selectedLang}`}
+                    className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Enhance with AI"
+                  >
+                    {enhancingField === `subtitle-${selectedLang}` ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 <input 
                   type="text"
                   className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
@@ -330,7 +446,21 @@ export default function ProductDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Description</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400">Description</label>
+                  <button
+                    onClick={() => enhanceField('description', 'description')}
+                    disabled={enhancingField === `description-${selectedLang}`}
+                    className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Enhance with AI"
+                  >
+                    {enhancingField === `description-${selectedLang}` ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 <RichTextEditor 
                   value={currentLoc.description || ''}
                   onChange={(val) => handleUpdate('description', val)}
@@ -359,6 +489,18 @@ export default function ProductDetailsPage() {
                       handleUpdate('features', newFeatures);
                     }}
                   />
+                  <button
+                    onClick={() => enhanceFeature(idx)}
+                    disabled={enhancingField === `feature-${idx}-${selectedLang}`}
+                    className="p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Enhance with AI"
+                  >
+                    {enhancingField === `feature-${idx}-${selectedLang}` ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
                   <button 
                     onClick={() => {
                       const newFeatures = (currentLoc.features || []).filter((_, i) => i !== idx);
@@ -390,7 +532,21 @@ export default function ProductDetailsPage() {
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Title</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Title</label>
+                  <button
+                    onClick={() => enhanceField('metadata_title', 'metadata_title')}
+                    disabled={enhancingField === `metadata_title-${selectedLang}`}
+                    className="p-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Optimize with AI"
+                  >
+                    {enhancingField === `metadata_title-${selectedLang}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
                 <input 
                   type="text"
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
@@ -403,7 +559,21 @@ export default function ProductDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Description</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Description</label>
+                  <button
+                    onClick={() => enhanceField('metadata_description', 'metadata_description')}
+                    disabled={enhancingField === `metadata_description-${selectedLang}`}
+                    className="p-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Optimize with AI"
+                  >
+                    {enhancingField === `metadata_description-${selectedLang}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
                 <textarea 
                   rows={4}
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 resize-none"
@@ -416,7 +586,21 @@ export default function ProductDetailsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Keywords</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Keywords</label>
+                  <button
+                    onClick={() => enhanceField('keywords', 'keywords')}
+                    disabled={enhancingField === `keywords-${selectedLang}`}
+                    className="p-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 transition-colors disabled:opacity-50"
+                    title="Generate keywords with AI"
+                  >
+                    {enhancingField === `keywords-${selectedLang}` ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {(currentLoc.keywords || []).map((tag, idx) => (
                     <span key={idx} className="px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] flex items-center gap-1">

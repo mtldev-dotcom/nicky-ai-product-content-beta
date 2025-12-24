@@ -1,0 +1,618 @@
+{
+    "title": "Byzantine Boldness Necklace",
+    "subtitle": "Wear your faith with fearless elegance.",
+    "status": "draft",
+    "external_id": null,
+    "description": "Command attention with this striking flat Byzantine chain, paired with a powerful Jesus cross pendant. Crafted from premium stainless steel, this necklace redefines confidence and style.",
+    "handle": "byzantine-boldness-necklace",
+    "is_giftcard": false,
+    "discountable": true,
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539442408-IMG_5904.jpg",
+    "collection_id": "pcol_01KD1YXSM6QSKQHBVKH73WBKTJ",
+    "type_id": null,
+    "weight": null,
+    "length": null,
+    "height": null,
+    "width": null,
+    "hs_code": null,
+    "origin_country": null,
+    "mid_code": null,
+    "material": null,
+    "metadata": {
+        "brand": "THE UNCUT BRAND",
+        "vault": {
+            "video": null,
+            "images": [
+                "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539440704-IMG_5902.jpg",
+                "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539441600-IMG_5903.jpg",
+                "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539442408-IMG_5904.jpg",
+                "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539443212-IMG_5905.jpg",
+                "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539444210-IMG_5906.jpg"
+            ]
+        },
+        "title_i18n": {
+            "en": "Byzantine Boldness Necklace",
+            "fr": "Collier de Byzantine Audacieux"
+        },
+        "subtitle_i18n": {
+            "en": "Wear your faith with fearless elegance.",
+            "fr": "Portez votre foi avec élégance intrépide."
+        },
+        "description_i18n": {
+            "en": "Command attention with this striking flat Byzantine chain, paired with a powerful Jesus cross pendant. Crafted from premium stainless steel, this necklace redefines confidence and style.",
+            "fr": "<p>Attirez les regards avec cette chaîne Byzantine plate saisissante, associée à un puissant pendentif de croix Jésus. Conçu en acier inoxydable de première qualité, ce collier redéfinit la confiance et le style.</p>"
+        },
+        "features_i18n": {
+            "en": [
+                "Durable stainless steel construction",
+                "Flat Byzantine design for a modern edge",
+                "Striking two-tone finish: silver and black",
+                "Intricate Jesus cross pendant as a bold statement",
+                "Perfect for layering or as a standalone piece",
+                "Non-tarnish, easy to maintain"
+            ],
+            "fr": [
+                "Construction en acier inoxydable durable",
+                "Design Byzantine plat pour une touche moderne",
+                "Fini bicolore saisissant : argent et noir",
+                "Pendentif de croix Jésus complexe pour une déclaration audacieuse",
+                "Parfait pour le superposition ou comme pièce autonome",
+                "Résistant à l'oxydation, facile à entretenir"
+            ]
+        },
+        "keywords_i18n": {
+            "en": [
+                "men's jewelry",
+                "Byzantine chain necklace",
+                "Jesus cross pendant",
+                "stainless steel necklace",
+                "modern men's accessories"
+            ],
+            "fr": [
+                "bijoux pour homme",
+                "collier en chaîne Byzantine",
+                "pendentif de croix Jésus",
+                "collier en acier inoxydable",
+                "accessoires modernes pour homme"
+            ]
+        },
+        "seo_title_i18n": {
+            "en": "Men's Flat Byzantine Chain Necklace with Jesus Cross Pendant",
+            "fr": "Collier pour homme en chaîne Byzantine plate avec pendentif de croix Jésus"
+        },
+        "seo_description_i18n": {
+            "en": "Discover the bold 6mm Flat Byzantine chain necklace in stainless steel, featuring a striking Jesus cross pendant in silver and black. Elevate your jewelry game.",
+            "fr": "Découvrez le collier de chaîne Byzantine plate de 6mm en acier inoxydable, avec un pendentif de croix Jésus saisissant en argent et noir. Élevez votre style de bijoux."
+        },
+        "options_i18n": [
+            {
+                "title_i18n": {
+                    "en": "Metal Color"
+                },
+                "values": [
+                    {
+                        "value": "Black",
+                        "value_i18n": {
+                            "en": "Black"
+                        }
+                    },
+                    {
+                        "value": "Silver",
+                        "value_i18n": {
+                            "en": "Silver"
+                        }
+                    },
+                    {
+                        "value": "Gold",
+                        "value_i18n": {
+                            "en": "Gold"
+                        }
+                    }
+                ]
+            },
+            {
+                "title_i18n": {
+                    "en": "Length (inch)"
+                },
+                "values": [
+                    {
+                        "value": "20\"",
+                        "value_i18n": {
+                            "en": "20\""
+                        }
+                    },
+                    {
+                        "value": "22\"",
+                        "value_i18n": {
+                            "en": "22\""
+                        }
+                    },
+                    {
+                        "value": "24\"",
+                        "value_i18n": {
+                            "en": "24\""
+                        }
+                    },
+                    {
+                        "value": "26\"",
+                        "value_i18n": {
+                            "en": "26\""
+                        }
+                    },
+                    {
+                        "value": "28\"",
+                        "value_i18n": {
+                            "en": "28\""
+                        }
+                    },
+                    {
+                        "value": "30\"",
+                        "value_i18n": {
+                            "en": "30\""
+                        }
+                    },
+                    {
+                        "value": "32\"",
+                        "value_i18n": {
+                            "en": "32\""
+                        }
+                    },
+                    {
+                        "value": "34\"",
+                        "value_i18n": {
+                            "en": "34\""
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "options": [
+        {
+            "title": "Metal Color",
+            "values": [
+                "Black",
+                "Silver",
+                "Gold"
+            ]
+        },
+        {
+            "title": "Length (inch)",
+            "values": [
+                "20\"",
+                "22\"",
+                "24\"",
+                "26\"",
+                "28\"",
+                "30\"",
+                "32\"",
+                "34\""
+            ]
+        }
+    ],
+    "variants": [
+        {
+            "title": "Byzantine Boldness Necklace - Black / 20\"",
+            "sku": "byzantine-boldness-necklace-black--20",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "20\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 22\"",
+            "sku": "byzantine-boldness-necklace-black--22",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "22\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 24\"",
+            "sku": "byzantine-boldness-necklace-black--24",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "24\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 26\"",
+            "sku": "byzantine-boldness-necklace-black--26",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "26\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 28\"",
+            "sku": "byzantine-boldness-necklace-black--28",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "28\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 30\"",
+            "sku": "byzantine-boldness-necklace-black--30",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "30\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 32\"",
+            "sku": "byzantine-boldness-necklace-black--32",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "32\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Black / 34\"",
+            "sku": "byzantine-boldness-necklace-black--34",
+            "options": {
+                "Metal Color": "Black",
+                "Length (inch)": "34\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 20\"",
+            "sku": "byzantine-boldness-necklace-silver--20",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "20\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 22\"",
+            "sku": "byzantine-boldness-necklace-silver--22",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "22\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 24\"",
+            "sku": "byzantine-boldness-necklace-silver--24",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "24\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 26\"",
+            "sku": "byzantine-boldness-necklace-silver--26",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "26\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 28\"",
+            "sku": "byzantine-boldness-necklace-silver--28",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "28\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 30\"",
+            "sku": "byzantine-boldness-necklace-silver--30",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "30\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 32\"",
+            "sku": "byzantine-boldness-necklace-silver--32",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "32\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Silver / 34\"",
+            "sku": "byzantine-boldness-necklace-silver--34",
+            "options": {
+                "Metal Color": "Silver",
+                "Length (inch)": "34\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 20\"",
+            "sku": "byzantine-boldness-necklace-gold--20",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "20\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": true,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 22\"",
+            "sku": "byzantine-boldness-necklace-gold--22",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "22\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 24\"",
+            "sku": "byzantine-boldness-necklace-gold--24",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "24\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 26\"",
+            "sku": "byzantine-boldness-necklace-gold--26",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "26\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 28\"",
+            "sku": "byzantine-boldness-necklace-gold--28",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "28\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 30\"",
+            "sku": "byzantine-boldness-necklace-gold--30",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "30\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 32\"",
+            "sku": "byzantine-boldness-necklace-gold--32",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "32\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        },
+        {
+            "title": "Byzantine Boldness Necklace - Gold / 34\"",
+            "sku": "byzantine-boldness-necklace-gold--34",
+            "options": {
+                "Metal Color": "Gold",
+                "Length (inch)": "34\""
+            },
+            "prices": [
+                {
+                    "amount": 0,
+                    "currency_code": "usd"
+                }
+            ],
+            "manage_inventory": false,
+            "allow_backorder": false
+        }
+    ],
+    "tags": [],
+    "images": [
+        {
+            "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539440704-IMG_5902.jpg",
+            "metadata": null,
+            "rank": 0
+        },
+        {
+            "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539441600-IMG_5903.jpg",
+            "metadata": null,
+            "rank": 1
+        },
+        {
+            "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539442408-IMG_5904.jpg",
+            "metadata": null,
+            "rank": 2
+        },
+        {
+            "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539443212-IMG_5905.jpg",
+            "metadata": null,
+            "rank": 3
+        },
+        {
+            "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1766539444210-IMG_5906.jpg",
+            "metadata": null,
+            "rank": 4
+        }
+    ],
+    "categories": [
+        {
+            "id": "pcat_01KD1ZN22VGEKR47JTY99WP8AY"
+        }
+    ],
+    "sales_channels": [
+        {
+            "id": "sc_01KCZATV7WR5QX2G5S5NGM32E0"
+        }
+    ],
+    "shipping_profile_id": "sp_01KCZAPGHDP30PNK0DS7R3V706"
+}

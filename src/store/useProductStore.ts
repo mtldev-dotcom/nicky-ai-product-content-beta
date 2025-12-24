@@ -44,6 +44,7 @@ export interface ProductState {
   id?: string;
   organizationId?: string;
   isSaving: boolean;
+  translatingLanguages: Set<string>; // Track which languages are currently being translated
   
   // Medusa Top-level
   title: string;
@@ -104,6 +105,7 @@ export interface ProductState {
   setOrganizationId: (id: string) => void;
   setIsSaving: (saving: boolean) => void;
   saveToDb: () => Promise<void>;
+  setTranslatingLanguage: (lang: string, isTranslating: boolean) => void;
 }
 
 const INITIAL_LOCALIZATION: Localization = {
@@ -127,6 +129,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   price: 0,
   activeLanguages: ['en'],
   isSaving: false,
+  translatingLanguages: new Set<string>(),
   localization: {
     en: { ...INITIAL_LOCALIZATION },
     es: { ...INITIAL_LOCALIZATION },
@@ -280,6 +283,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     sku: '',
     price: 0,
     activeLanguages: ['en'],
+    translatingLanguages: new Set<string>(),
     localization: {
       en: { ...INITIAL_LOCALIZATION },
       es: { ...INITIAL_LOCALIZATION },
@@ -366,4 +370,14 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
 
   bulkUpdate: (data) => set((state) => ({ ...state, ...data })),
+  
+  setTranslatingLanguage: (lang, isTranslating) => set((state) => {
+    const newSet = new Set(state.translatingLanguages);
+    if (isTranslating) {
+      newSet.add(lang);
+    } else {
+      newSet.delete(lang);
+    }
+    return { translatingLanguages: newSet };
+  }),
 }));
