@@ -27,7 +27,7 @@ The primary entry point is an intelligent, multi-modal prompt bar.
 
 ### 5. Store & Catalog Integration
 The app serves as a bridge between AI generation and production storefronts.
-- **Direct Connectors:** Integrated support for MedusaJS, allowing for seamless synchronization of generated JSON objects to live catalogs.
+- **Direct Connectors (Current):** MedusaJS is supported for taxonomy sync (collections/categories/channels/types/currencies/locations). Direct “push product to Medusa” is a planned feature.
 - **Taxonomy Sync:** A live "Refresh" sync pulls Collections, Categories, Sales Channels, and Product Types directly from the connected Medusa backend, allowing users to map content to their actual store structure in real-time.
 - **Logistics Integration:** Manage shipping weights and dimensions within the product blueprint.
 - **Credential Vaulting:** Store-specific API keys and endpoints are encrypted before persistence.
@@ -38,7 +38,8 @@ The app serves as a bridge between AI generation and production storefronts.
 
 ### 7. Security & Settings
 - **AES-256 Encryption:** Organization API keys (OpenAI, R2, Medusa) are encrypted before hitting the database.
-- **Server-Only Logic:** Sensitive operations and decryption happen on the server to maintain a zero-trust frontend environment.
+- **Server-Only Logic:** Sensitive operations and decryption happen on the server. The Settings UI does not load plaintext secrets back into the browser once saved.
+- **SSRF Hardening:** Media sync URL fetching blocks private networks, disallows redirects, and enforces time/size limits.
 
 ## Layout and Design
 - **Theme:** "Obsidian" dark mode using zinc and indigo tones.

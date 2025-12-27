@@ -46,3 +46,7 @@ The `getMedusaTaxonomy` action performs a multi-endpoint fetch to hydrate the UI
 - **Store Config**: `/admin/stores` (for active currencies)
 - **Locations**: `/admin/stock-locations`
 
+### Security Note
+- Medusa credentials are stored encrypted-at-rest in Supabase and are decrypted only on the server when performing taxonomy requests.
+- The browser never receives the stored Medusa Admin API key; the Settings UI supports “replace” semantics only.
+

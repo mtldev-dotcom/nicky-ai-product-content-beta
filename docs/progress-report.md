@@ -14,7 +14,7 @@ Product Architect has successfully transitioned from a single-user utility to a 
 - **AI Vision Engine:** `/api/generate` now supports multi-modal input (Image + Text) for visual product analysis.
 - **Product Details Hub:** Centralized management for copy, features, and multi-language SEO metadata.
 - **Brand Personality Engine:** Organization-wide settings for Brand Name, Voice, and Custom Style Guidelines.
-- **Cloud-Synced Stores:** Zustand stores now persist `ProductData` and `Settings` to the database.
+- **Cloud Sync (Current):** Settings are stored encrypted-at-rest; product saves are enforced server-side with org membership checks.
 - **Enhanced Media Pipeline:** Organization-specific R2/S3 paths and secure server-side credential handling.
 - **Store Integration Layer:** Encrypted support for MedusaJS API endpoints and Admin keys.
 - **Live Taxonomy Connector:** Real-time fetching of store collections, categories, channels, active currencies, and stock locations from the MedusaJS API.
@@ -36,7 +36,7 @@ Product Architect has successfully transitioned from a single-user utility to a 
 | **SKU Uniqueness** | ✅ Working | SKUs prepended with product handle to prevent global collisions. |
 | **Decimal Pricing** | ✅ Working | Price entered as 56.00 remains 56.00 in exported JSON. |
 | **Market Activation**| ✅ Working | Toggle "French" in Settings -> Visibility updates in Header. |
-| **Cloud Persistence**| ✅ Working | Refresh page -> Product and settings load from Supabase. |
+| **Cloud Persistence**| ✅ Working | Settings persist; product saves persist (product-load-on-refresh may be app-specific and depends on future library UX). |
 
 ## 4. Final Testing Procedure
 To verify the SaaS build:
