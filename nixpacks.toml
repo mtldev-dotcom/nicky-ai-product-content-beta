@@ -1,0 +1,6 @@
+[phases.setup]
+# Pin Node to v20 to satisfy Next.js 16+ requirements (>=20.9.0).
+# Keeping this repo npm-first (package-lock.json), so we only override the runtime.
+nixPkgs = ["nodejs_20"]
+
+
