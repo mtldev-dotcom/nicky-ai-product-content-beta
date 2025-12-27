@@ -1,11 +1,16 @@
 import { create } from 'zustand';
 import { saveEncryptedSettings, loadEncryptedSettings } from '@/app/settings/actions';
+import type { SettingsUpdate } from '@/lib/settings-schema';
 
 interface SettingsState {
   openaiApiKey: string;
+  hasOpenaiApiKey: boolean;
   r2AccountId: string;
+  hasR2AccountId: boolean;
   r2AccessKeyId: string;
+  hasR2AccessKeyId: boolean;
   r2SecretAccessKey: string;
+  hasR2SecretAccessKey: boolean;
   r2BucketName: string;
   r2PublicUrl: string;
   brandName: string;
@@ -14,6 +19,7 @@ interface SettingsState {
   storePlatform: string;
   medusaUrl: string;
   medusaApiKey: string;
+  hasMedusaApiKey: boolean;
   activeLanguages: string[];
   isSaving: boolean;
   setOpenaiApiKey: (key: string) => void;
@@ -26,9 +32,13 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   openaiApiKey: '',
+  hasOpenaiApiKey: false,
   r2AccountId: '',
+  hasR2AccountId: false,
   r2AccessKeyId: '',
+  hasR2AccessKeyId: false,
   r2SecretAccessKey: '',
+  hasR2SecretAccessKey: false,
   r2BucketName: '',
   r2PublicUrl: '',
   brandName: '',
@@ -37,6 +47,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   storePlatform: 'medusa',
   medusaUrl: '',
   medusaApiKey: '',
+  hasMedusaApiKey: false,
   activeLanguages: ['en'],
   isSaving: false,
   setOpenaiApiKey: (openaiApiKey) => set({ openaiApiKey }),
@@ -48,6 +59,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const data = await loadEncryptedSettings(organizationId);
       if (data) {
+        // `data` is safe for browser: secrets are blank + has* flags describe presence.
         set({ ...data });
       }
     } catch (err) {
@@ -59,7 +71,30 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ isSaving: true });
     try {
       const state = get();
-      await saveEncryptedSettings(organizationId, state);
+      /**
+       * Only send fields that the server action expects.
+       * Note: secrets use "update semantics":
+       * - "" => keep existing secret
+       * - non-empty => replace
+       */
+      const payload: SettingsUpdate = {
+        openaiApiKey: state.openaiApiKey,
+        r2AccountId: state.r2AccountId,
+        r2AccessKeyId: state.r2AccessKeyId,
+        r2SecretAccessKey: state.r2SecretAccessKey,
+        medusaApiKey: state.medusaApiKey,
+
+        r2BucketName: state.r2BucketName,
+        r2PublicUrl: state.r2PublicUrl,
+        brandName: state.brandName,
+        brandVoice: state.brandVoice,
+        customInstructions: state.customInstructions,
+        storePlatform: state.storePlatform,
+        medusaUrl: state.medusaUrl,
+        activeLanguages: state.activeLanguages,
+      };
+
+      await saveEncryptedSettings(organizationId, payload);
     } catch (err) {
       console.error('Error saving settings:', err);
       alert('Failed to save settings to cloud');

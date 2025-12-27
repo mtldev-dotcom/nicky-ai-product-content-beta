@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
+import { GenerateRequestSchema } from '@/lib/api-schemas';
 
 const ProductSchema = z.object({
   title: z.string(),
@@ -16,11 +17,8 @@ const ProductSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const { prompt, image } = await req.json();
-
-    if (!prompt && !image) {
-      return NextResponse.json({ error: 'Prompt or Image is required' }, { status: 400 });
-    }
+    const parsed = GenerateRequestSchema.parse(await req.json());
+    const { prompt, image } = parsed;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -49,11 +47,8 @@ export async function POST(req: Request) {
 
     let apiKey = settings?.openai_api_key;
     if (apiKey) {
-      try {
-        apiKey = decrypt(apiKey);
-      } catch (e) {
-        console.error('Decryption failed for OpenAI API key:', e);
-      }
+      // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
+      apiKey = decrypt(apiKey, { allowPlaintext: true });
     } else {
       apiKey = process.env.OPENAI_API_KEY;
     }
@@ -68,7 +63,7 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey });
 
-    const messages: any[] = [
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: 'system',
         content: `You are the lead Product Architect and Head of Copy for ${brandName}. 
@@ -104,7 +99,7 @@ export async function POST(req: Request) {
       }
     ];
 
-    const userContent: any[] = [];
+    const userContent: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'low' | 'high' | 'auto' } }> = [];
     if (prompt) {
       userContent.push({ type: 'text', text: prompt });
     }
@@ -129,9 +124,13 @@ export async function POST(req: Request) {
     const parsedData = ProductSchema.parse(JSON.parse(content));
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
-    console.error('AI Generation Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate content' }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to generate content';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

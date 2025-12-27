@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createClient } from '@/utils/supabase/client';
+import { saveProductToCloud } from '@/app/products/actions';
 
 export interface Localization {
   title: string;
@@ -311,13 +311,19 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   saveToDb: async () => {
     const state = get();
-    if (!state.organizationId) return;
-
     set({ isSaving: true });
-    const supabase = createClient();
 
-    const productData = {
-      organization_id: state.organizationId,
+    /**
+     * Persist via server action so org scoping is enforced server-side.
+     *
+     * Preconditions:
+     * - User is authenticated (server action checks).
+     *
+     * Postconditions:
+     * - Product is saved under the caller's organization.
+     */
+    const payload = {
+      id: state.id,
       title: state.title,
       handle: state.handle,
       status: state.status,
@@ -342,25 +348,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
         shipping_profile_id: state.shipping_profile_id,
         shipping_weight: state.shipping_weight,
         shipping_dimensions: state.shipping_dimensions,
-      }
-    };
+      },
+    } as const;
 
     try {
-      if (state.id) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', state.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase
-          .from('products')
-          .insert(productData)
-          .select()
-          .single();
-        if (error) throw error;
-        set({ id: data.id });
-      }
+      const { id } = await saveProductToCloud(payload);
+      if (!state.id) set({ id });
     } catch (err) {
       console.error('Error saving product:', err);
       alert('Failed to save product to cloud');

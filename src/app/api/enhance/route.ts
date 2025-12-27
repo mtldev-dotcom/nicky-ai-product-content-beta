@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
+import { z } from 'zod';
+import { EnhanceRequestSchema } from '@/lib/api-schemas';
 
 export async function POST(req: Request) {
   try {
-    const { field, currentValue, fieldType, language } = await req.json();
-
-    if (!field || !fieldType) {
-      return NextResponse.json({ error: 'Missing field or fieldType' }, { status: 400 });
-    }
+    const parsed = EnhanceRequestSchema.parse(await req.json());
+    const { currentValue, fieldType, language } = parsed;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,11 +37,8 @@ export async function POST(req: Request) {
 
     let apiKey = settings?.openai_api_key;
     if (apiKey) {
-      try {
-        apiKey = decrypt(apiKey);
-      } catch (e) {
-        console.error('Decryption failed for OpenAI API key:', e);
-      }
+      // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
+      apiKey = decrypt(apiKey, { allowPlaintext: true });
     } else {
       apiKey = process.env.OPENAI_API_KEY;
     }
@@ -122,9 +118,13 @@ Return ONLY the enhanced text, nothing else. No explanations, no JSON, just the 
     }
 
     return NextResponse.json({ enhanced: content.trim() });
-  } catch (error: any) {
-    console.error('Enhancement Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to enhance content' }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to enhance content';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

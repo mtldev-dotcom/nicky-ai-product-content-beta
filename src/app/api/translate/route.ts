@@ -2,14 +2,13 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
+import { z } from 'zod';
+import { TranslateRequestSchema } from '@/lib/api-schemas';
 
 export async function POST(req: Request) {
   try {
-    const { source, targetLang, options, selectedLang } = await req.json();
-
-    if (!source || !targetLang) {
-      return NextResponse.json({ error: 'Missing source or target language' }, { status: 400 });
-    }
+    const parsed = TranslateRequestSchema.parse(await req.json());
+    const { source, targetLang, options, selectedLang } = parsed;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,11 +37,8 @@ export async function POST(req: Request) {
 
     let apiKey = settings?.openai_api_key;
     if (apiKey) {
-      try {
-        apiKey = decrypt(apiKey);
-      } catch (e) {
-        console.error('Decryption failed for OpenAI API key:', e);
-      }
+      // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
+      apiKey = decrypt(apiKey, { allowPlaintext: true });
     } else {
       apiKey = process.env.OPENAI_API_KEY;
     }
@@ -95,8 +91,12 @@ export async function POST(req: Request) {
     if (!content) throw new Error('No content returned from AI');
 
     return NextResponse.json(JSON.parse(content));
-  } catch (error: any) {
-    console.error('Translation Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to translate' }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
+    }
+
+    const message = error instanceof Error ? error.message : 'Failed to translate';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

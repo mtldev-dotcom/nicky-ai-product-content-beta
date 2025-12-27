@@ -3,10 +3,17 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
+import { z } from 'zod';
+import { MediaPresignedRequestSchema } from '@/lib/api-schemas';
 
 export async function POST(req: Request) {
   try {
-    const { filename, contentType } = await req.json();
+    const { filename, contentType } = MediaPresignedRequestSchema.parse(await req.json());
+
+    // Only allow image uploads through this endpoint.
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return NextResponse.json({ error: 'Only image uploads are supported' }, { status: 400 });
+    }
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -37,9 +44,10 @@ export async function POST(req: Request) {
     let secretAccessKey = settings?.r2_secret_access_key;
     let accountId = settings?.r2_account_id;
 
-    if (accessKeyId) accessKeyId = decrypt(accessKeyId);
-    if (secretAccessKey) secretAccessKey = decrypt(secretAccessKey);
-    if (accountId) accountId = decrypt(accountId);
+    // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
+    if (accessKeyId) accessKeyId = decrypt(accessKeyId, { allowPlaintext: true });
+    if (secretAccessKey) secretAccessKey = decrypt(secretAccessKey, { allowPlaintext: true });
+    if (accountId) accountId = decrypt(accountId, { allowPlaintext: true });
 
     accessKeyId = accessKeyId || process.env.S3_ACCESS_KEY_ID;
     secretAccessKey = secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
@@ -61,7 +69,9 @@ export async function POST(req: Request) {
       },
     });
 
-    const fileKey = `${membership.organization_id}/uploads/${Date.now()}-${filename}`;
+    // Prevent path traversal: sanitize user-supplied filename.
+    const safeFilename = filename.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+    const fileKey = `${membership.organization_id}/uploads/${Date.now()}-${safeFilename}`;
     
     const command = new PutObjectCommand({
       Bucket: bucket,
@@ -73,8 +83,10 @@ export async function POST(req: Request) {
     const publicUrl = `${publicUrlBase}/${fileKey}`;
 
     return NextResponse.json({ presignedUrl, publicUrl, fileKey });
-  } catch (error: any) {
-    console.error('Presigned URL Error:', error);
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Failed to generate upload URL' }, { status: 500 });
   }
 }

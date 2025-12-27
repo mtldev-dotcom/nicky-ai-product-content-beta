@@ -2,14 +2,21 @@ import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
+import { MediaSyncRequestSchema } from '@/lib/api-schemas';
+import { assertSafeExternalUrl, fetchExternalWithLimits, readResponseAsBufferWithLimit, SsrfBlockedError } from '@/lib/ssrf';
+
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
-    const { url } = await req.json();
+    const body = await req.json();
+    const { url: rawUrl } = MediaSyncRequestSchema.parse(body);
 
-    if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
-    }
+    // Optional allowlist for production hardening.
+    const allowedHosts = (process.env.MEDIA_SYNC_ALLOWED_HOSTS || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,9 +47,10 @@ export async function POST(req: Request) {
     let secretAccessKey = settings?.r2_secret_access_key;
     let accountId = settings?.r2_account_id;
 
-    if (accessKeyId) accessKeyId = decrypt(accessKeyId);
-    if (secretAccessKey) secretAccessKey = decrypt(secretAccessKey);
-    if (accountId) accountId = decrypt(accountId);
+    // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
+    if (accessKeyId) accessKeyId = decrypt(accessKeyId, { allowPlaintext: true });
+    if (secretAccessKey) secretAccessKey = decrypt(secretAccessKey, { allowPlaintext: true });
+    if (accountId) accountId = decrypt(accountId, { allowPlaintext: true });
 
     accessKeyId = accessKeyId || process.env.S3_ACCESS_KEY_ID;
     secretAccessKey = secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
@@ -55,13 +63,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'R2/S3 not configured' }, { status: 500 });
     }
 
-    // 1. Fetch the external image
-    const imageResponse = await fetch(url);
-    if (!imageResponse.ok) throw new Error('Failed to fetch external image');
-    
-    const arrayBuffer = await imageResponse.arrayBuffer();
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    const buffer = Buffer.from(arrayBuffer);
+    // 1) SSRF-safe URL validation + DNS private-network blocking
+    const safeUrl = await assertSafeExternalUrl(rawUrl, { allowedHosts });
+
+    // 2) Fetch with strict limits
+    const imageResponse = await fetchExternalWithLimits(safeUrl, {
+      timeoutMs: 10_000,
+      maxBytes: 10 * 1024 * 1024, // 10MB
+    });
+
+    if (!imageResponse.ok) {
+      return NextResponse.json({ error: 'Failed to fetch external image' }, { status: 400 });
+    }
+
+    const contentType = imageResponse.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return NextResponse.json({ error: 'URL must point to an image' }, { status: 400 });
+    }
+
+    const buffer = await readResponseAsBufferWithLimit(imageResponse, 10 * 1024 * 1024);
 
     // 2. Setup S3 Client
     const s3Client = new S3Client({
@@ -73,8 +93,10 @@ export async function POST(req: Request) {
       },
     });
 
-    const filename = url.split('/').pop() || 'image.jpg';
-    const fileKey = `${membership.organization_id}/sync/${Date.now()}-${filename}`;
+    // Prevent path traversal: only use URL pathname basename as the filename.
+    const filename = safeUrl.pathname.split('/').pop() || 'image';
+    const safeFilename = filename.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+    const fileKey = `${membership.organization_id}/sync/${Date.now()}-${safeFilename}`;
 
     // 3. Upload to R2
     const command = new PutObjectCommand({
@@ -88,8 +110,12 @@ export async function POST(req: Request) {
     const publicUrl = `${publicUrlBase}/${fileKey}`;
 
     return NextResponse.json({ publicUrl, fileKey });
-  } catch (error: any) {
-    console.error('Media Sync Error:', error);
+  } catch (error: unknown) {
+    // Keep errors non-leaky to clients.
+    if (error instanceof SsrfBlockedError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     return NextResponse.json({ error: 'Failed to sync image to bucket' }, { status: 500 });
   }
 }

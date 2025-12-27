@@ -1,9 +1,9 @@
 'use server'
 
-import { loadEncryptedSettings } from '@/app/settings/actions';
+import { loadDecryptedSettingsForServer } from '@/app/settings/actions';
 
 export async function getMedusaTaxonomy(orgId: string) {
-  const settings = await loadEncryptedSettings(orgId);
+  const settings = await loadDecryptedSettingsForServer(orgId);
   if (!settings || !settings.medusaUrl || !settings.medusaApiKey || settings.storePlatform !== 'medusa') {
     return {
       success: false,

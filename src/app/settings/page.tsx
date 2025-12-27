@@ -193,6 +193,11 @@ export default function SettingsPage() {
                     {showMedusaKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {settings.hasMedusaApiKey && !localState.medusaApiKey && (
+                  <p className="text-[10px] text-emerald-400 italic px-1">
+                    A Medusa key is already saved. Leave blank to keep it, or type a new one to replace.
+                  </p>
+                )}
                 <p className="text-[10px] text-zinc-500 italic px-1">
                   Used to sync products and media directly to your MedusaJS catalog.
                 </p>
@@ -288,7 +293,7 @@ export default function SettingsPage() {
               <input
                 type={showKey ? "text" : "password"}
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                placeholder="sk-..."
+                placeholder={settings.hasOpenaiApiKey ? "•••••••• (saved)" : "sk-..."}
                 value={localState.openaiApiKey}
                 onChange={(e) => setLocalState({ ...localState, openaiApiKey: e.target.value })}
               />
@@ -299,6 +304,11 @@ export default function SettingsPage() {
                 {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {settings.hasOpenaiApiKey && !localState.openaiApiKey && (
+              <p className="text-[10px] text-emerald-400 italic px-1">
+                A key is already saved. Leave blank to keep it, or type a new one to replace.
+              </p>
+            )}
           </div>
         </section>
 
@@ -383,6 +393,11 @@ export default function SettingsPage() {
                 value={localState.r2AccountId}
                 onChange={(e) => setLocalState({ ...localState, r2AccountId: e.target.value })}
               />
+              {settings.hasR2AccountId && !localState.r2AccountId && (
+                <p className="text-[10px] text-emerald-400 italic px-1">
+                  An Account ID is already saved. Leave blank to keep it.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-300">Bucket Name</label>
@@ -401,6 +416,11 @@ export default function SettingsPage() {
                 value={localState.r2AccessKeyId}
                 onChange={(e) => setLocalState({ ...localState, r2AccessKeyId: e.target.value })}
               />
+              {settings.hasR2AccessKeyId && !localState.r2AccessKeyId && (
+                <p className="text-[10px] text-emerald-400 italic px-1">
+                  An Access Key ID is already saved. Leave blank to keep it.
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-300">Secret Access Key</label>
@@ -410,6 +430,11 @@ export default function SettingsPage() {
                 value={localState.r2SecretAccessKey}
                 onChange={(e) => setLocalState({ ...localState, r2SecretAccessKey: e.target.value })}
               />
+              {settings.hasR2SecretAccessKey && !localState.r2SecretAccessKey && (
+                <p className="text-[10px] text-emerald-400 italic px-1">
+                  A Secret Access Key is already saved. Leave blank to keep it.
+                </p>
+              )}
             </div>
             <div className="md:col-span-2 space-y-2">
               <label className="text-sm font-medium text-zinc-300">Public Bucket URL (Custom Domain)</label>
