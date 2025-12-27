@@ -64,13 +64,24 @@ export default function Dashboard() {
     setIsLoading(true);
     resetStore(); // Start fresh
     try {
+      /**
+       * IMPORTANT:
+       * The API request schema (`GenerateRequestSchema`) treats `prompt` and `image`
+       * as optional, BUT if the field is present it must be non-empty after `.trim()`.
+       *
+       * In production we were sometimes sending `prompt: ""` (or whitespace),
+       * which causes a 400 validation error. So we only include fields when they
+       * have a real value.
+       */
+      const body: { prompt?: string; image?: string } = {};
+      const trimmedPrompt = prompt.trim();
+      if (trimmedPrompt) body.prompt = trimmedPrompt;
+      if (selectedImage) body.image = selectedImage;
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt,
-          image: selectedImage
-        }),
+        body: JSON.stringify(body),
       });
       
       const data = await res.json();
