@@ -116,6 +116,8 @@ export default function UsagePage() {
               <option value="">All</option>
               <option value="JUST_DROP_IT">JUST DROP IT</option>
               <option value="GENERATE">Generate</option>
+              <option value="ENHANCE">Enhance</option>
+              <option value="TRANSLATE">Translate</option>
             </select>
           </div>
           <div>

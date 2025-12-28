@@ -26,6 +26,10 @@ Align your product data across global markets.
 - **Active Market Filtering:** Configure supported languages (English, Spanish, French, German, Japanese) at the organization level to reduce UI clutter.
 - **AI Translation:** Manage high-fidelity copy, features, and SEO metadata with automated AI translation that respects your brand's unique voice.
 
+### Note on PDFs (JUST DROP IT)
+- **Current**: PDF files are **not supported yet** and are rejected with a clear error.
+- **TODO**: Add minimal PDF text extraction to feed into Evidence (future improvement).
+
 ### 5. Store Integration & Sync
 Directly connect your product orchestration pipeline to your storefront. 
 - **Platform Selection:** Support for MedusaJS (with Shopify and others in development).

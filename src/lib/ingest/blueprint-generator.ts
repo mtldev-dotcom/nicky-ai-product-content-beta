@@ -7,7 +7,7 @@
  */
 
 import OpenAI from 'openai';
-import { Evidence, ProductBlueprint, AIMeta } from '@/lib/ingest-types';
+import type { Evidence, ProductBlueprint, AIMeta } from '@/lib/ingest-types';
 import { callLLMWithLogging } from '@/lib/llm/logger';
 import { logPipelineEvent } from '@/lib/llm/session-manager';
 
@@ -178,7 +178,7 @@ IMPORTANT:
     let parsed;
     try {
       parsed = JSON.parse(result.content);
-    } catch (e) {
+    } catch (_e) {
       console.error('Failed to parse blueprint JSON. Content length:', result.content.length);
       console.error('Content preview:', result.content.substring(0, 500) + '...');
       throw new Error(`AI returned malformed data. This usually happens when the product has too many variants or languages for a single pass. Try reducing the number of input files.`);
@@ -201,18 +201,25 @@ IMPORTANT:
  * Normalizes and validates the generated blueprint.
  */
 function normalizeBlueprint(
-  parsed: any,
+  parsed: unknown,
   evidence: Evidence,
   settings: OrgSettings,
   languageSource: Record<string, 'original' | 'mixed' | 'translated'>
 ): ProductBlueprint {
+  /**
+   * The LLM output is untrusted at runtime; we treat it as `unknown` and only
+   * read through a typed, optional view.
+   */
+  const parsedBlueprint = parsed as Partial<ProductBlueprint> & { aiMeta?: Partial<AIMeta> };
+  const parsedProduct = parsedBlueprint.product;
+
   // Ensure all required fields exist
   const blueprint: ProductBlueprint = {
     product: {
       identity: {
-        title: parsed.product?.identity?.title || evidence.titles[0]?.text || 'Untitled Product',
-        subtitle: parsed.product?.identity?.subtitle || '',
-        handle: parsed.product?.identity?.handle || generateHandle(parsed.product?.identity?.title || evidence.titles[0]?.text || 'product'),
+        title: parsedProduct?.identity?.title || evidence.titles[0]?.text || 'Untitled Product',
+        subtitle: parsedProduct?.identity?.subtitle || '',
+        handle: parsedProduct?.identity?.handle || generateHandle(parsedProduct?.identity?.title || evidence.titles[0]?.text || 'product'),
         brand: settings.brandName,
         source: 'JUST_DROP_IT',
       },
@@ -220,20 +227,20 @@ function normalizeBlueprint(
       taxonomy: {
         collectionId: null,
         typeId: null,
-        categoryIds: parsed.product?.taxonomy?.categoryIds || [],
-        tags: parsed.product?.taxonomy?.tags || evidence.seoKeywords.slice(0, 10),
+        categoryIds: parsedProduct?.taxonomy?.categoryIds || [],
+        tags: parsedProduct?.taxonomy?.tags || evidence.seoKeywords.slice(0, 10),
       },
       logistics: {
-        weight: evidence.logistics.weight?.value || parsed.product?.logistics?.weight || null,
+        weight: evidence.logistics.weight?.value || parsedProduct?.logistics?.weight || null,
         dimensions: evidence.logistics.dimensions ? {
           length: evidence.logistics.dimensions.length || null,
           width: evidence.logistics.dimensions.width || null,
           height: evidence.logistics.dimensions.height || null,
-        } : parsed.product?.logistics?.dimensions || null,
+        } : parsedProduct?.logistics?.dimensions,
         hsCode: null,
         originCountry: evidence.logistics.originCountry?.value || null,
       },
-      variants: parsed.product?.variants || [],
+      variants: parsedProduct?.variants || [],
       media: {
         images: evidence.media.images.map(img => ({
           sourceUrl: img.url,
@@ -242,9 +249,9 @@ function normalizeBlueprint(
       },
     },
     aiMeta: {
-      fieldsFilledByAI: parsed.aiMeta?.fieldsFilledByAI || [],
-      fieldsFromSource: parsed.aiMeta?.fieldsFromSource || [],
-      languageSource: parsed.aiMeta?.languageSource || languageSource,
+      fieldsFilledByAI: parsedBlueprint.aiMeta?.fieldsFilledByAI || [],
+      fieldsFromSource: parsedBlueprint.aiMeta?.fieldsFromSource || [],
+      languageSource: parsedBlueprint.aiMeta?.languageSource || languageSource,
     },
   };
   
@@ -265,12 +272,12 @@ function normalizeBlueprint(
       const origShort = evidence.descriptions.find(t => t.lang === lang && t.text.length <= 100);
       
       blueprint.product.descriptions[lang] = {
-        title: origTitle?.text || parsed.product?.descriptions?.[lang]?.title || blueprint.product.identity.title,
+        title: origTitle?.text || parsedProduct?.descriptions?.[lang]?.title || blueprint.product.identity.title,
         short: origShort?.text || origDesc?.text.substring(0, 200) || '',
         long: origDesc?.text || '',
         features: evidence.features.filter(f => f.lang === lang).map(f => f.text),
         benefits: evidence.benefits.filter(b => b.lang === lang).map(b => b.text),
-        seo: parsed.product?.descriptions?.[lang]?.seo || {
+        seo: parsedProduct?.descriptions?.[lang]?.seo || {
           title: origTitle?.text || '',
           description: origShort?.text || '',
           keywords: evidence.seoKeywords,
@@ -280,12 +287,12 @@ function normalizeBlueprint(
       blueprint.aiMeta.fieldsFilledByAI.push(`descriptions.${lang}`);
       // Use generated content from LLM
       blueprint.product.descriptions[lang] = {
-        title: parsed.product?.descriptions?.[lang]?.title || blueprint.product.identity.title,
-        short: parsed.product?.descriptions?.[lang]?.short || '',
-        long: parsed.product?.descriptions?.[lang]?.long || '',
-        features: parsed.product?.descriptions?.[lang]?.features || [],
-        benefits: parsed.product?.descriptions?.[lang]?.benefits || [],
-        seo: parsed.product?.descriptions?.[lang]?.seo || {
+        title: parsedProduct?.descriptions?.[lang]?.title || blueprint.product.identity.title,
+        short: parsedProduct?.descriptions?.[lang]?.short || '',
+        long: parsedProduct?.descriptions?.[lang]?.long || '',
+        features: parsedProduct?.descriptions?.[lang]?.features || [],
+        benefits: parsedProduct?.descriptions?.[lang]?.benefits || [],
+        seo: parsedProduct?.descriptions?.[lang]?.seo || {
           title: '',
           description: '',
           keywords: [],

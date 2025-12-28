@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, ImagePlus, FileJson, PenTool, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useProductStore } from '@/store/useProductStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 const OPTIONS = [
   {
@@ -48,6 +50,8 @@ const OPTIONS = [
 
 export default function CreateProductPage() {
   const router = useRouter();
+  const { resetStore, applyMedusaDefaultsForNewProduct } = useProductStore();
+  const settings = useSettingsStore();
 
   return (
     <div className="space-y-12 pb-20 md:pb-0">
@@ -73,7 +77,20 @@ export default function CreateProductPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => router.push(option.href)}
+              onClick={() => {
+                // Ensure "Manual Build" starts as a new draft, with org defaults applied.
+                if (option.id === 'manual') {
+                  resetStore();
+                  applyMedusaDefaultsForNewProduct({
+                    defaultSalesChannelId: settings.defaultSalesChannelId,
+                    defaultShippingProfileId: settings.defaultShippingProfileId,
+                    defaultCollectionId: settings.defaultCollectionId,
+                    defaultCategoryIds: settings.defaultCategoryIds,
+                  });
+                }
+
+                router.push(option.href);
+              }}
               className={cn(
                 'glass rounded-2xl p-6 border border-white/10 hover:border-indigo-500/30 transition-all text-left group relative overflow-hidden',
                 option.recommended && 'ring-2 ring-indigo-500/50'

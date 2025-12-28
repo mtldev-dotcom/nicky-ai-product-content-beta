@@ -1,46 +1,50 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useProductStore } from '@/store/useProductStore';
+import { useProductStore, type Localization } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { ALL_LANGUAGES } from '@/lib/languages';
+import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
 import { 
   Database, 
   Copy, 
   Download, 
   Check, 
-  FileJson,
   AlertTriangle,
   RefreshCw,
-  ExternalLink,
   Box,
   X,
   Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ALL_LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-];
-
 export default function JsonPage() {
   const product = useProductStore();
   const settings = useSettingsStore();
   const [copied, setCopied] = useState(false);
+  const [isPushing, setIsPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<{ productId: string | null } | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
 
   const fullJson = useMemo(() => {
     const activeLangs = product.activeLanguages;
 
     // Helper to build i18n objects
-    const buildI18n = (field: string) => {
-      const obj: Record<string, any> = {};
-      activeLangs.forEach(lang => {
-        const val = (product.localization[lang] as any)[field];
-        if (val) obj[lang] = val;
+    const buildI18n = <K extends keyof Localization>(field: K): Partial<Record<string, Localization[K]>> => {
+      const obj: Partial<Record<string, Localization[K]>> = {};
+
+      activeLangs.forEach((lang) => {
+        const val = product.localization[lang]?.[field];
+        if (Array.isArray(val)) {
+          if (val.length > 0) obj[lang] = val as Localization[K];
+          return;
+        }
+        if (typeof val === 'string') {
+          if (val.trim().length > 0) obj[lang] = val as Localization[K];
+          return;
+        }
       });
+
       return obj;
     };
 
@@ -72,11 +76,12 @@ export default function JsonPage() {
         }];
       }
 
-      const combinations: any[] = [[]];
-      product.options.forEach(option => {
-        const nextCombinations: any[] = [];
-        combinations.forEach(combination => {
-          option.values.forEach(value => {
+      type ComboItem = { name: string; value: string };
+      const combinations: ComboItem[][] = [[]];
+      product.options.forEach((option) => {
+        const nextCombinations: ComboItem[][] = [];
+        combinations.forEach((combination) => {
+          option.values.forEach((value) => {
             nextCombinations.push([...combination, { name: option.name, value: value.value }]);
           });
         });
@@ -86,10 +91,10 @@ export default function JsonPage() {
         }
       });
 
-      return combinations.map(combo => {
-        const variantValuesTitle = combo.map((c: any) => c.value).join(' / ');
+      return combinations.map((combo) => {
+        const variantValuesTitle = combo.map((c) => c.value).join(' / ');
         const title = `${product.title || 'Draft Product'} - ${variantValuesTitle}`;
-        const variantOptions = combo.reduce((acc: any, curr: any) => {
+        const variantOptions = combo.reduce<Record<string, string>>((acc, curr) => {
           acc[curr.name] = curr.value;
           return acc;
         }, {});
@@ -196,7 +201,10 @@ export default function JsonPage() {
       shipping_profile_id: product.shipping_profile_id || null
     };
 
-    return JSON.stringify(output, null, 4);
+    // Medusa expects strict shapes (notably `currency_code` must be a string).
+    // Sanitize before export/push so UI/store can keep richer currency objects safely.
+    const sanitized = sanitizeMedusaProductPayload(output);
+    return JSON.stringify(sanitized, null, 4);
   }, [product]);
 
   const handleCopy = () => {
@@ -213,6 +221,35 @@ export default function JsonPage() {
     a.download = `product-${product.handle || 'blueprint'}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handlePushToMedusa = async () => {
+    setIsPushing(true);
+    setPushError(null);
+    setPushResult(null);
+
+    try {
+      const payload = JSON.parse(fullJson) as unknown;
+      const res = await fetch('/api/medusa/push-product', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+
+      const data = (await res.json()) as { productId?: string | null; error?: string; details?: unknown };
+
+      if (!res.ok) {
+        setPushError(data.error || 'Failed to push product to Medusa');
+        return;
+      }
+
+      setPushResult({ productId: data.productId ?? null });
+    } catch (e) {
+      console.error('Push to Medusa failed:', e);
+      setPushError('Failed to push product to Medusa (invalid JSON or network error)');
+    } finally {
+      setIsPushing(false);
+    }
   };
 
   const checklist = useMemo(() => {
@@ -384,7 +421,7 @@ export default function JsonPage() {
     } else {
       const unsyncedCount = product.images.filter(url => {
         const isSynced = url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
-        const isIgnored = (product as any).ignoredUrls?.includes(url);
+        const isIgnored = product.ignoredUrls.includes(url);
         return !isSynced && !isIgnored;
       }).length;
       
@@ -417,8 +454,37 @@ export default function JsonPage() {
             <Download className="w-4 h-4" />
             Download
           </button>
+          <button
+            onClick={handlePushToMedusa}
+            disabled={isPushing}
+            className={cn(
+              "bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all active:scale-95",
+            )}
+          >
+            <Box className="w-4 h-4" />
+            {isPushing ? 'Pushing...' : 'Push to Medusa'}
+          </button>
         </div>
       </header>
+
+      {(pushError || pushResult) && (
+        <section className="glass rounded-2xl p-4 border border-white/10">
+          {pushError ? (
+            <div className="text-sm text-red-300">
+              <span className="font-semibold">Push failed:</span> {pushError}
+            </div>
+          ) : (
+            <div className="text-sm text-emerald-300">
+              <span className="font-semibold">Push succeeded.</span>{' '}
+              {pushResult?.productId ? (
+                <span>Medusa product id: <span className="font-mono">{pushResult.productId}</span></span>
+              ) : (
+                <span>Medusa returned success, but no product id was found in the response.</span>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
@@ -447,7 +513,7 @@ export default function JsonPage() {
               <p className="font-bold uppercase mb-1 flex items-center gap-1">
                 <Box className="w-3 h-3" /> Medusa v2 Note
               </p>
-              Inventory levels must be managed via the Inventory API after product creation. The 'inventory' field is omitted from this export to prevent API errors.
+              Inventory levels must be managed via the Inventory API after product creation. The &apos;inventory&apos; field is omitted from this export to prevent API errors.
             </div>
           </section>
 

@@ -56,6 +56,12 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
     store_platform: parsed.storePlatform ?? existing?.store_platform ?? 'medusa',
     medusa_url: parsed.medusaUrl ?? existing?.medusa_url ?? '',
     active_languages: parsed.activeLanguages ?? existing?.active_languages ?? ['en'],
+
+    // Medusa defaults (non-secrets)
+    default_sales_channel_id: parsed.defaultSalesChannelId ?? existing?.default_sales_channel_id ?? null,
+    default_shipping_profile_id: parsed.defaultShippingProfileId ?? existing?.default_shipping_profile_id ?? null,
+    default_collection_id: parsed.defaultCollectionId ?? existing?.default_collection_id ?? null,
+    default_category_ids: parsed.defaultCategoryIds ?? existing?.default_category_ids ?? [],
     updated_at: new Date().toISOString(),
   };
 
@@ -110,6 +116,12 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
     storePlatform: data.store_platform || 'medusa',
     medusaUrl: data.medusa_url || '',
     activeLanguages: data.active_languages || ['en'],
+
+    // Medusa defaults
+    defaultSalesChannelId: data.default_sales_channel_id ?? null,
+    defaultShippingProfileId: data.default_shipping_profile_id ?? null,
+    defaultCollectionId: data.default_collection_id ?? null,
+    defaultCategoryIds: data.default_category_ids || [],
   };
 
   return SettingsForClientSchema.parse(safe);
@@ -148,6 +160,12 @@ export async function loadDecryptedSettingsForServer(orgId: string) {
     medusaUrl: data.medusa_url || '',
     medusaApiKey: data.medusa_api_key ? decrypt(data.medusa_api_key, { allowPlaintext: true }) : '',
     activeLanguages: data.active_languages || ['en'],
+
+    // Medusa defaults (non-secrets)
+    defaultSalesChannelId: data.default_sales_channel_id ?? null,
+    defaultShippingProfileId: data.default_shipping_profile_id ?? null,
+    defaultCollectionId: data.default_collection_id ?? null,
+    defaultCategoryIds: data.default_category_ids || [],
   };
 }
 

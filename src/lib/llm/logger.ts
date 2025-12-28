@@ -105,7 +105,7 @@ async function logLLMCall(
     // Serialize messages for storage (redacted and minimized)
     const messagesStr = JSON.stringify(messages);
     const promptPreview = minimizeContent(messagesStr, 2048); // 2KB preview
-    const promptFull = minimizeContent(messagesStr, 10240); // 10KB full (if needed)
+    const promptFull = minimizeContent(messagesStr, 4096); // 4KB full (if needed)
     
     // Minimize response
     const responsePreview = minimizeContent(response, 2048); // 2KB preview

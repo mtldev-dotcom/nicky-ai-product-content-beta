@@ -69,14 +69,17 @@ ${text.substring(0, 1000)}`;
       maxTokens: 50,
     });
     
-    const parsed = JSON.parse(result.content);
-    const languages = Array.isArray(parsed.languages) ? parsed.languages : ['en'];
+    const parsed = JSON.parse(result.content) as { languages?: unknown };
+    const languagesRaw = parsed.languages;
+    const languages = Array.isArray(languagesRaw) ? languagesRaw : ['en'];
     
     // Validate language codes
     const validCodes = ['en', 'es', 'fr', 'de', 'ja', 'zh', 'pt', 'it', 'ru', 'ko'];
-    return languages.filter((lang: any) => 
-      lang && typeof lang === 'string' && validCodes.includes(lang.toLowerCase())
-    ).slice(0, 5);
+    return languages
+      .filter((lang: unknown): lang is string => typeof lang === 'string' && lang.length > 0)
+      .map((lang) => lang.toLowerCase())
+      .filter((lang) => validCodes.includes(lang))
+      .slice(0, 5);
   } catch (error) {
     console.error('Language detection failed:', error);
     return ['en']; // Fallback to English

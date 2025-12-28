@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, FileText, Link as LinkIcon, Image as ImageIcon, Loader2, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useProductStore } from '@/store/useProductStore';
@@ -18,11 +17,45 @@ interface FileItem {
   previewUrl?: string; // For image thumbnails
 }
 
+type PipelineEventRow = {
+  event_type: string;
+  payload_preview: string | null;
+  created_at: string;
+};
+
+type PipelineSummary = {
+  urlStarted: number;
+  urlComplete: number;
+  urlError: number;
+  visionStarted: number;
+  visionComplete: number;
+  visionError: number;
+  textStarted: number;
+  textComplete: number;
+  textError: number;
+};
+
+function summarizePipeline(events: PipelineEventRow[]): PipelineSummary {
+  const count = (eventType: string) => events.filter((e) => e.event_type === eventType).length;
+  return {
+    urlStarted: count('EXTRACTION_URL_STARTED'),
+    urlComplete: count('EXTRACTION_URL_COMPLETE'),
+    urlError: count('EXTRACTION_URL_ERROR'),
+    visionStarted: count('EXTRACTION_VISION_STARTED'),
+    visionComplete: count('EXTRACTION_VISION_COMPLETE'),
+    visionError: count('EXTRACTION_VISION_ERROR'),
+    textStarted: count('EXTRACTION_TEXT_STARTED'),
+    textComplete: count('EXTRACTION_TEXT_COMPLETE'),
+    textError: count('EXTRACTION_TEXT_ERROR'),
+  };
+}
+
 export default function DropItPage() {
   const router = useRouter();
   const activeLanguages = useSettingsStore(s => s.activeLanguages);
   const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
-  const { loadFromBlueprint, resetStore, saveToDb } = useProductStore();
+  const settings = useSettingsStore();
+  const { loadFromBlueprint, resetStore, saveToDb, applyMedusaDefaultsForNewProduct } = useProductStore();
   const supabase = createClient();
   
   const [textBlocks, setTextBlocks] = useState<string[]>(['']);
@@ -31,6 +64,10 @@ export default function DropItPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState<'idle' | 'classifying' | 'extracting' | 'generating' | 'finalizing'>('idle');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+  const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+  const [pipelineEvents, setPipelineEvents] = useState<PipelineEventRow[]>([]);
+  const [pipelineSummary, setPipelineSummary] = useState<PipelineSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const filesRef = useRef<FileItem[]>([]);
@@ -91,7 +128,9 @@ export default function DropItPage() {
     if (!selectedFiles) return;
     
     setIsUploading(true);
+    setUploadErrors([]);
     const newFiles: FileItem[] = [];
+    const errors: string[] = [];
     
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
@@ -99,11 +138,11 @@ export default function DropItPage() {
       // Validate file type
       const allowedTypes = [
         'image/png', 'image/jpeg', 'image/jpg',
-        'text/csv', 'application/json', 'application/pdf', 'text/plain',
+        'text/csv', 'application/json', 'text/plain',
       ];
       
       if (!allowedTypes.some(type => file.type.startsWith(type.split('/')[0]) || file.type === type)) {
-        alert(`File type not supported: ${file.name}`);
+        errors.push(`Unsupported file type: ${file.name}`);
         continue;
       }
       
@@ -143,7 +182,7 @@ export default function DropItPage() {
         });
       } catch (error) {
         console.error(`Failed to upload ${file.name}:`, error);
-        alert(`Failed to upload ${file.name}`);
+        errors.push(`Failed to upload: ${file.name}`);
         // Clean up preview URL if upload failed
         if (previewUrl) {
           URL.revokeObjectURL(previewUrl);
@@ -152,6 +191,7 @@ export default function DropItPage() {
     }
     
     setFiles([...files, ...newFiles]);
+    setUploadErrors(errors);
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -190,6 +230,10 @@ export default function DropItPage() {
   };
 
   const handleGenerate = async () => {
+    setPipelineSummary(null);
+    setPipelineEvents([]);
+    setLastSessionId(null);
+
     const activeTextBlocks = textBlocks.filter(b => b.trim().length > 0);
     const activeUrls = urls.filter(u => u.trim().length > 0);
     const activeFiles = files.map(f => ({
@@ -197,7 +241,7 @@ export default function DropItPage() {
       type: f.file.type.startsWith('image/') ? 'image' as const :
             f.file.type === 'text/csv' ? 'csv' as const :
             f.file.type === 'application/json' ? 'json' as const :
-            f.file.type === 'application/pdf' ? 'pdf' as const : 'other' as const,
+            'other' as const,
       mime: f.file.type,
       url: f.publicUrl || '',
     }));
@@ -226,30 +270,45 @@ export default function DropItPage() {
         }),
       });
 
-      // Simple interval to simulate progress based on typical pipeline duration
-      const progressInterval = setInterval(() => {
-        setGenerationStep(prev => {
-          if (prev === 'classifying') return 'extracting';
-          if (prev === 'extracting') return 'generating';
-          if (prev === 'generating') return 'finalizing';
-          return prev;
-        });
-      }, 3000);
-
       const data = await res.json();
-      clearInterval(progressInterval);
 
       if (res.ok) {
         setGenerationStep('finalizing');
+        setLastSessionId(data.sessionId || null);
         // Load blueprint into product store
         resetStore();
         loadFromBlueprint(data.blueprint);
+        applyMedusaDefaultsForNewProduct({
+          defaultSalesChannelId: settings.defaultSalesChannelId,
+          defaultShippingProfileId: settings.defaultShippingProfileId,
+          defaultCollectionId: settings.defaultCollectionId,
+          defaultCategoryIds: settings.defaultCategoryIds,
+        });
         
         // Save to DB immediately
         await saveToDb();
-        
-        // Navigate to product details
-        router.push('/product-details');
+
+        // Fetch pipeline events for UX summary (best-effort; must not block).
+        if (data.sessionId) {
+          try {
+            const { data: eventsData, error } = await supabase
+              .from('pipeline_events')
+              .select('event_type, payload_preview, created_at')
+              .eq('session_id', data.sessionId)
+              .order('created_at', { ascending: true });
+
+            if (!error && eventsData) {
+              setPipelineEvents(eventsData as PipelineEventRow[]);
+              setPipelineSummary(summarizePipeline(eventsData as PipelineEventRow[]));
+            }
+          } catch (e) {
+            console.error('Failed to load pipeline events (non-fatal):', e);
+          }
+        }
+
+        // Stop spinner and let user review summary briefly before navigating.
+        setIsGenerating(false);
+        setGenerationStep('idle');
       } else {
         setGenerationStep('idle');
         alert(data.error || 'Generation failed');
@@ -259,6 +318,7 @@ export default function DropItPage() {
       console.error('Generation error:', error);
       alert('Network error during generation');
     } finally {
+      // If we already stopped the spinner on success (to show summary), don't re-toggle unnecessarily.
       setIsGenerating(false);
     }
   };
@@ -273,9 +333,100 @@ export default function DropItPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-bold text-white">JUST DROP IT</h1>
         <p className="text-zinc-400">
-          Paste or drop any product content. We'll parse and structure it automatically.
+          Paste or drop any product content. We&apos;ll parse and structure it automatically.
         </p>
       </header>
+
+      {/* Upload errors (partial success: some files may have failed upload) */}
+      {uploadErrors.length > 0 && (
+        <section className="glass rounded-2xl p-4 border border-yellow-500/20 bg-yellow-500/5">
+          <p className="text-xs font-semibold text-yellow-300 mb-2">Some files were not added:</p>
+          <ul className="list-disc pl-5 space-y-1 text-xs text-yellow-200/90">
+            {uploadErrors.map((msg, idx) => (
+              <li key={idx}>{msg}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Pipeline summary (partial success: some sources may have failed but blueprint still generated) */}
+      {pipelineSummary && (
+        <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Ingest Summary</h2>
+              {lastSessionId && (
+                <p className="text-xs text-zinc-500 font-mono mt-1">Session: {lastSessionId}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {lastSessionId && (
+                <button
+                  onClick={() => router.push(`/usage/${lastSessionId}`)}
+                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-zinc-200 transition-colors"
+                >
+                  View Logs
+                </button>
+              )}
+              <button
+                onClick={() => router.push('/product-details')}
+                className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-xs font-semibold text-white transition-colors"
+              >
+                Continue to Editor
+              </button>
+            </div>
+          </div>
+
+          {(pipelineSummary.urlError > 0 || pipelineSummary.visionError > 0 || pipelineSummary.textError > 0) && (
+            <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-200 text-xs">
+              Partial success: some sources failed but a blueprint was still generated.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-zinc-400 mb-1">URLs</p>
+              <p className="text-white font-semibold">
+                {pipelineSummary.urlComplete}/{pipelineSummary.urlStarted} processed
+                {pipelineSummary.urlError > 0 ? ` (${pipelineSummary.urlError} failed)` : ''}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-zinc-400 mb-1">Images (Vision)</p>
+              <p className="text-white font-semibold">
+                {pipelineSummary.visionComplete}/{pipelineSummary.visionStarted} processed
+                {pipelineSummary.visionError > 0 ? ` (${pipelineSummary.visionError} failed)` : ''}
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+              <p className="text-zinc-400 mb-1">Text</p>
+              <p className="text-white font-semibold">
+                {pipelineSummary.textComplete}/{pipelineSummary.textStarted} processed
+                {pipelineSummary.textError > 0 ? ` (${pipelineSummary.textError} failed)` : ''}
+              </p>
+            </div>
+          </div>
+
+          {pipelineEvents.length > 0 && (
+            <details className="group">
+              <summary className="cursor-pointer text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
+                Show pipeline events
+              </summary>
+              <div className="mt-3 space-y-2 max-h-64 overflow-auto custom-scrollbar">
+                {pipelineEvents.map((e, idx) => (
+                  <div key={`${e.created_at}-${idx}`} className="text-[11px] text-zinc-300 bg-zinc-900/50 border border-white/5 rounded-lg p-2">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="font-mono text-zinc-200">{e.event_type}</span>
+                      <span className="text-zinc-500">{new Date(e.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    {e.payload_preview && <div className="text-zinc-400 mt-1">{e.payload_preview}</div>}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </section>
+      )}
 
       {/* Text Blocks */}
       <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
@@ -373,7 +524,7 @@ export default function DropItPage() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".txt,.csv,.json,.pdf,.png,.jpg,.jpeg"
+            accept=".txt,.csv,.json,.png,.jpg,.jpeg"
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
           />
@@ -388,7 +539,7 @@ export default function DropItPage() {
             </button>
           </p>
           <p className="text-xs text-zinc-500">
-            Supported: TXT, CSV, JSON, PDF, PNG, JPG, JPEG
+            Supported: TXT, CSV, JSON, PNG, JPG, JPEG (PDF not supported yet)
           </p>
         </div>
 

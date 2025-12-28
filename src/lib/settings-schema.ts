@@ -34,6 +34,12 @@ export const SettingsForClientSchema = z.object({
   storePlatform: z.string(),
   medusaUrl: z.string(),
   activeLanguages: z.array(z.string()),
+
+  // Medusa defaults for new product drafts (non-secrets)
+  defaultSalesChannelId: z.string().nullable(),
+  defaultShippingProfileId: z.string().nullable(),
+  defaultCollectionId: z.string().nullable(),
+  defaultCategoryIds: z.array(z.string()),
 });
 
 export type SettingsForClient = z.infer<typeof SettingsForClientSchema>;
@@ -63,6 +69,12 @@ export const SettingsUpdateSchema = z.object({
   storePlatform: z.string().optional(),
   medusaUrl: z.string().optional(),
   activeLanguages: z.array(z.string()).optional(),
+
+  // Medusa defaults (non-secrets)
+  defaultSalesChannelId: z.string().nullable().optional(),
+  defaultShippingProfileId: z.string().nullable().optional(),
+  defaultCollectionId: z.string().nullable().optional(),
+  defaultCategoryIds: z.array(z.string()).optional(),
 });
 
 export type SettingsUpdate = z.infer<typeof SettingsUpdateSchema>;

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { saveProductToCloud } from '@/app/products/actions';
+import type { ProductBlueprint } from '@/lib/ingest-types';
 
 export interface Localization {
   title: string;
@@ -113,7 +114,30 @@ export interface ProductState {
   setIsSaving: (saving: boolean) => void;
   saveToDb: () => Promise<void>;
   setTranslatingLanguage: (lang: string, isTranslating: boolean) => void;
-  loadFromBlueprint: (blueprint: any) => void;
+  loadFromBlueprint: (blueprint: ProductBlueprint) => void;
+  loadFromSavedProduct: (record: SavedProductRecord) => void;
+  applyMedusaDefaultsForNewProduct: (defaults: MedusaDefaults) => void;
+}
+
+export type MedusaDefaults = {
+  defaultSalesChannelId?: string | null;
+  defaultShippingProfileId?: string | null;
+  defaultCollectionId?: string | null;
+  defaultCategoryIds?: string[];
+};
+
+export type SavedProductRecord = {
+  id: string;
+  title: string;
+  handle: string;
+  status: 'draft' | 'published';
+  sku: string | null;
+  price: number | null;
+  data: unknown | null;
+};
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
 const INITIAL_LOCALIZATION: Localization = {
@@ -284,6 +308,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
   })),
 
   resetStore: () => set({
+    // IMPORTANT: reset should start a NEW draft (never overwrite an existing row)
+    id: undefined,
     title: '',
     subtitle: '',
     description: '',
@@ -385,31 +411,42 @@ export const useProductStore = create<ProductState>((set, get) => ({
     return { translatingLanguages: newSet };
   }),
 
-  loadFromBlueprint: (blueprint: any) => {
-    // Load ProductBlueprint into product store
+  loadFromBlueprint: (blueprint) => {
+    /**
+     * Load ProductBlueprint into product store.
+     *
+     * Preconditions:
+     * - `blueprint` must match `ProductBlueprint` shape (server-generated output).
+     *
+     * Postconditions:
+     * - Product store state is hydrated from the blueprint for editing and export.
+     */
     const product = blueprint.product;
-    const aiMeta = blueprint.aiMeta || {};
+    const aiMeta = blueprint.aiMeta;
     
     // Build localization from descriptions
     const localization: Record<string, Localization> = {};
     const activeLanguages: string[] = [];
     
-    for (const [lang, desc] of Object.entries(product.descriptions || {})) {
+    type BlueprintDescription = ProductBlueprint['product']['descriptions'][string];
+    const descriptionEntries = Object.entries(product.descriptions) as Array<[string, BlueprintDescription]>;
+
+    for (const [lang, desc] of descriptionEntries) {
       activeLanguages.push(lang);
-      const typedDesc = desc as any;
       localization[lang] = {
-        title: typedDesc.title || product.identity.title || '',
-        subtitle: product.identity.subtitle || typedDesc.short || '',
-        description: typedDesc.long || '',
-        features: typedDesc.features || [],
-        metadata_title: typedDesc.seo?.title || '',
-        metadata_description: typedDesc.seo?.description || '',
-        keywords: typedDesc.seo?.keywords || [],
+        title: desc.title || product.identity.title || '',
+        subtitle: product.identity.subtitle || desc.short || '',
+        description: desc.long || '',
+        features: desc.features || [],
+        metadata_title: desc.seo?.title || '',
+        metadata_description: desc.seo?.description || '',
+        keywords: desc.seo?.keywords || [],
       };
     }
     
     // Convert variants
-    const variants = (product.variants || []).map((v: any, idx: number) => ({
+    type BlueprintVariant = ProductBlueprint['product']['variants'][number];
+    const variants = (product.variants || []).map((v: BlueprintVariant, idx: number) => ({
       id: crypto.randomUUID(),
       title: v.title || `Variant ${idx + 1}`,
       sku: v.sku || '',
@@ -427,11 +464,13 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }));
     
     // Convert images
-    const images = (product.media?.images || []).map((img: any) => img.syncedUrl || img.sourceUrl).filter(Boolean);
+    const images = (product.media?.images || [])
+      .map((img) => img.syncedUrl || img.sourceUrl)
+      .filter((u): u is string => typeof u === 'string' && u.length > 0);
     
     // Extract unique options and values from variants
     const optionMap: Record<string, Set<string>> = {};
-    (product.variants || []).forEach((v: any) => {
+    (product.variants || []).forEach((v) => {
       if (v.options) {
         Object.entries(v.options).forEach(([name, value]) => {
           if (!optionMap[name]) optionMap[name] = new Set();
@@ -460,7 +499,15 @@ export const useProductStore = create<ProductState>((set, get) => ({
       sku: variants[0]?.sku || '',
       price: variants[0]?.prices[0]?.amount || 0,
       activeLanguages,
-      localization,
+      // Ensure all expected language keys exist (store assumes at least `en` exists).
+      localization: {
+        en: { ...INITIAL_LOCALIZATION },
+        es: { ...INITIAL_LOCALIZATION },
+        fr: { ...INITIAL_LOCALIZATION },
+        de: { ...INITIAL_LOCALIZATION },
+        ja: { ...INITIAL_LOCALIZATION },
+        ...localization,
+      },
       images,
       options,
       variants,
@@ -483,4 +530,124 @@ export const useProductStore = create<ProductState>((set, get) => ({
       },
     });
   },
+
+  loadFromSavedProduct: (record) => {
+    /**
+     * Hydrate the store from a saved `products` row in Supabase.
+     *
+     * Preconditions:
+     * - `record.data` was produced by `saveToDb()` and contains the store payload.
+     *
+     * Postconditions:
+     * - The editor can continue from the saved state.
+     */
+    const data = record.data;
+    const dataObj = isRecord(data) ? data : {};
+
+    const subtitle = typeof dataObj.subtitle === 'string' ? dataObj.subtitle : '';
+    const description = typeof dataObj.description === 'string' ? dataObj.description : '';
+    const thumbnail = typeof dataObj.thumbnail === 'string' ? dataObj.thumbnail : '';
+
+    const activeLanguages = Array.isArray(dataObj.activeLanguages)
+      ? dataObj.activeLanguages.filter((x): x is string => typeof x === 'string')
+      : ['en'];
+
+    const localization = isRecord(dataObj.localization) ? (dataObj.localization as Record<string, Localization>) : {};
+
+    const images = Array.isArray(dataObj.images) ? dataObj.images.filter((x): x is string => typeof x === 'string') : [];
+    const vault = Array.isArray(dataObj.vault) ? dataObj.vault.filter((x): x is string => typeof x === 'string') : [];
+    const ignoredUrls = Array.isArray(dataObj.ignoredUrls) ? dataObj.ignoredUrls.filter((x): x is string => typeof x === 'string') : [];
+
+    const options = Array.isArray(dataObj.options) ? (dataObj.options as ProductOption[]) : [];
+    const variants = Array.isArray(dataObj.variants) ? (dataObj.variants as ProductVariant[]) : [];
+
+    const collection_id = typeof dataObj.collection_id === 'string' ? dataObj.collection_id : '';
+    const type_id = typeof dataObj.type_id === 'string' ? dataObj.type_id : '';
+    const tags = Array.isArray(dataObj.tags) ? dataObj.tags.filter((x): x is string => typeof x === 'string') : [];
+    const categories = Array.isArray(dataObj.categories) ? dataObj.categories.filter((x): x is string => typeof x === 'string') : [];
+    const sales_channels = Array.isArray(dataObj.sales_channels)
+      ? dataObj.sales_channels.filter((x): x is string => typeof x === 'string')
+      : [];
+
+    const shipping_profile_id = typeof dataObj.shipping_profile_id === 'string' ? dataObj.shipping_profile_id : '';
+    const shipping_weight = typeof dataObj.shipping_weight === 'number' ? dataObj.shipping_weight : 0;
+    const shipping_dimensions = isRecord(dataObj.shipping_dimensions)
+      ? {
+          length: typeof dataObj.shipping_dimensions.length === 'number' ? dataObj.shipping_dimensions.length : 0,
+          width: typeof dataObj.shipping_dimensions.width === 'number' ? dataObj.shipping_dimensions.width : 0,
+          height: typeof dataObj.shipping_dimensions.height === 'number' ? dataObj.shipping_dimensions.height : 0,
+        }
+      : { length: 0, width: 0, height: 0 };
+
+    const aiMeta = isRecord(dataObj.aiMeta) ? (dataObj.aiMeta as ProductState['aiMeta']) : undefined;
+
+    set({
+      id: record.id,
+      title: record.title || '',
+      handle: record.handle || '',
+      status: record.status || 'draft',
+      sku: record.sku || '',
+      price: record.price ?? 0,
+
+      subtitle,
+      description,
+      thumbnail,
+      activeLanguages: activeLanguages.length > 0 ? activeLanguages : ['en'],
+
+      localization: {
+        en: { ...INITIAL_LOCALIZATION },
+        es: { ...INITIAL_LOCALIZATION },
+        fr: { ...INITIAL_LOCALIZATION },
+        de: { ...INITIAL_LOCALIZATION },
+        ja: { ...INITIAL_LOCALIZATION },
+        ...localization,
+      },
+
+      images,
+      vault,
+      ignoredUrls,
+      options,
+      variants,
+
+      collection_id,
+      type_id,
+      tags,
+      categories,
+      sales_channels,
+
+      shipping_profile_id,
+      shipping_weight,
+      shipping_dimensions,
+      aiMeta,
+    });
+  },
+
+  applyMedusaDefaultsForNewProduct: (defaults) =>
+    set((state) => {
+      /**
+       * Apply org-level default Medusa taxonomy selections, but ONLY for new drafts.
+       * We do not override user choices or existing persisted products.
+       */
+      if (state.id) return state;
+
+      const next: Partial<ProductState> = {};
+
+      if (!state.collection_id && defaults.defaultCollectionId) {
+        next.collection_id = defaults.defaultCollectionId;
+      }
+
+      if (state.categories.length === 0 && defaults.defaultCategoryIds && defaults.defaultCategoryIds.length > 0) {
+        next.categories = defaults.defaultCategoryIds;
+      }
+
+      if (state.sales_channels.length === 0 && defaults.defaultSalesChannelId) {
+        next.sales_channels = [defaults.defaultSalesChannelId];
+      }
+
+      if (!state.shipping_profile_id && defaults.defaultShippingProfileId) {
+        next.shipping_profile_id = defaults.defaultShippingProfileId;
+      }
+
+      return Object.keys(next).length > 0 ? { ...state, ...next } : state;
+    }),
 }));

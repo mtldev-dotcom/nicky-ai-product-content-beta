@@ -4,8 +4,11 @@ import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
 import { z } from 'zod';
 import { EnhanceRequestSchema } from '@/lib/api-schemas';
+import { createSession, updateSessionError, updateSessionStatus } from '@/lib/llm/session-manager';
+import { callLLMWithLogging } from '@/lib/llm/logger';
 
 export async function POST(req: Request) {
+  let sessionId: string | null = null;
   try {
     const parsed = EnhanceRequestSchema.parse(await req.json());
     const { currentValue, fieldType, language } = parsed;
@@ -53,6 +56,19 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey });
 
+    // Best-effort session creation (must never break the endpoint).
+    try {
+      sessionId = await createSession({
+        orgId: membership.organization_id,
+        userId: user.id,
+        module: 'ENHANCE',
+        inputSummary: `fieldType=${fieldType}, language=${language}, currentValue=${currentValue ? `${currentValue.length} chars` : 'none'}`,
+      });
+    } catch (e) {
+      console.error('LLM logging disabled for this request (session create failed):', e);
+      sessionId = null;
+    }
+
     // Get language name for prompt
     const langNames: Record<string, string> = {
       'en': 'English',
@@ -98,27 +114,72 @@ Return ONLY the enhanced text, nothing else. No explanations, no JSON, just the 
       ? `Current ${fieldType}:\n${currentValue}\n\nEnhance this ${fieldType} according to the brand guidelines.`
       : `Generate a ${fieldType} for a product following the brand guidelines.`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: fieldType === 'description' ? 500 : fieldType === 'keywords' ? 100 : 150
-    });
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
 
-    const content = response.choices[0].message.content;
+    const content = sessionId
+      ? (
+          await callLLMWithLogging({
+            sessionId,
+            step: `ENHANCE_${fieldType.toUpperCase()}`,
+            model: 'gpt-4o-mini',
+            messages,
+            openai,
+            temperature: 0.7,
+            maxTokens: fieldType === 'description' ? 500 : fieldType === 'keywords' ? 100 : 150,
+          })
+        ).content
+      : (
+          await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages,
+            temperature: 0.7,
+            max_tokens: fieldType === 'description' ? 500 : fieldType === 'keywords' ? 100 : 150,
+          })
+        ).choices[0]?.message?.content;
+
     if (!content) throw new Error('No content returned from AI');
 
     // For keywords, parse comma-separated list into array
     if (fieldType === 'keywords') {
       const keywords = content.split(',').map(k => k.trim()).filter(Boolean);
+
+      if (sessionId) {
+        await updateSessionStatus({
+          sessionId,
+          status: 'success',
+          blueprintSummary: JSON.stringify({
+            fieldType,
+            language,
+            outputCount: keywords.length,
+          }),
+        });
+      }
+
       return NextResponse.json({ enhanced: keywords });
+    }
+
+    if (sessionId) {
+      await updateSessionStatus({
+        sessionId,
+        status: 'success',
+        blueprintSummary: JSON.stringify({
+          fieldType,
+          language,
+          outputChars: content.trim().length,
+        }),
+      });
     }
 
     return NextResponse.json({ enhanced: content.trim() });
   } catch (error: unknown) {
+    if (sessionId) {
+      const message = error instanceof Error ? error.message : 'Failed to enhance content';
+      await updateSessionError(sessionId, message);
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
     }

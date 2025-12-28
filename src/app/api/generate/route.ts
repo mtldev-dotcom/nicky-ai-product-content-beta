@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
 import { GenerateRequestSchema } from '@/lib/api-schemas';
+import { createSession, updateSessionError, updateSessionStatus } from '@/lib/llm/session-manager';
+import { callLLMWithLogging } from '@/lib/llm/logger';
 
 const ProductSchema = z.object({
   title: z.string(),
@@ -16,6 +18,7 @@ const ProductSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  let sessionId: string | null = null;
   try {
     const parsed = GenerateRequestSchema.parse(await req.json());
     const { prompt, image } = parsed;
@@ -62,6 +65,19 @@ export async function POST(req: Request) {
     const customInstructions = settings?.custom_instructions || '';
 
     const openai = new OpenAI({ apiKey });
+
+    // Best-effort session creation (must never break the endpoint).
+    try {
+      sessionId = await createSession({
+        orgId: membership.organization_id,
+        userId: user.id,
+        module: 'GENERATE',
+        inputSummary: `prompt=${prompt ? `${prompt.length} chars` : 'none'}, image=${image ? 'yes' : 'no'}`,
+      });
+    } catch (e) {
+      console.error('LLM logging disabled for this request (session create failed):', e);
+      sessionId = null;
+    }
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
@@ -112,19 +128,47 @@ export async function POST(req: Request) {
 
     messages.push({ role: 'user', content: userContent });
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      response_format: { type: 'json_object' }
-    });
+    const content = sessionId
+      ? (
+          await callLLMWithLogging({
+            sessionId,
+            step: 'GENERATE',
+            model: 'gpt-4o-mini',
+            messages,
+            openai,
+            responseFormat: 'json_object',
+          })
+        ).content
+      : (
+          await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages,
+            response_format: { type: 'json_object' },
+          })
+        ).choices[0]?.message?.content;
 
-    const content = response.choices[0].message.content;
     if (!content) throw new Error('No content returned from AI');
 
     const parsedData = ProductSchema.parse(JSON.parse(content));
 
+    if (sessionId) {
+      await updateSessionStatus({
+        sessionId,
+        status: 'success',
+        blueprintSummary: JSON.stringify({
+          title: parsedData.title,
+          hasImage: Boolean(image),
+        }),
+      });
+    }
+
     return NextResponse.json(parsedData);
   } catch (error: unknown) {
+    if (sessionId) {
+      const message = error instanceof Error ? error.message : 'Failed to generate content';
+      await updateSessionError(sessionId, message);
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
     }

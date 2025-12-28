@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown, ExternalLink, Tag } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown, ExternalLink, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -12,18 +12,57 @@ import { cn } from '@/lib/utils';
 import { translateAllActiveLanguages } from '@/lib/translations';
 import { getMedusaProducts } from './product-details/actions';
 
+type SavedProductRow = {
+  id: string;
+  organization_id: string;
+  title: string;
+  handle: string;
+  status: string;
+  sku: string | null;
+  price: number | null;
+  created_at: string;
+  data: unknown | null;
+  is_template?: boolean | null;
+};
+
+type MedusaProductRow = {
+  id: string;
+  title: string;
+  handle: string;
+  status: string;
+  created_at: string;
+  thumbnail?: string | null;
+  variants?: unknown[];
+};
+
+function getThumbnailFromProductData(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const maybe = (data as Record<string, unknown>).thumbnail;
+  return typeof maybe === 'string' && maybe.length > 0 ? maybe : null;
+}
+
 export default function Dashboard() {
   const [prompt, setPrompt] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [products, setProducts] = useState<any[]>([]);
-  const [storeProducts, setStoreProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<SavedProductRow[]>([]);
+  const [storeProducts, setStoreProducts] = useState<MedusaProductRow[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isLoadingStoreProducts, setIsLoadingStoreProducts] = useState(false);
   const [isStoreConfigured, setIsStoreConfigured] = useState(false);
-  const { updateRoot, updateLocalization, bulkUpdate, resetStore, setOrganizationId, saveToDb } = useProductStore();
+  const {
+    updateRoot,
+    updateLocalization,
+    bulkUpdate,
+    resetStore,
+    setOrganizationId,
+    saveToDb,
+    loadFromSavedProduct,
+    applyMedusaDefaultsForNewProduct,
+  } = useProductStore();
   const settings = useSettingsStore();
+  const loadSettingsFromDb = useSettingsStore((s) => s.loadFromDb);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +81,9 @@ export default function Dashboard() {
         if (membership) {
           const orgId = membership.organization_id;
           setOrganizationId(orgId);
+
+          // Ensure org settings (including Medusa defaults) are loaded for auto-fill behaviors.
+          await loadSettingsFromDb(orgId);
           
           // Fetch products for this org
           const { data: productsData, error } = await supabase
@@ -51,7 +93,7 @@ export default function Dashboard() {
             .order('created_at', { ascending: false });
           
           if (!error && productsData) {
-            setProducts(productsData);
+            setProducts(productsData as unknown as SavedProductRow[]);
           }
           setIsLoadingProducts(false);
 
@@ -67,7 +109,7 @@ export default function Dashboard() {
             setIsLoadingStoreProducts(true);
             const storeRes = await getMedusaProducts(orgId);
             if (storeRes.success) {
-              setStoreProducts(storeRes.data);
+              setStoreProducts(storeRes.data as unknown as MedusaProductRow[]);
             }
             setIsLoadingStoreProducts(false);
           }
@@ -75,7 +117,7 @@ export default function Dashboard() {
       }
     };
     getOrg();
-  }, [setOrganizationId, supabase]);
+  }, [setOrganizationId, supabase, loadSettingsFromDb]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,6 +141,12 @@ export default function Dashboard() {
     
     setIsLoading(true);
     resetStore(); // Start fresh
+    applyMedusaDefaultsForNewProduct({
+      defaultSalesChannelId: settings.defaultSalesChannelId,
+      defaultShippingProfileId: settings.defaultShippingProfileId,
+      defaultCollectionId: settings.defaultCollectionId,
+      defaultCategoryIds: settings.defaultCategoryIds,
+    });
     try {
       /**
        * IMPORTANT:
@@ -157,9 +205,78 @@ export default function Dashboard() {
         alert(data.error || 'Generation failed');
       }
     } catch (err) {
+      console.error('Generation failed:', err);
       alert('Network error during generation');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const openSavedProduct = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Product not found');
+
+      loadFromSavedProduct(data);
+      router.push('/product-details');
+    } catch (err) {
+      console.error('Failed to open product:', err);
+      alert('Failed to open product. It may have been deleted or the data is corrupted.');
+    }
+  };
+
+  const toggleTemplate = async (productId: string, nextValue: boolean) => {
+    try {
+      const res = await fetch('/api/products/set-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, isTemplate: nextValue }),
+      });
+
+      const data = (await res.json()) as { error?: string; is_template?: boolean };
+      if (!res.ok) throw new Error(data.error || 'Failed to update template flag');
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, is_template: nextValue } : p))
+      );
+    } catch (err) {
+      console.error('Failed to toggle template:', err);
+      alert('Failed to update template flag');
+    }
+  };
+
+  const startFromTemplate = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Template not found');
+
+      loadFromSavedProduct(data);
+
+      // Start a NEW product derived from the template (avoid overwriting the template row).
+      // Note: we also adjust handle to reduce collision risk.
+      const suffix = crypto.randomUUID().slice(0, 8);
+      bulkUpdate({
+        id: undefined,
+        status: 'draft',
+        handle: `${String(data.handle || 'template').replace(/[^\w-]/g, '')}-copy-${suffix}`,
+      });
+
+      router.push('/product-details');
+    } catch (err) {
+      console.error('Failed to use template:', err);
+      alert('Failed to start from template');
     }
   };
 
@@ -175,6 +292,16 @@ export default function Dashboard() {
         const mappedData = mapExternalToProduct(json);
         resetStore();
         bulkUpdate(mappedData);
+
+        // Apply org defaults only when the import did not provide taxonomy values.
+        // This keeps JSON imports deterministic while still auto-filling missing store fields.
+        applyMedusaDefaultsForNewProduct({
+          defaultSalesChannelId: settings.defaultSalesChannelId,
+          defaultShippingProfileId: settings.defaultShippingProfileId,
+          defaultCollectionId: settings.defaultCollectionId,
+          defaultCategoryIds: settings.defaultCategoryIds,
+        });
+
         // Save to DB immediately after import
         await saveToDb();
         
@@ -191,6 +318,7 @@ export default function Dashboard() {
         
         router.push('/product-details');
       } catch (err) {
+        console.error('Invalid JSON import:', err);
         alert('Invalid JSON file');
       } finally {
         setIsImporting(false);
@@ -421,6 +549,40 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Templates */}
+        {products.some((p) => p.is_template) && (
+          <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-semibold">Templates</span>
+              </div>
+              <span className="text-[10px] text-zinc-500">
+                {products.filter((p) => p.is_template).length} template(s)
+              </span>
+            </div>
+            <div className="divide-y divide-white/5">
+              {products
+                .filter((p) => p.is_template)
+                .slice(0, 5)
+                .map((p) => (
+                  <div key={p.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{p.title}</p>
+                      <p className="text-[10px] text-zinc-500 font-mono truncate">{p.handle}</p>
+                    </div>
+                    <button
+                      onClick={() => startFromTemplate(p.id)}
+                      className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-xs font-semibold text-white transition-colors"
+                    >
+                      Use Template
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
         <div className="glass rounded-2xl border border-white/10 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -462,15 +624,14 @@ export default function Dashboard() {
                       key={product.id} 
                       className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
                       onClick={() => {
-                        // In a real app, load product into store and navigate
-                        // router.push(`/product-details?id=${product.id}`);
+                        openSavedProduct(product.id);
                       }}
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex-shrink-0 overflow-hidden">
-                            {product.data?.thumbnail ? (
-                              <img src={product.data.thumbnail} alt="" className="w-full h-full object-cover" />
+                            {getThumbnailFromProductData(product.data) ? (
+                              <img src={getThumbnailFromProductData(product.data) ?? ''} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
                                 <Package className="w-4 h-4 text-zinc-700" />
@@ -511,7 +672,31 @@ export default function Dashboard() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleTemplate(product.id, !product.is_template);
+                            }}
+                            className={cn(
+                              "p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all",
+                              product.is_template ? "text-yellow-300 hover:text-yellow-200" : "text-zinc-400 hover:text-white"
+                            )}
+                            aria-label={product.is_template ? "Unmark as template" : "Mark as template"}
+                            title={product.is_template ? "Unmark as template" : "Mark as template"}
+                          >
+                            <Star className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openSavedProduct(product.id);
+                            }}
+                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                            aria-label="Open product"
+                            title="Open product"
+                          >
                             <ExternalLink className="w-4 h-4" />
                           </button>
                         </div>

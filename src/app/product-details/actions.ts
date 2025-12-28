@@ -67,7 +67,13 @@ export async function getMedusaTaxonomy(orgId: string) {
     const [collections, categories, channels, types, shippingProfiles, stores, stockLocations] = results;
 
     // Extract supported currencies from the first store (Medusa v2 usually has one primary store)
-    const activeCurrencies = stores?.stores?.[0]?.supported_currencies?.map((sc: any) => sc.currency) || [];
+    type StoresResponse = {
+      stores?: Array<{
+        supported_currencies?: Array<{ currency: string }>;
+      }>;
+    };
+    const storesData = stores as StoresResponse | null;
+    const activeCurrencies = storesData?.stores?.[0]?.supported_currencies?.map((sc) => sc.currency) || [];
 
     return {
       success: true,

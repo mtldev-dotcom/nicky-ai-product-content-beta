@@ -4,8 +4,11 @@ import { createClient } from '@/utils/supabase/server';
 import { decrypt } from '@/lib/crypto';
 import { z } from 'zod';
 import { TranslateRequestSchema } from '@/lib/api-schemas';
+import { createSession, updateSessionError, updateSessionStatus } from '@/lib/llm/session-manager';
+import { callLLMWithLogging } from '@/lib/llm/logger';
 
 export async function POST(req: Request) {
+  let sessionId: string | null = null;
   try {
     const parsed = TranslateRequestSchema.parse(await req.json());
     const { source, targetLang, options, selectedLang } = parsed;
@@ -53,6 +56,19 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey });
 
+    // Best-effort session creation (must never break the endpoint).
+    try {
+      sessionId = await createSession({
+        orgId: membership.organization_id,
+        userId: user.id,
+        module: 'TRANSLATE',
+        inputSummary: `selectedLang=${selectedLang}, targetLang=${targetLang}, options=${options.length}`,
+      });
+    } catch (e) {
+      console.error('LLM logging disabled for this request (session create failed):', e);
+      sessionId = null;
+    }
+
     const systemPrompt = `You are a professional multi-lingual translator for ${brandName}.
     Translate the following product data into ${targetLang} while maintaining the brand's ${brandVoice} voice.
     ${customInstructions ? `Special Instructions: ${customInstructions}` : ''}
@@ -72,26 +88,59 @@ export async function POST(req: Request) {
       }
     ]`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { 
-          role: 'user', 
-          content: JSON.stringify({
-            localization: source,
-            options: options
-          })
-        }
-      ],
-      response_format: { type: 'json_object' }
-    });
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          localization: source,
+          options,
+        }),
+      },
+    ];
 
-    const content = response.choices[0].message.content;
+    const content = sessionId
+      ? (
+          await callLLMWithLogging({
+            sessionId,
+            step: 'TRANSLATE',
+            model: 'gpt-4o-mini',
+            messages,
+            openai,
+            responseFormat: 'json_object',
+          })
+        ).content
+      : (
+          await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages,
+            response_format: { type: 'json_object' },
+          })
+        ).choices[0]?.message?.content;
+
     if (!content) throw new Error('No content returned from AI');
 
-    return NextResponse.json(JSON.parse(content));
+    const result = JSON.parse(content) as unknown;
+
+    if (sessionId) {
+      await updateSessionStatus({
+        sessionId,
+        status: 'success',
+        blueprintSummary: JSON.stringify({
+          selectedLang,
+          targetLang,
+          hasOptions: options.length > 0,
+        }),
+      });
+    }
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
+    if (sessionId) {
+      const message = error instanceof Error ? error.message : 'Failed to translate';
+      await updateSessionError(sessionId, message);
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
     }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useProductStore, ProductVariant } from '@/store/useProductStore';
+import { ALL_LANGUAGES } from '@/lib/languages';
 import {
   Layers,
   Plus,
@@ -28,6 +29,37 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getMedusaTaxonomy } from '../product-details/actions';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
+function formatCurrencyCode(code: unknown): string {
+  // Handle historical/invalid shapes safely (e.g., { code: "usd" })
+  if (typeof code === 'string') return code.toUpperCase();
+  if (code && typeof code === 'object' && 'code' in code) {
+    const inner = (code as { code?: unknown }).code;
+    if (typeof inner === 'string') return inner.toUpperCase();
+  }
+  // Default when missing/invalid
+  return 'USD';
+}
+
+function currencyCodeKey(code: unknown): string {
+  // Stable key material (avoid "[object Object]" collisions)
+  if (typeof code === 'string') return code.toLowerCase();
+  if (code && typeof code === 'object' && 'code' in code) {
+    const inner = (code as { code?: unknown }).code;
+    if (typeof inner === 'string') return inner.toLowerCase();
+  }
+  // Default when missing/invalid
+  return 'usd';
+}
+
+function normalizeCurrencyCode(code: unknown): string {
+  if (typeof code === 'string' && code.trim()) return code.trim().toLowerCase();
+  if (code && typeof code === 'object' && 'code' in code) {
+    const inner = (code as { code?: unknown }).code;
+    if (typeof inner === 'string' && inner.trim()) return inner.trim().toLowerCase();
+  }
+  return 'usd';
+}
+
 export default function VariantsPage() {
   const {
     options,
@@ -51,18 +83,11 @@ export default function VariantsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [selectedLang, setSelectedLang] = useState('en');
   const settings = useSettingsStore();
+  type MedusaStockLocation = { id: string; name: string };
   const [taxonomy, setTaxonomy] = useState<{
-    currencies: any[];
-    stock_locations: any[];
+    currencies: string[]; // currency codes from Medusa (e.g., "usd", "cad")
+    stock_locations: MedusaStockLocation[];
   } | null>(null);
-
-  const ALL_LANGUAGES = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { code: 'fr', name: 'French', flag: '🇫🇷' },
-    { code: 'de', name: 'German', flag: '🇩🇪' },
-    { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-  ];
 
   // Filter available languages based on organization settings
   const availableLanguages = ALL_LANGUAGES.filter(lang => 
@@ -106,9 +131,9 @@ export default function VariantsPage() {
     if (taxonomy?.currencies?.length) {
       setBulkSettings(prev => ({
         ...prev,
-        prices: taxonomy.currencies.map(c => ({
-          amount: prev.prices.find(p => p.currency_code === c.code)?.amount || 0,
-          currency_code: c.code
+        prices: taxonomy.currencies.map((currencyCode) => ({
+          amount: prev.prices.find((p) => p.currency_code === currencyCode)?.amount || 0,
+          currency_code: currencyCode
         })),
         location_id: prev.location_id || taxonomy.stock_locations[0]?.id || ''
       }));
@@ -181,7 +206,7 @@ export default function VariantsPage() {
         allow_backorder: existing?.allow_backorder ?? false,
         prices: existing?.prices || (taxonomy?.currencies || []).map(c => ({
           amount: price,
-          currency_code: c.code
+          currency_code: c
         })).slice(0, 1) || [{ amount: price, currency_code: 'usd' }],
         options: {},
         inventory: existing?.inventory || (taxonomy?.stock_locations?.[0] ? [
@@ -199,29 +224,30 @@ export default function VariantsPage() {
     }
 
     // Helper for Cartesian product
-    const cartesian = (sets: any[][]) => {
-      return sets.reduce((acc, set) => {
-        return acc.flatMap((x: any) => set.map((y: any) => [...x, y]));
+    const cartesian = <T,>(sets: T[][]): T[][] => {
+      return sets.reduce<T[][]>((acc, set) => {
+        return acc.flatMap((x) => set.map((y) => [...x, y]));
       }, [[]]);
     };
 
-    const optionSets = validOptions.map(opt =>
-      opt.values.map(val => ({
+    type OptionChoice = { optionName: string; value: string };
+    const optionSets: OptionChoice[][] = validOptions.map((opt) =>
+      opt.values.map((val) => ({
         optionName: opt.name,
-        value: val.value
+        value: val.value,
       }))
     );
 
     const combinations = cartesian(optionSets);
 
-    const newVariants: ProductVariant[] = combinations.map((combo: any[]) => {
+    const newVariants: ProductVariant[] = combinations.map((combo: OptionChoice[]) => {
       const variantValuesTitle = combo.map(c => c.value).join(' / ');
       const variantTitle = `${productTitle || 'Draft Product'} - ${variantValuesTitle}`;
 
-      const variantOptions = combo.reduce((acc, curr) => {
+      const variantOptions = combo.reduce<Record<string, string>>((acc, curr) => {
         acc[curr.optionName] = curr.value;
         return acc;
-      }, {} as Record<string, string>);
+      }, {});
 
       // Format: product-name-option-value-option-value
       const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
@@ -240,7 +266,7 @@ export default function VariantsPage() {
         allow_backorder: existing?.allow_backorder ?? false,
         prices: existing?.prices || (taxonomy?.currencies || []).map(c => ({
           amount: price,
-          currency_code: c.code
+          currency_code: c
         })).slice(0, 1) || [{ amount: price, currency_code: 'usd' }],
         options: variantOptions,
         inventory: existing?.inventory || (taxonomy?.stock_locations?.[0] ? [
@@ -665,8 +691,10 @@ export default function VariantsPage() {
               </div>
               <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {bulkSettings.prices.map((p, idx) => (
-                  <div key={p.currency_code} className="space-y-1">
-                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Price ({p.currency_code})</span>
+                  <div key={`${currencyCodeKey(p.currency_code)}-${idx}`} className="space-y-1">
+                    <span className="text-[9px] text-zinc-500 font-bold uppercase">
+                      Price ({formatCurrencyCode(p.currency_code)})
+                    </span>
                     <input
                       type="number"
                       step="0.01"
@@ -748,7 +776,8 @@ export default function VariantsPage() {
                       <div className="flex items-center gap-6">
                         <div className="text-right">
                           <p className="text-xs font-medium text-zinc-300">
-                            {variant.prices[0]?.amount} {variant.prices[0]?.currency_code?.toUpperCase()}
+                            {variant.prices[0]?.amount}{' '}
+                            {formatCurrencyCode(variant.prices[0]?.currency_code)}
                           </p>
                           <p className="text-[10px] text-zinc-500">
                             {variant.inventory[0]?.stocked_quantity || 0} in stock
@@ -794,21 +823,24 @@ export default function VariantsPage() {
                                     }}
                                   >
                                     <option value="">+ Add Currency</option>
-                                    {taxonomy?.currencies
-                                      .filter(c => !variant.prices.some(p => p.currency_code === c.code))
-                                      .map(c => (
-                                        <option key={c.code} value={c.code}>{c.code.toUpperCase()}</option>
-                                      ))
-                                    }
+                                    {(taxonomy?.currencies || [])
+                                      .map((c) => normalizeCurrencyCode(c))
+                                      // Hide currencies already present on the variant (support legacy shapes)
+                                      .filter((c) => !variant.prices.some((p) => currencyCodeKey(p.currency_code) === c))
+                                      .map((c) => (
+                                        <option key={c} value={c}>
+                                          {formatCurrencyCode(c)}
+                                        </option>
+                                      ))}
                                   </select>
                                 </div>
 
                                 <div className="space-y-2">
                                   {variant.prices.map((p, pIdx) => (
-                                    <div key={p.currency_code} className="flex gap-2 group/price">
+                                    <div key={`${currencyCodeKey(p.currency_code)}-${pIdx}`} className="flex gap-2 group/price">
                                       <div className="flex-1 flex gap-2">
                                         <div className="bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-[10px] text-zinc-400 font-bold uppercase min-w-[60px] flex items-center justify-center">
-                                          {p.currency_code}
+                                          {formatCurrencyCode(p.currency_code)}
                                         </div>
                                         <input
                                           type="number"
@@ -906,7 +938,7 @@ export default function VariantsPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-medium text-zinc-500">No variants generated</p>
-                    <p className="text-sm">Click "Generate Variants" to create combinations from your attributes.</p>
+                    <p className="text-sm">Click &quot;Generate Variants&quot; to create combinations from your attributes.</p>
                   </div>
                 </div>
               )}

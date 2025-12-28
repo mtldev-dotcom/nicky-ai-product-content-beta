@@ -15,6 +15,7 @@ import { classifyInputs } from '@/lib/ingest/classifier';
 import { extractEvidence } from '@/lib/ingest/extractor';
 import { generateFromEvidence } from '@/lib/ingest/blueprint-generator';
 import { minimizeContent } from '@/lib/llm/redaction';
+import { assertPdfNotSupported } from '@/lib/ingest/pdf-policy';
 
 export const runtime = 'nodejs';
 
@@ -85,6 +86,9 @@ export async function POST(req: Request) {
     
     // Get active languages from settings or use targetLanguages from request
     const activeLanguages = settings?.active_languages || parsed.targetLanguages;
+
+    // Phase 1.3 policy: explicitly reject PDFs for now (no silent “fake support”).
+    assertPdfNotSupported(parsed.files);
     
     // Step 1: Classification
     await logPipelineEvent(sessionId, 'CLASSIFICATION_STARTED');

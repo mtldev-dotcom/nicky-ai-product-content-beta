@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
 import { cn } from '@/lib/utils';
+import { ALL_LANGUAGES } from '@/lib/languages';
+import { getMedusaTaxonomy } from '@/app/product-details/actions';
 import {
   Shield,
   Key,
@@ -23,14 +25,6 @@ import {
   Check
 } from 'lucide-react';
 
-const ALL_LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-];
-
 export default function SettingsPage() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
@@ -49,12 +43,29 @@ export default function SettingsPage() {
     medusaUrl: '',
     medusaApiKey: '',
     activeLanguages: [] as string[],
+
+    // Medusa defaults for new product drafts
+    defaultSalesChannelId: null as string | null,
+    defaultShippingProfileId: null as string | null,
+    defaultCollectionId: null as string | null,
+    defaultCategoryIds: [] as string[],
   });
 
   const [showKey, setShowKey] = useState(false);
   const [showMedusaKey, setShowMedusaKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const supabase = createClient();
+
+  type MedusaTaxonomy = {
+    collections: Array<{ id: string; title: string }>;
+    categories: Array<{ id: string; name: string }>;
+    sales_channels: Array<{ id: string; name: string }>;
+    shipping_profiles: Array<{ id: string; name: string }>;
+  };
+
+  const [taxonomy, setTaxonomy] = useState<MedusaTaxonomy | null>(null);
+  const [isLoadingTaxonomy, setIsLoadingTaxonomy] = useState(false);
+  const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -90,8 +101,58 @@ export default function SettingsPage() {
       medusaUrl: settings.medusaUrl,
       medusaApiKey: settings.medusaApiKey,
       activeLanguages: settings.activeLanguages,
+
+      defaultSalesChannelId: settings.defaultSalesChannelId,
+      defaultShippingProfileId: settings.defaultShippingProfileId,
+      defaultCollectionId: settings.defaultCollectionId,
+      defaultCategoryIds: settings.defaultCategoryIds,
     });
-  }, [settings.openaiApiKey, settings.r2AccountId, settings.r2AccessKeyId, settings.r2SecretAccessKey, settings.r2BucketName, settings.r2PublicUrl, settings.brandName, settings.brandVoice, settings.customInstructions, settings.storePlatform, settings.medusaUrl, settings.medusaApiKey, settings.activeLanguages]);
+  }, [
+    settings.openaiApiKey,
+    settings.r2AccountId,
+    settings.r2AccessKeyId,
+    settings.r2SecretAccessKey,
+    settings.r2BucketName,
+    settings.r2PublicUrl,
+    settings.brandName,
+    settings.brandVoice,
+    settings.customInstructions,
+    settings.storePlatform,
+    settings.medusaUrl,
+    settings.medusaApiKey,
+    settings.activeLanguages,
+    settings.defaultSalesChannelId,
+    settings.defaultShippingProfileId,
+    settings.defaultCollectionId,
+    settings.defaultCategoryIds,
+  ]);
+
+  const syncTaxonomy = async () => {
+    if (!orgId) return;
+    setIsLoadingTaxonomy(true);
+    setTaxonomyError(null);
+    try {
+      const res = await getMedusaTaxonomy(orgId);
+      if (!res.success || !res.data) {
+        setTaxonomyError(res.error || 'Failed to sync taxonomy');
+        setTaxonomy(null);
+        return;
+      }
+
+      setTaxonomy({
+        collections: (res.data.collections || []) as MedusaTaxonomy['collections'],
+        categories: (res.data.categories || []) as MedusaTaxonomy['categories'],
+        sales_channels: (res.data.sales_channels || []) as MedusaTaxonomy['sales_channels'],
+        shipping_profiles: (res.data.shipping_profiles || []) as MedusaTaxonomy['shipping_profiles'],
+      });
+    } catch (e) {
+      console.error('Failed to sync taxonomy:', e);
+      setTaxonomyError('Network error syncing taxonomy');
+      setTaxonomy(null);
+    } finally {
+      setIsLoadingTaxonomy(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!orgId) return;
@@ -114,6 +175,11 @@ export default function SettingsPage() {
       medusaUrl: localState.medusaUrl,
       medusaApiKey: localState.medusaApiKey,
       activeLanguages: localState.activeLanguages,
+
+      defaultSalesChannelId: localState.defaultSalesChannelId,
+      defaultShippingProfileId: localState.defaultShippingProfileId,
+      defaultCollectionId: localState.defaultCollectionId,
+      defaultCategoryIds: localState.defaultCategoryIds,
     });
 
     await settings.saveToDb(orgId);
@@ -130,7 +196,7 @@ export default function SettingsPage() {
           Command Center Settings
         </h1>
         <p className="text-zinc-400">
-          Configure your service credentials. Data is saved securely in your organization's workspace in the cloud.
+          Configure your service credentials. Data is saved securely in your organization&apos;s workspace in the cloud.
         </p>
       </header>
 
@@ -203,6 +269,132 @@ export default function SettingsPage() {
                   Used to sync products and media directly to your MedusaJS catalog.
                 </p>
               </div>
+
+              {/* Default Medusa selections for NEW products */}
+              {orgId && (localState.medusaUrl && (settings.hasMedusaApiKey || localState.medusaApiKey)) && (
+                <div className="md:col-span-2 space-y-4 pt-2 border-t border-white/10">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Default selections for new products</h3>
+                      <p className="text-[10px] text-zinc-500">
+                        These values will be auto-selected when you create a new product draft.
+                      </p>
+                    </div>
+                    <button
+                      onClick={syncTaxonomy}
+                      disabled={isLoadingTaxonomy}
+                      className={cn(
+                        "px-3 py-2 rounded-lg text-xs font-semibold border transition-colors",
+                        isLoadingTaxonomy
+                          ? "bg-zinc-900/50 border-white/10 text-zinc-500"
+                          : "bg-white/5 border-white/10 text-zinc-200 hover:bg-white/10"
+                      )}
+                    >
+                      {isLoadingTaxonomy ? 'Syncing...' : 'Sync Taxonomy'}
+                    </button>
+                  </div>
+
+                  {taxonomyError && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                      {taxonomyError}
+                    </div>
+                  )}
+
+                  {!taxonomy && !taxonomyError && (
+                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-white/10 text-zinc-500 text-xs">
+                      Click “Sync Taxonomy” to load your store’s collections, categories, sales channels, and shipping profiles.
+                    </div>
+                  )}
+
+                  {taxonomy && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs text-zinc-500">Default Sales Channel</label>
+                        <select
+                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
+                          value={localState.defaultSalesChannelId ?? ''}
+                          onChange={(e) => setLocalState({ ...localState, defaultSalesChannelId: e.target.value || null })}
+                        >
+                          <option value="">None</option>
+                          {taxonomy.sales_channels.map((sc) => (
+                            <option key={sc.id} value={sc.id}>
+                              {sc.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs text-zinc-500">Default Shipping Profile</label>
+                        <select
+                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
+                          value={localState.defaultShippingProfileId ?? ''}
+                          onChange={(e) => setLocalState({ ...localState, defaultShippingProfileId: e.target.value || null })}
+                        >
+                          <option value="">None</option>
+                          {taxonomy.shipping_profiles.map((sp) => (
+                            <option key={sp.id} value={sp.id}>
+                              {sp.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs text-zinc-500">Default Collection</label>
+                        <select
+                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
+                          value={localState.defaultCollectionId ?? ''}
+                          onChange={(e) => setLocalState({ ...localState, defaultCollectionId: e.target.value || null })}
+                        >
+                          <option value="">None</option>
+                          {taxonomy.collections.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs text-zinc-500">Default Categories</label>
+                          <button
+                            onClick={() => setLocalState({ ...localState, defaultCategoryIds: [] })}
+                            className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <div className="max-h-48 overflow-auto custom-scrollbar rounded-xl border border-white/10 bg-zinc-900/30 p-3 space-y-2">
+                          {taxonomy.categories.length === 0 ? (
+                            <p className="text-xs text-zinc-500">No categories found.</p>
+                          ) : (
+                            taxonomy.categories.map((cat) => {
+                              const checked = localState.defaultCategoryIds.includes(cat.id);
+                              return (
+                                <label key={cat.id} className="flex items-center gap-2 text-xs text-zinc-300">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => {
+                                      const next = checked
+                                        ? localState.defaultCategoryIds.filter((id) => id !== cat.id)
+                                        : [...localState.defaultCategoryIds, cat.id];
+                                      setLocalState({ ...localState, defaultCategoryIds: next });
+                                    }}
+                                  />
+                                  <span>{cat.name}</span>
+                                </label>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -366,7 +558,7 @@ export default function SettingsPage() {
                 onChange={(e) => setLocalState({ ...localState, customInstructions: e.target.value })}
               />
               <p className="text-[10px] text-zinc-500 italic px-1">
-                These instructions are injected into the AI's core logic to ensure every product follows your brand's unique identity.
+                These instructions are injected into the AI&apos;s core logic to ensure every product follows your brand&apos;s unique identity.
               </p>
             </div>
           </div>

@@ -14,9 +14,21 @@ export function redactSecrets(text: string): string {
 
   let redacted = text;
 
+  // Common header-style secrets (authorization / api keys)
+  // Examples:
+  // - Authorization: Bearer <token>
+  // - x-api-key: <token>
+  redacted = redacted.replace(
+    /\b(authorization|x-api-key|api-key|x-auth-token|x-access-token)\s*:\s*([^\s\r\n]+)/gi,
+    (_match, headerName) => `${headerName}: *****REDACTED*****`
+  );
+
   // API keys: sk-... (OpenAI), AIza... (Google), etc.
   redacted = redacted.replace(/sk-[a-zA-Z0-9]{32,}/g, '*****REDACTED*****');
   redacted = redacted.replace(/AIza[0-9A-Za-z_-]{35}/g, '*****REDACTED*****');
+
+  // Supabase publishable keys (modern format)
+  redacted = redacted.replace(/sb_publishable_[a-zA-Z0-9]+/g, '*****REDACTED*****');
   
   // JWT tokens: eyJ...
   redacted = redacted.replace(/eyJ[a-zA-Z0-9_-]+\./g, '*****REDACTED*****');
@@ -26,6 +38,13 @@ export function redactSecrets(text: string): string {
   
   // AWS access keys: AKIA...
   redacted = redacted.replace(/AKIA[0-9A-Z]{16}/g, '*****REDACTED*****');
+
+  // Common secret assignments in text blobs (best-effort)
+  // Examples: "OPENAI_API_KEY=...", "S3_SECRET_ACCESS_KEY: ...", "password=..."
+  redacted = redacted.replace(
+    /\b(openai_api_key|supabase_anon_key|supabase_service_role_key|s3_secret_access_key|s3_access_key_id|r2_secret_access_key|password|secret|token)\b\s*[:=]\s*([^\s\r\n]+)/gi,
+    (_match, keyName) => `${keyName}=*****REDACTED*****`
+  );
   
   // Email addresses (if not necessary for context - be conservative)
   // Only redact if it looks like it might be in a credential context

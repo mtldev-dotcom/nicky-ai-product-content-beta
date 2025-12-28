@@ -21,11 +21,32 @@ interface SettingsState {
   medusaApiKey: string;
   hasMedusaApiKey: boolean;
   activeLanguages: string[];
+
+  // Medusa defaults for new product drafts
+  defaultSalesChannelId: string | null;
+  defaultShippingProfileId: string | null;
+  defaultCollectionId: string | null;
+  defaultCategoryIds: string[];
+
   isSaving: boolean;
   setOpenaiApiKey: (key: string) => void;
   setR2Settings: (settings: Partial<Pick<SettingsState, 'r2AccountId' | 'r2AccessKeyId' | 'r2SecretAccessKey' | 'r2BucketName' | 'r2PublicUrl'>>) => void;
   setBrandSettings: (settings: Partial<Pick<SettingsState, 'brandName' | 'brandVoice' | 'customInstructions'>>) => void;
-  setStoreSettings: (settings: Partial<Pick<SettingsState, 'storePlatform' | 'medusaUrl' | 'medusaApiKey' | 'activeLanguages'>>) => void;
+  setStoreSettings: (
+    settings: Partial<
+      Pick<
+        SettingsState,
+        | 'storePlatform'
+        | 'medusaUrl'
+        | 'medusaApiKey'
+        | 'activeLanguages'
+        | 'defaultSalesChannelId'
+        | 'defaultShippingProfileId'
+        | 'defaultCollectionId'
+        | 'defaultCategoryIds'
+      >
+    >
+  ) => void;
   saveToDb: (organizationId: string) => Promise<void>;
   loadFromDb: (organizationId: string) => Promise<void>;
 }
@@ -49,6 +70,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   medusaApiKey: '',
   hasMedusaApiKey: false,
   activeLanguages: ['en'],
+  defaultSalesChannelId: null,
+  defaultShippingProfileId: null,
+  defaultCollectionId: null,
+  defaultCategoryIds: [],
   isSaving: false,
   setOpenaiApiKey: (openaiApiKey) => set({ openaiApiKey }),
   setR2Settings: (settings) => set((state) => ({ ...state, ...settings })),
@@ -92,6 +117,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         storePlatform: state.storePlatform,
         medusaUrl: state.medusaUrl,
         activeLanguages: state.activeLanguages,
+
+        defaultSalesChannelId: state.defaultSalesChannelId,
+        defaultShippingProfileId: state.defaultShippingProfileId,
+        defaultCollectionId: state.defaultCollectionId,
+        defaultCategoryIds: state.defaultCategoryIds,
       };
 
       await saveEncryptedSettings(organizationId, payload);

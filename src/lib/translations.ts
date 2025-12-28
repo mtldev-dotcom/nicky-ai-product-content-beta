@@ -1,24 +1,23 @@
-import { useProductStore, ProductOptionValue } from '@/store/useProductStore';
+import {
+  useProductStore,
+  type Localization,
+  type ProductOption,
+  type ProductOptionValue,
+  type ProductState,
+} from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-
-const ALL_LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-];
+import { ALL_LANGUAGES } from '@/lib/languages';
 
 /**
  * Translates a single language from English source
  */
 async function translateLanguage(
   langCode: string,
-  sourceLocalization: any,
-  options: any[],
+  sourceLocalization: Localization,
+  options: ProductOption[],
   setTranslatingLanguage: (lang: string, isTranslating: boolean) => void,
-  updateLocalization: (lang: string, data: any) => void,
-  bulkUpdate: (data: any) => void
+  updateLocalization: (lang: string, data: Partial<Localization>) => void,
+  bulkUpdate: (data: Partial<ProductState>) => void
 ): Promise<void> {
   if (langCode === 'en' || !sourceLocalization?.title) {
     return;
@@ -51,14 +50,24 @@ async function translateLanguage(
       }),
     });
 
-    const data = await res.json();
+    const data = (await res.json()) as
+      | {
+          localization?: Partial<Localization>;
+          options?: Array<{
+            name?: string;
+            translations?: Record<string, string>;
+            values?: Array<{ value?: string; translations?: Record<string, string> }>;
+          }>;
+          error?: string;
+        }
+      | { error?: string };
     
-    if (res.ok && data.localization) {
+    if (res.ok && 'localization' in data && data.localization) {
       // Update Localization
       updateLocalization(langCode, data.localization);
       
       // Update Options translations, preserving "Default" options
-      if (data.options && Array.isArray(data.options)) {
+      if ('options' in data && data.options && Array.isArray(data.options)) {
         let translatedIdx = 0;
         const updatedOptions = options.map((opt) => {
           // If this is a "Default" option, keep it as "Default" in all languages
@@ -77,7 +86,7 @@ async function translateLanguage(
           }
 
           // Get the translated option (skip "Default" options in the response)
-          const translatedOpt = data.options[translatedIdx];
+          const translatedOpt = data.options?.[translatedIdx];
           translatedIdx++;
 
           if (!translatedOpt) return opt;
@@ -117,7 +126,8 @@ async function translateLanguage(
         bulkUpdate({ options: updatedOptions });
       }
     } else {
-      console.error(`Translation failed for ${langCode}:`, data.error);
+      const errorMessage = 'error' in data && typeof data.error === 'string' ? data.error : 'Unknown error';
+      console.error(`Translation failed for ${langCode}:`, errorMessage);
     }
   } catch (err) {
     console.error(`Translation error for ${langCode}:`, err);

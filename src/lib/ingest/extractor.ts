@@ -9,8 +9,8 @@ import OpenAI from 'openai';
 import { Evidence } from '@/lib/ingest-types';
 import { callLLMWithLogging } from '@/lib/llm/logger';
 import { logPipelineEvent } from '@/lib/llm/session-manager';
-import { assertSafeExternalUrl, fetchExternalWithLimits, readResponseAsBufferWithLimit } from '@/lib/ssrf';
-import { processCSV, processJSON, processText, detectFileType } from './file-processors';
+import { assertSafeExternalUrl, fetchExternalWithLimits } from '@/lib/ssrf';
+import { processCSV, processJSON, detectFileType } from './file-processors';
 
 /**
  * Extracts evidence from text blocks.
@@ -182,13 +182,13 @@ export async function extractFromUrl(
     }
     
     // 2. Extract JSON-LD (Product Structured Data)
-    const jsonLdData: any[] = [];
+    const jsonLdData: unknown[] = [];
     const jsonLdRegex = /<script\s+type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi;
     while ((match = jsonLdRegex.exec(html)) !== null) {
       try {
-        const parsed = JSON.parse(match[1].trim());
+        const parsed: unknown = JSON.parse(match[1].trim());
         if (parsed) jsonLdData.push(parsed);
-      } catch (e) {
+      } catch (_e) {
         // Skip invalid JSON
       }
     }

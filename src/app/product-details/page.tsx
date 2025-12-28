@@ -1,31 +1,28 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useProductStore, Localization } from '@/store/useProductStore';
+import { useProductStore, type Localization, type ProductOption } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
+import { ALL_LANGUAGES } from '@/lib/languages';
 import { 
   Globe, 
   Check, 
-  ChevronRight, 
   Type, 
-  FileText, 
   Search, 
-  Hash,
   Sparkles,
   ToggleLeft,
   ToggleRight,
   Loader2,
   AlertCircle,
   Layers,
-  Tags,
   Truck,
   RefreshCw,
-  Box,
-  MapPin
+  // Box,
+  // MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { getMedusaTaxonomy } from './actions';
 import { AISourceBadge } from '@/components/ui/AISourceBadge';
@@ -34,14 +31,6 @@ const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').th
   ssr: false,
   loading: () => <div className="w-full h-[150px] bg-zinc-900/50 border border-white/10 rounded-2xl animate-pulse" />
 });
-
-const ALL_LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-];
 
 export default function ProductDetailsPage() {
   const settings = useSettingsStore();
@@ -84,16 +73,24 @@ export default function ProductDetailsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSyncingTaxonomy, setIsSyncingTaxonomy] = useState(false);
   const [enhancingField, setEnhancingField] = useState<string | null>(null);
-  const [taxonomyOptions, setTaxonomyOptions] = useState<{
-    collections: any[];
-    categories: any[];
-    sales_channels: any[];
-    product_types: any[];
-    shipping_profiles: any[];
-  } | null>(null);
+  type MedusaCollection = { id: string; title: string };
+  type MedusaProductCategory = { id: string; name: string };
+  type MedusaSalesChannel = { id: string; name: string; description?: string | null };
+  type MedusaProductType = { id: string; value: string };
+  type MedusaShippingProfile = { id: string; name: string };
+
+  type MedusaTaxonomy = {
+    collections: MedusaCollection[];
+    categories: MedusaProductCategory[];
+    sales_channels: MedusaSalesChannel[];
+    product_types: MedusaProductType[];
+    shipping_profiles: MedusaShippingProfile[];
+  };
+
+  const [taxonomyOptions, setTaxonomyOptions] = useState<MedusaTaxonomy | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  const currentLoc = localization[selectedLang] || {};
+  const currentLoc = localization[selectedLang] ?? localization.en;
   const isActive = productActiveLanguages.includes(selectedLang);
   const supabase = createClient();
 
@@ -120,8 +117,8 @@ export default function ProductDetailsPage() {
     }
   };
 
-  const handleUpdate = (field: keyof Localization, value: any) => {
-    updateLocalization(selectedLang, { [field]: value });
+  const handleUpdate = <K extends keyof Localization>(field: K, value: Localization[K]) => {
+    updateLocalization(selectedLang, { [field]: value } as Partial<Localization>);
   };
 
   const enhanceField = async (field: keyof Localization, fieldType: string) => {
@@ -144,13 +141,13 @@ export default function ProductDetailsPage() {
       
       if (res.ok && data.enhanced) {
         // For features and keywords, handle array format
-        if (field === 'features' || field === 'keywords') {
+          if (field === 'features' || field === 'keywords') {
           const enhancedArray = Array.isArray(data.enhanced) 
             ? data.enhanced 
             : data.enhanced.split(',').map((item: string) => item.trim()).filter(Boolean);
-          handleUpdate(field, enhancedArray);
+            handleUpdate(field, enhancedArray as Localization[typeof field]);
         } else {
-          handleUpdate(field, data.enhanced);
+            handleUpdate(field, data.enhanced as Localization[typeof field]);
         }
       } else {
         alert(data.error || 'Failed to enhance content');
@@ -247,7 +244,7 @@ export default function ProductDetailsPage() {
           };
         });
         
-        bulkUpdate({ options: updatedOptions });
+        bulkUpdate({ options: updatedOptions as ProductOption[] });
       }
     } catch (err) {
       console.error('Translation failed:', err);
