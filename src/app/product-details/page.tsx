@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { getMedusaTaxonomy } from './actions';
+import { AISourceBadge } from '@/components/ui/AISourceBadge';
 
 const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').then(mod => mod.RichTextEditor), {
   ssr: false,
@@ -44,6 +45,7 @@ const ALL_LANGUAGES = [
 
 export default function ProductDetailsPage() {
   const settings = useSettingsStore();
+  const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
   const { 
     organizationId,
     setOrganizationId,
@@ -62,8 +64,21 @@ export default function ProductDetailsPage() {
     shipping_weight,
     shipping_dimensions,
     updateRoot,
-    translatingLanguages
+    translatingLanguages,
+    aiMeta
   } = useProductStore();
+  
+  const getFieldSource = (path: string): 'ai' | 'source' | 'mixed' => {
+    if (!aiMeta) return 'source'; // Default
+    
+    // Check if path is in filled by AI
+    const isAI = aiMeta.fieldsFilledByAI?.some(p => p === path || p.startsWith(`${path}.`));
+    const isSource = aiMeta.fieldsFromSource?.some(p => p === path || p.startsWith(`${path}.`));
+    
+    if (isAI && isSource) return 'mixed';
+    if (isAI) return 'ai';
+    return 'source';
+  };
   
   const [selectedLang, setSelectedLang] = useState('en');
   const [isTranslating, setIsTranslating] = useState(false);
@@ -263,7 +278,7 @@ export default function ProductDetailsPage() {
 
       if (currentOrgId) {
         // Load settings to get active languages
-        await settings.loadFromDb(currentOrgId);
+        await loadSettingsFromDb(currentOrgId);
         
         // Auto-activate languages from organization settings for this product session
         const orgLangs = useSettingsStore.getState().activeLanguages;
@@ -447,7 +462,10 @@ export default function ProductDetailsPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-400">Description</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-zinc-400">Description</label>
+                    <AISourceBadge source={getFieldSource(`descriptions.${selectedLang}.long`)} />
+                  </div>
                   <button
                     onClick={() => enhanceField('description', 'description')}
                     disabled={enhancingField === `description-${selectedLang}`}
@@ -472,9 +490,12 @@ export default function ProductDetailsPage() {
           </section>
 
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              Features & Benefits
+            <h2 className="text-xl font-semibold text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-400" />
+                Features & Benefits
+              </div>
+              <AISourceBadge source={getFieldSource(`descriptions.${selectedLang}.features`)} />
             </h2>
             <div className="space-y-3">
               {(currentLoc.features || []).map((feature, idx) => (
@@ -533,7 +554,10 @@ export default function ProductDetailsPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Title</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Title</label>
+                    <AISourceBadge source={getFieldSource(`descriptions.${selectedLang}.seo.title`)} />
+                  </div>
                   <button
                     onClick={() => enhanceField('metadata_title', 'metadata_title')}
                     disabled={enhancingField === `metadata_title-${selectedLang}`}
@@ -560,7 +584,10 @@ export default function ProductDetailsPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Description</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Meta Description</label>
+                    <AISourceBadge source={getFieldSource(`descriptions.${selectedLang}.seo.description`)} />
+                  </div>
                   <button
                     onClick={() => enhanceField('metadata_description', 'metadata_description')}
                     disabled={enhancingField === `metadata_description-${selectedLang}`}
@@ -587,7 +614,10 @@ export default function ProductDetailsPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Keywords</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-zinc-400 text-xs uppercase tracking-wider">Keywords</label>
+                    <AISourceBadge source={getFieldSource(`descriptions.${selectedLang}.seo.keywords`)} />
+                  </div>
                   <button
                     onClick={() => enhanceField('keywords', 'keywords')}
                     disabled={enhancingField === `keywords-${selectedLang}`}
@@ -800,9 +830,12 @@ export default function ProductDetailsPage() {
 
           {/* Logistics */}
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Truck className="w-5 h-5 text-indigo-400" />
-              Logistics
+            <h2 className="text-xl font-semibold text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Truck className="w-5 h-5 text-indigo-400" />
+                Logistics
+              </div>
+              <AISourceBadge source={getFieldSource('logistics')} />
             </h2>
             
             <div className="space-y-4">

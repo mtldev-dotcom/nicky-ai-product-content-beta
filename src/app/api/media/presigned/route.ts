@@ -8,11 +8,35 @@ import { MediaPresignedRequestSchema } from '@/lib/api-schemas';
 
 export async function POST(req: Request) {
   try {
-    const { filename, contentType } = MediaPresignedRequestSchema.parse(await req.json());
+    const parsed = MediaPresignedRequestSchema.parse(await req.json());
+    const { filename, contentType, forIngest } = parsed;
 
-    // Only allow image uploads through this endpoint.
-    if (!contentType.toLowerCase().startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image uploads are supported' }, { status: 400 });
+    const contentTypeLower = contentType.toLowerCase();
+    
+    // If forIngest is true, allow more file types
+    if (forIngest) {
+      const allowedIngestTypes = [
+        'image/',
+        'text/csv',
+        'application/json',
+        'application/pdf',
+        'text/plain',
+      ];
+      
+      const isAllowed = allowedIngestTypes.some(type => 
+        contentTypeLower.startsWith(type) || contentTypeLower === type
+      );
+      
+      if (!isAllowed) {
+        return NextResponse.json({ 
+          error: 'File type not supported for ingest. Allowed: images, CSV, JSON, PDF, TXT' 
+        }, { status: 400 });
+      }
+    } else {
+      // Default: only allow images
+      if (!contentTypeLower.startsWith('image/')) {
+        return NextResponse.json({ error: 'Only image uploads are supported' }, { status: 400 });
+      }
     }
 
     const supabase = await createClient();
@@ -71,7 +95,9 @@ export async function POST(req: Request) {
 
     // Prevent path traversal: sanitize user-supplied filename.
     const safeFilename = filename.replace(/[^\w.\-]+/g, '_').slice(0, 120);
-    const fileKey = `${membership.organization_id}/uploads/${Date.now()}-${safeFilename}`;
+    // Use 'ingest' folder for ingest files, 'uploads' for regular images
+    const folder = forIngest ? 'ingest' : 'uploads';
+    const fileKey = `${membership.organization_id}/${folder}/${Date.now()}-${safeFilename}`;
     
     const command = new PutObjectCommand({
       Bucket: bucket,

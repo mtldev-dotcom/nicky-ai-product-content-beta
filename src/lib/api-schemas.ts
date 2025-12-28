@@ -16,6 +16,8 @@ export type MediaSyncRequest = z.infer<typeof MediaSyncRequestSchema>;
 export const MediaPresignedRequestSchema = z.object({
   filename: z.string().min(1).max(200),
   contentType: z.string().min(1).max(100),
+  // Optional: specify if this is for ingest (allows more file types)
+  forIngest: z.boolean().optional().default(false),
 });
 
 export type MediaPresignedRequest = z.infer<typeof MediaPresignedRequestSchema>;
@@ -90,5 +92,40 @@ export const TranslateRequestSchema = z.object({
 });
 
 export type TranslateRequest = z.infer<typeof TranslateRequestSchema>;
+
+// --- JUST DROP IT ingest endpoint ---
+
+export const IngestFileSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(['image', 'csv', 'json', 'pdf', 'other']),
+  mime: z.string().min(1),
+  url: z.string().url(), // Public URL or presigned URL
+});
+
+export const IngestRequestSchema = z.object({
+  orgId: z.string().uuid().optional(), // Optional - will be derived from auth
+  brandId: z.string().optional(),
+  targetLanguages: z.array(LanguageCodeSchema).min(1),
+  textBlocks: z.array(z.string().trim().min(1).max(50_000)).default([]),
+  urls: z.array(UrlSchema).default([]),
+  files: z.array(IngestFileSchema).default([]),
+}).refine(
+  (data) => data.textBlocks.length > 0 || data.urls.length > 0 || data.files.length > 0,
+  {
+    message: 'At least one input (textBlocks, urls, or files) is required',
+    path: ['textBlocks'],
+  }
+);
+
+export type IngestRequest = z.infer<typeof IngestRequestSchema>;
+export type IngestFile = z.infer<typeof IngestFileSchema>;
+
+export const IngestResponseSchema = z.object({
+  sessionId: z.string().uuid(),
+  blueprint: z.any(), // ProductBlueprint - complex type, validated separately
+  evidence: z.any(), // Evidence - complex type, validated separately
+});
+
+export type IngestResponse = z.infer<typeof IngestResponseSchema>;
 
 

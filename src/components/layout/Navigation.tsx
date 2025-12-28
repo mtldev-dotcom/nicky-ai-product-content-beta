@@ -10,7 +10,8 @@ import {
   Layers, 
   Settings,
   Database,
-  LogOut
+  LogOut,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from '@/app/login/actions';
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { icon: ImageIcon, label: 'Media', href: '/media' },
   { icon: Layers, label: 'Variants', href: '/variants' },
   { icon: Database, label: 'JSON', href: '/json' },
+  { icon: BarChart3, label: 'Usage', href: '/usage' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
 

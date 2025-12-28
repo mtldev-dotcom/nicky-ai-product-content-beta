@@ -292,6 +292,23 @@ export default function Dashboard() {
         {/* Import & Demo Actions */}
         <div className="lg:col-span-4 flex flex-col gap-4">
           <button 
+            onClick={() => router.push('/create')}
+            disabled={isLoading || isImporting}
+            className="w-full flex-1 glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-all">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div className="text-left">
+              <p className="text-white font-semibold flex items-center gap-2">
+                Create Product
+                <ArrowRight className="w-3 h-3 text-zinc-500" />
+              </p>
+              <p className="text-xs text-zinc-500">Choose your starting point</p>
+            </div>
+          </button>
+          
+          <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading || isImporting}
             className="w-full flex-1 glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
@@ -299,7 +316,7 @@ export default function Dashboard() {
             <input 
               type="file" 
               className="hidden" 
-              ref={fileInputRef} 
+              ref={fileInputRef}
               accept=".json"
               onChange={handleFileImport}
             />

@@ -79,6 +79,13 @@ export interface ProductState {
   shipping_weight: number;
   shipping_dimensions: { length: number; width: number; height: number };
   
+  // AI Metadata
+  aiMeta?: {
+    fieldsFilledByAI: string[];
+    fieldsFromSource: string[];
+    languageSource: Record<string, 'original' | 'mixed' | 'translated'>;
+  };
+  
   // Actions
   updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'variants' | 'ignoredUrls'>>) => void;
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
@@ -106,6 +113,7 @@ export interface ProductState {
   setIsSaving: (saving: boolean) => void;
   saveToDb: () => Promise<void>;
   setTranslatingLanguage: (lang: string, isTranslating: boolean) => void;
+  loadFromBlueprint: (blueprint: any) => void;
 }
 
 const INITIAL_LOCALIZATION: Localization = {
@@ -155,7 +163,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const newState = { ...state, ...data };
     
     // Auto-slugify handle if title changes and no handle provided
-    if (data.title && !data.handle) {
+    if (data.title && !data.handle && typeof data.title === 'string') {
       newState.handle = data.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
     }
 
@@ -348,6 +356,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         shipping_profile_id: state.shipping_profile_id,
         shipping_weight: state.shipping_weight,
         shipping_dimensions: state.shipping_dimensions,
+        aiMeta: state.aiMeta,
       },
     } as const;
 
@@ -373,4 +382,103 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
     return { translatingLanguages: newSet };
   }),
+
+  loadFromBlueprint: (blueprint: any) => {
+    // Load ProductBlueprint into product store
+    const product = blueprint.product;
+    const aiMeta = blueprint.aiMeta || {};
+    
+    // Build localization from descriptions
+    const localization: Record<string, Localization> = {};
+    const activeLanguages: string[] = [];
+    
+    for (const [lang, desc] of Object.entries(product.descriptions || {})) {
+      activeLanguages.push(lang);
+      const typedDesc = desc as any;
+      localization[lang] = {
+        title: typedDesc.title || product.identity.title || '',
+        subtitle: product.identity.subtitle || typedDesc.short || '',
+        description: typedDesc.long || '',
+        features: typedDesc.features || [],
+        metadata_title: typedDesc.seo?.title || '',
+        metadata_description: typedDesc.seo?.description || '',
+        keywords: typedDesc.seo?.keywords || [],
+      };
+    }
+    
+    // Convert variants
+    const variants = (product.variants || []).map((v: any, idx: number) => ({
+      id: crypto.randomUUID(),
+      title: v.title || `Variant ${idx + 1}`,
+      sku: v.sku || '',
+      manage_inventory: !!v.inventory,
+      allow_backorder: false,
+      prices: Object.entries(v.prices || {}).map(([currency, amount]) => ({
+        amount: typeof amount === 'number' ? amount : 0,
+        currency_code: currency,
+      })),
+      options: v.options || {},
+      inventory: v.inventory ? [{
+        location_id: v.inventory.stockLocationId || '',
+        stocked_quantity: v.inventory.quantity || 0,
+      }] : [],
+    }));
+    
+    // Convert images
+    const images = (product.media?.images || []).map((img: any) => img.syncedUrl || img.sourceUrl).filter(Boolean);
+    
+    // Extract unique options and values from variants
+    const optionMap: Record<string, Set<string>> = {};
+    (product.variants || []).forEach((v: any) => {
+      if (v.options) {
+        Object.entries(v.options).forEach(([name, value]) => {
+          if (!optionMap[name]) optionMap[name] = new Set();
+          if (typeof value === 'string') optionMap[name].add(value);
+        });
+      }
+    });
+
+    const options: ProductOption[] = Object.entries(optionMap).map(([name, values]) => ({
+      id: crypto.randomUUID(),
+      name,
+      translations: { en: name },
+      values: Array.from(values).map(v => ({
+        value: v,
+        translations: { en: v }
+      }))
+    }));
+    
+    set({
+      title: product.identity.title,
+      subtitle: product.identity.subtitle,
+      description: localization[activeLanguages[0]]?.description || '',
+      handle: product.identity.handle,
+      status: 'draft',
+      thumbnail: images[0] || '',
+      sku: variants[0]?.sku || '',
+      price: variants[0]?.prices[0]?.amount || 0,
+      activeLanguages,
+      localization,
+      images,
+      options,
+      variants,
+      collection_id: product.taxonomy.collectionId || '',
+      type_id: product.taxonomy.typeId || '',
+      tags: product.taxonomy.tags || [],
+      categories: product.taxonomy.categoryIds || [],
+      sales_channels: [],
+      shipping_profile_id: '',
+      shipping_weight: product.logistics.weight || 0,
+      shipping_dimensions: {
+        length: product.logistics.dimensions?.length || 0,
+        width: product.logistics.dimensions?.width || 0,
+        height: product.logistics.dimensions?.height || 0,
+      },
+      aiMeta: {
+        fieldsFilledByAI: aiMeta.fieldsFilledByAI || [],
+        fieldsFromSource: aiMeta.fieldsFromSource || [],
+        languageSource: aiMeta.languageSource || {},
+      },
+    });
+  },
 }));

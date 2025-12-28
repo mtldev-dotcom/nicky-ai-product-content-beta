@@ -33,6 +33,7 @@ const ALL_LANGUAGES = [
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
+  const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [localState, setLocalState] = useState({
     openaiApiKey: '',
@@ -67,12 +68,12 @@ export default function SettingsPage() {
 
         if (membership) {
           setOrgId(membership.organization_id);
-          await settings.loadFromDb(membership.organization_id);
+          await loadSettingsFromDb(membership.organization_id);
         }
       }
     };
     init();
-  }, [settings.loadFromDb, supabase]);
+  }, [loadSettingsFromDb, supabase]);
 
   useEffect(() => {
     setLocalState({
