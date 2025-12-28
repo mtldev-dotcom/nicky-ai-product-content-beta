@@ -89,3 +89,49 @@ export async function getMedusaTaxonomy(orgId: string) {
     };
   }
 }
+
+export async function getMedusaProducts(orgId: string) {
+  const settings = await loadDecryptedSettingsForServer(orgId);
+  if (!settings || !settings.medusaUrl || !settings.medusaApiKey || settings.storePlatform !== 'medusa') {
+    return {
+      success: false,
+      error: 'MedusaJS integration not configured'
+    };
+  }
+
+  let baseUrl = settings.medusaUrl.trim().replace(/\/$/, '');
+  if (baseUrl.endsWith('/admin')) {
+    baseUrl = baseUrl.replace(/\/admin$/, '');
+  }
+  
+  const apiKey = settings.medusaApiKey;
+  const headers = {
+    'x-medusa-access-token': apiKey,
+    'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const res = await fetch(`${baseUrl}/admin/products?limit=20`, { 
+      headers,
+      cache: 'no-store' 
+    });
+    
+    if (!res.ok) {
+      console.error(`Medusa API Error [products]:`, res.status, res.statusText);
+      return { success: false, error: `Medusa API error: ${res.status}` };
+    }
+    
+    const data = await res.json();
+    return {
+      success: true,
+      data: data.products || []
+    };
+  } catch (err) {
+    console.error('Failed to fetch Medusa products:', err);
+    return {
+      success: false,
+      error: 'Failed to connect to MedusaJS server'
+    };
+  }
+}

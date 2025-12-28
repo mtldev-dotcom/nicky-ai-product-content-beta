@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown, ExternalLink, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -10,12 +10,18 @@ import { mapExternalToProduct } from '@/lib/mapper';
 import { createClient } from '@/utils/supabase/client';
 import { cn } from '@/lib/utils';
 import { translateAllActiveLanguages } from '@/lib/translations';
+import { getMedusaProducts } from './product-details/actions';
 
 export default function Dashboard() {
   const [prompt, setPrompt] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [storeProducts, setStoreProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingStoreProducts, setIsLoadingStoreProducts] = useState(false);
+  const [isStoreConfigured, setIsStoreConfigured] = useState(false);
   const { updateRoot, updateLocalization, bulkUpdate, resetStore, setOrganizationId, saveToDb } = useProductStore();
   const settings = useSettingsStore();
   const router = useRouter();
@@ -34,7 +40,37 @@ export default function Dashboard() {
           .single();
         
         if (membership) {
-          setOrganizationId(membership.organization_id);
+          const orgId = membership.organization_id;
+          setOrganizationId(orgId);
+          
+          // Fetch products for this org
+          const { data: productsData, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('organization_id', orgId)
+            .order('created_at', { ascending: false });
+          
+          if (!error && productsData) {
+            setProducts(productsData);
+          }
+          setIsLoadingProducts(false);
+
+          // Check if store is configured and fetch products
+          const { data: settingsData } = await supabase
+            .from('organization_settings')
+            .select('store_platform, medusa_url, medusa_api_key')
+            .eq('organization_id', orgId)
+            .single();
+          
+          if (settingsData?.store_platform === 'medusa' && settingsData.medusa_url && settingsData.medusa_api_key) {
+            setIsStoreConfigured(true);
+            setIsLoadingStoreProducts(true);
+            const storeRes = await getMedusaProducts(orgId);
+            if (storeRes.success) {
+              setStoreProducts(storeRes.data);
+            }
+            setIsLoadingStoreProducts(false);
+          }
         }
       }
     };
@@ -372,6 +408,233 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </section>
+
+      {/* Products Table */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Package className="w-6 h-6 text-indigo-400" />
+            Recent Products
+          </h2>
+          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            {products.length} Products Total
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/5 border-b border-white/5">
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Product</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">SKU</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Price</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Created</th>
+                  <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {isLoadingProducts ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+                        <span className="text-sm">Loading catalog...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : products.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                          <Package className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-medium text-zinc-400">No products found</p>
+                        <p className="text-xs">Create your first product using the AI bar above.</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  products.map((product) => (
+                    <tr 
+                      key={product.id} 
+                      className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
+                      onClick={() => {
+                        // In a real app, load product into store and navigate
+                        // router.push(`/product-details?id=${product.id}`);
+                      }}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex-shrink-0 overflow-hidden">
+                            {product.data?.thumbnail ? (
+                              <img src={product.data.thumbnail} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-4 h-4 text-zinc-700" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{product.title}</p>
+                            <p className="text-[10px] text-zinc-500 font-mono truncate">{product.handle}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-mono text-zinc-400">{product.sku || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-medium text-white">${product.price || '0.00'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={cn(
+                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                          product.status === 'published' 
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                        )}>
+                          <div className={cn("w-1 h-1 rounded-full", product.status === 'published' ? "bg-emerald-400" : "bg-zinc-400")} />
+                          {product.status}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[10px] text-zinc-500 uppercase">
+                          {new Date(product.created_at).toLocaleDateString(undefined, { 
+                            month: 'short', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Store Products Table (MedusaJS) */}
+      {isStoreConfigured && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Package className="w-6 h-6 text-emerald-400" />
+              MedusaJS Catalog
+            </h2>
+            <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+              {storeProducts.length} External Products
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/5">
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Product</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Variants</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Created</th>
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {isLoadingStoreProducts ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                          <span className="text-sm">Fetching from Medusa...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : storeProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                            <Package className="w-6 h-6" />
+                          </div>
+                          <p className="text-sm font-medium text-zinc-400">No products found in MedusaJS</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    storeProducts.map((product) => (
+                      <tr 
+                        key={product.id} 
+                        className="group hover:bg-emerald-500/[0.02] transition-colors"
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex-shrink-0 overflow-hidden">
+                              {product.thumbnail ? (
+                                <img src={product.thumbnail} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-4 h-4 text-zinc-700" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{product.title}</p>
+                              <p className="text-[10px] text-zinc-500 font-mono truncate">{product.handle}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-mono text-zinc-400">
+                            {product.variants?.length || 0} variants
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={cn(
+                            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                            product.status === 'published' 
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                              : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                          )}>
+                            <div className={cn("w-1 h-1 rounded-full", product.status === 'published' ? "bg-emerald-400" : "bg-zinc-400")} />
+                            {product.status}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[10px] text-zinc-500 uppercase">
+                            {new Date(product.created_at).toLocaleDateString(undefined, { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
+                              <ExternalLink className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -57,7 +57,7 @@ ${combinedText.substring(0, 4000)}`;
       openai,
       responseFormat: 'json_object',
       temperature: 0.3,
-      maxTokens: 1000,
+      maxTokens: 2000,
     });
     
     const parsed = JSON.parse(result.content);
@@ -118,7 +118,7 @@ Return JSON with the same structure as text extraction.`;
       openai,
       responseFormat: 'json_object',
       temperature: 0.3,
-      maxTokens: 1000,
+      maxTokens: 2000,
     });
     
     const parsed = JSON.parse(result.content);

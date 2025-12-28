@@ -172,10 +172,17 @@ IMPORTANT:
       openai,
       responseFormat: 'json_object',
       temperature: 0.7,
-      maxTokens: 2000,
+      maxTokens: 4000,
     });
     
-    const parsed = JSON.parse(result.content);
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch (e) {
+      console.error('Failed to parse blueprint JSON. Content length:', result.content.length);
+      console.error('Content preview:', result.content.substring(0, 500) + '...');
+      throw new Error(`AI returned malformed data. This usually happens when the product has too many variants or languages for a single pass. Try reducing the number of input files.`);
+    }
     
     // Validate and normalize the blueprint
     const blueprint = normalizeBlueprint(parsed, evidence, settings, languageSource);

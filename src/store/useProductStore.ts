@@ -269,10 +269,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
         ? { ...opt, values: opt.values.filter((_, i) => i !== valueIndex) } 
         : opt
     ),
+    variants: [], // Clear variants when options change
   })),
 
   removeOption: (id) => set((state) => ({
     options: state.options.filter((opt) => opt.id !== id),
+    variants: [], // Clear variants when options change
   })),
 
   setVariants: (variants) => set({ variants }),
