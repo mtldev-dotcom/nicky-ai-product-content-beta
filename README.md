@@ -2,6 +2,12 @@
 
 Product Architect is a professional, multi-tenant SaaS utility for e-commerce operators. It bridges the gap between creative product ideation and rigid data schema requirements, allowing users to move from an image or a simple concept to a fully localized, media-rich JSON object in minutes.
 
+## Documentation
+
+- `docs/README.md` — documentation index
+- `docs/app-guide.md` — full app guide (features, pages, user flows, backend flows)
+- `docs/audit-report.md` — codebase audit report (duplicates, dead files, issues, recommendations)
+
 ## Key Features
 
 ### 1. Visual Product Orchestration (AI Vision)
