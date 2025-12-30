@@ -11,13 +11,15 @@ import {
   Settings,
   Database,
   LogOut,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from '@/app/login/actions';
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dash', href: '/' },
+  { icon: Sparkles, label: 'Create', href: '/create' },
   { icon: Languages, label: 'Details', href: '/product-details' },
   { icon: ImageIcon, label: 'Media', href: '/media' },
   { icon: Layers, label: 'Variants', href: '/variants' },
@@ -76,15 +78,15 @@ export const Navigation = () => {
       </nav>
 
       {/* Mobile Bottom Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full glass-dark border-t border-white/10 px-4 py-3 flex justify-between items-center z-50 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full glass-dark border-t border-white/10 px-2 py-2 flex justify-between items-center z-50 pb-safe overflow-x-auto">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href === '/create' && pathname?.startsWith('/create'));
           return (
             <Link 
               key={item.href} 
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 transition-all duration-300",
+                "flex flex-col items-center gap-1 transition-all duration-300 flex-shrink-0 px-2",
                 isActive ? "text-indigo-400" : "text-zinc-500"
               )}
             >

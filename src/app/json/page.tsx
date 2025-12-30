@@ -14,9 +14,12 @@ import {
   RefreshCw,
   Box,
   X,
-  Globe
+  Globe,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function JsonPage() {
   const product = useProductStore();
@@ -25,6 +28,7 @@ export default function JsonPage() {
   const [isPushing, setIsPushing] = useState(false);
   const [pushResult, setPushResult] = useState<{ productId: string | null } | null>(null);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [isJsonExpanded, setIsJsonExpanded] = useState(false);
 
   const fullJson = useMemo(() => {
     const activeLangs = product.activeLanguages;
@@ -433,19 +437,20 @@ export default function JsonPage() {
   }, [product]);
 
   return (
-    <div className="space-y-8 pb-24">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-32 md:pb-8">
+      <header className="space-y-4">
         <div>
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <Database className="text-indigo-400 w-8 h-8" />
+          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
+            <Database className="text-indigo-400 w-6 h-6 md:w-8 md:h-8" />
             Product Blueprint (JSON)
           </h1>
-          <p className="text-zinc-400">
+          <p className="text-sm md:text-base text-zinc-400">
             Export exactly aligned to THE UNCUT BRAND schema.
           </p>
         </div>
         
-        <div className="flex gap-3">
+        {/* Desktop Actions */}
+        <div className="hidden md:flex gap-3">
           <button onClick={handleCopy} className="glass px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 hover:bg-white/5 transition-all active:scale-95">
             {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy JSON'}
@@ -486,7 +491,7 @@ export default function JsonPage() {
         </section>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
         <div className="lg:col-span-4 space-y-6 order-2 lg:order-1">
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -596,12 +601,85 @@ export default function JsonPage() {
         </div>
 
         <div className="lg:col-span-8 space-y-4 order-1 lg:order-2">
-          <div className="relative group">
+          {/* Mobile: Collapsible JSON */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsJsonExpanded(!isJsonExpanded)}
+              className="w-full glass rounded-2xl p-4 border border-white/10 flex items-center justify-between hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Database className="w-5 h-5 text-indigo-400" />
+                <span className="text-sm font-semibold text-white">
+                  {isJsonExpanded ? 'Hide JSON' : 'Show JSON'}
+                </span>
+                <span className="text-xs text-zinc-500">
+                  ({(fullJson.length / 1024).toFixed(1)} KB)
+                </span>
+              </div>
+              {isJsonExpanded ? (
+                <ChevronUp className="w-5 h-5 text-zinc-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-zinc-400" />
+              )}
+            </button>
+            
+            <AnimatePresence>
+              {isJsonExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden mt-4"
+                >
+                  <div className="relative">
+                    <pre className="w-full max-h-[400px] overflow-auto glass-dark border border-white/10 rounded-2xl p-4 font-mono text-[11px] leading-relaxed text-indigo-200/90 custom-scrollbar">
+                      {fullJson}
+                    </pre>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Desktop: Always visible JSON */}
+          <div className="hidden md:block relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-600/20 rounded-2xl blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
             <pre className="relative w-full h-[700px] overflow-auto glass-dark border border-white/10 rounded-2xl p-6 font-mono text-[13px] leading-relaxed text-indigo-200/90 custom-scrollbar">
               {fullJson}
             </pre>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Sticky Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden pb-safe z-40">
+        <div className="glass-dark border-t border-white/10 p-4 space-y-2">
+          <div className="flex gap-2">
+            <button 
+              onClick={handleCopy} 
+              className="flex-1 glass px-4 py-3 rounded-xl font-semibold text-white flex items-center justify-center gap-2 hover:bg-white/5 transition-all active:scale-95"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+            <button 
+              onClick={handleDownload} 
+              className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </button>
+          </div>
+          <button
+            onClick={handlePushToMedusa}
+            disabled={isPushing}
+            className={cn(
+              "w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all active:scale-95",
+            )}
+          >
+            <Box className="w-4 h-4" />
+            {isPushing ? 'Pushing...' : 'Push to Medusa'}
+          </button>
         </div>
       </div>
     </div>
