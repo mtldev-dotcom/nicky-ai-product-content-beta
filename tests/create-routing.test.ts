@@ -2,7 +2,8 @@
  * Unit tests for create flow routing logic (fast vs ingest path determination)
  */
 
-import { describe, it, expect } from 'node:test';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 
 // Replicate the routing logic from create page
 type FileItem = {
@@ -59,7 +60,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('fast');
+      assert.equal(mode, 'fast');
     });
 
     it('should route to fast path with prompt + 1 image', () => {
@@ -70,7 +71,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('fast');
+      assert.equal(mode, 'fast');
     });
 
     it('should route to fast path with 1 image only (no prompt)', () => {
@@ -81,7 +82,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('fast');
+      assert.equal(mode, 'fast');
     });
   });
 
@@ -94,7 +95,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with text blocks', () => {
@@ -105,7 +106,7 @@ describe('Create Routing Logic', () => {
         ['Product description here'],
         []
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with files', () => {
@@ -116,7 +117,7 @@ describe('Create Routing Logic', () => {
         [],
         [{ id: '1', mimeType: 'text/csv' }]
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with multiple images', () => {
@@ -130,7 +131,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with prompt + URLs', () => {
@@ -141,7 +142,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with prompt + text blocks', () => {
@@ -152,7 +153,7 @@ describe('Create Routing Logic', () => {
         ['Additional notes'],
         []
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
 
     it('should route to ingest path with prompt + files', () => {
@@ -163,19 +164,19 @@ describe('Create Routing Logic', () => {
         [],
         [{ id: '1', mimeType: 'application/json' }]
       );
-      expect(mode).toBe('ingest');
+      assert.equal(mode, 'ingest');
     });
   });
 
   describe('Edge Cases', () => {
     it('should return null for empty inputs', () => {
       const mode = determineGenerationMode('', [], [], [], []);
-      expect(mode).toBeNull();
+      assert.equal(mode, null);
     });
 
     it('should handle whitespace-only prompt as empty', () => {
       const mode = determineGenerationMode('   ', [], [], [], []);
-      expect(mode).toBeNull();
+      assert.equal(mode, null);
     });
 
     it('should ignore empty URLs in array', () => {
@@ -186,7 +187,7 @@ describe('Create Routing Logic', () => {
         [],
         []
       );
-      expect(mode).toBe('fast');
+      assert.equal(mode, 'fast');
     });
 
     it('should ignore empty text blocks in array', () => {
@@ -197,7 +198,7 @@ describe('Create Routing Logic', () => {
         ['', '   '],
         []
       );
-      expect(mode).toBe('fast');
+      assert.equal(mode, 'fast');
     });
   });
 });

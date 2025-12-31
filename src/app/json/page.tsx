@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useProductStore, type Localization } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { ALL_LANGUAGES } from '@/lib/languages';
-import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
+import { buildMedusaAdminProductPayload } from '@/lib/medusa/build-admin-product-payload';
 import { 
   Database, 
   Copy, 
@@ -30,186 +30,43 @@ export default function JsonPage() {
   const [pushError, setPushError] = useState<string | null>(null);
   const [isJsonExpanded, setIsJsonExpanded] = useState(false);
 
-  const fullJson = useMemo(() => {
-    const activeLangs = product.activeLanguages;
-
-    // Helper to build i18n objects
-    const buildI18n = <K extends keyof Localization>(field: K): Partial<Record<string, Localization[K]>> => {
-      const obj: Partial<Record<string, Localization[K]>> = {};
-
-      activeLangs.forEach((lang) => {
-        const val = product.localization[lang]?.[field];
-        if (Array.isArray(val)) {
-          if (val.length > 0) obj[lang] = val as Localization[K];
-          return;
-        }
-        if (typeof val === 'string') {
-          if (val.trim().length > 0) obj[lang] = val as Localization[K];
-          return;
-        }
-      });
-
-      return obj;
-    };
-
-    // Helper to generate variants from options (Fallback if store variants are empty)
-    const getVariants = () => {
-      if (product.variants && product.variants.length > 0) {
-        return product.variants.map(v => ({
-          title: v.title,
-          sku: v.sku,
-          options: v.options,
-          prices: v.prices,
-          manage_inventory: v.manage_inventory,
-          allow_backorder: v.allow_backorder,
-          // Medusa v2 Admin API does not accept inventory levels in the product/variant create payload.
-          // These levels must be managed via the Inventory API after creation.
-        }));
-      }
-
-      // Fallback legacy generation if no variants in store
-      if (product.options.length === 0) {
-        const title = `${product.title || 'Draft Product'} - Default Variant`;
-        const sku = `${product.handle || 'product'}-default`;
-        return [{
-          title,
-          sku,
-          options: {},
-          prices: [{ amount: (product.price || 0), currency_code: "usd" }],
-          manage_inventory: true
-        }];
-      }
-
-      type ComboItem = { name: string; value: string };
-      const combinations: ComboItem[][] = [[]];
-      product.options.forEach((option) => {
-        const nextCombinations: ComboItem[][] = [];
-        combinations.forEach((combination) => {
-          option.values.forEach((value) => {
-            nextCombinations.push([...combination, { name: option.name, value: value.value }]);
-          });
-        });
-        if (nextCombinations.length > 0) {
-          combinations.length = 0;
-          combinations.push(...nextCombinations);
-        }
-      });
-
-      return combinations.map((combo) => {
-        const variantValuesTitle = combo.map((c) => c.value).join(' / ');
-        const title = `${product.title || 'Draft Product'} - ${variantValuesTitle}`;
-        const variantOptions = combo.reduce<Record<string, string>>((acc, curr) => {
-          acc[curr.name] = curr.value;
-          return acc;
-        }, {});
-        
-        const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
-        const sku = `${product.handle || 'product'}-${slugifiedOptions}`;
-
-        return {
-          title,
-          sku,
-          options: variantOptions,
-          prices: [{ amount: (product.price || 0), currency_code: "usd" }],
-          manage_inventory: true
-        };
-      });
-    };
-
-    const variants = getVariants();
-
-    // Construct exactly as per product-output-example.json
-    const output = {
+  const medusaPayload = useMemo(() => {
+    /**
+     * Use the shared payload builder so all Medusa-facing features stay consistent.
+     *
+     * Preconditions:
+     * - `product` is our in-memory editor state.
+     *
+     * Postconditions:
+     * - Returns an object safe to send to Medusa Admin APIs.
+     */
+    return buildMedusaAdminProductPayload({
       title: product.title,
-      subtitle: product.subtitle || product.localization.en?.subtitle || '',
-      status: product.status,
-      external_id: null,
+      subtitle: product.subtitle,
       description: product.description,
-      handle: product.handle || product.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, ''),
-      is_giftcard: false,
-      discountable: true,
+      handle: product.handle,
+      status: product.status,
       thumbnail: product.thumbnail,
+      price: product.price,
+      sku: product.sku,
       collection_id: product.collection_id || null,
       type_id: product.type_id || null,
-      weight: product.shipping_weight || null,
-      length: product.shipping_dimensions?.length || null,
-      height: product.shipping_dimensions?.height || null,
-      width: product.shipping_dimensions?.width || null,
-      hs_code: null,
-      origin_country: null,
-      mid_code: null,
-      material: null,
-      metadata: {
-        brand: "THE UNCUT BRAND",
-        vault: {
-          video: null,
-          images: product.vault
-        },
-        title_i18n: buildI18n('title'),
-        subtitle_i18n: buildI18n('subtitle'),
-        description_i18n: buildI18n('description'),
-        features_i18n: buildI18n('features'),
-        keywords_i18n: buildI18n('keywords'),
-        seo_title_i18n: buildI18n('metadata_title'),
-        seo_description_i18n: buildI18n('metadata_description'),
-        options_i18n: product.options.length > 0 
-          ? product.options.map(opt => ({
-              title_i18n: {
-                en: opt.name,
-                ...Object.fromEntries(
-                  Object.entries(opt.translations).map(([lang, trans]) => [
-                    lang,
-                    opt.name.toLowerCase() === 'default' ? 'Default' : trans
-                  ])
-                )
-              },
-              values: opt.values.map(v => ({
-                value: v.value,
-                value_i18n: {
-                  en: v.value,
-                  ...Object.fromEntries(
-                    Object.entries(v.translations).map(([lang, trans]) => [
-                      lang,
-                      v.value.toLowerCase() === 'default' ? 'Default' : trans
-                    ])
-                  )
-                }
-              }))
-            }))
-          : [{
-              title_i18n: { en: "Default option" },
-              values: [{
-                value: "Default option value",
-                value_i18n: { en: "Default option value" }
-              }]
-            }]
-      },
-      options: product.options.length > 0 
-        ? product.options.map(opt => ({
-            title: opt.name,
-            values: opt.values.map(v => v.value)
-          }))
-        : [{
-            title: "Default option",
-            values: ["Default option value"]
-          }],
-      variants: variants,
-      tags: product.tags.map(t => ({ value: t })),
-      images: product.images.map((url, index) => ({
-        url: url,
-        metadata: null,
-        rank: index
-      })),
-      categories: product.categories.map(c => ({ id: c })),
-      sales_channels: product.sales_channels.map(sc => ({ id: sc })),
-      shipping_profile_id: product.shipping_profile_id || null
-    };
-
-    // Medusa expects strict shapes (notably `currency_code` must be a string).
-    // Sanitize before export/push so UI/store can keep richer currency objects safely.
-    const sanitized = sanitizeMedusaProductPayload(output);
-    return JSON.stringify(sanitized, null, 4);
+      tags: product.tags,
+      categories: product.categories,
+      sales_channels: product.sales_channels,
+      shipping_profile_id: product.shipping_profile_id || null,
+      shipping_weight: product.shipping_weight || null,
+      shipping_dimensions: product.shipping_dimensions || null,
+      images: product.images,
+      vault: product.vault,
+      activeLanguages: product.activeLanguages,
+      localization: product.localization as unknown as Record<string, Localization>,
+      options: product.options,
+      variants: product.variants,
+    });
   }, [product]);
+
+  const fullJson = useMemo(() => JSON.stringify(medusaPayload, null, 4), [medusaPayload]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(fullJson);
@@ -589,7 +446,7 @@ export default function JsonPage() {
               <div className="p-3 rounded-xl bg-white/5 space-y-1">
                 <p className="text-[10px] text-zinc-500 uppercase">Variants</p>
                 <p className="text-xl font-bold text-white">
-                  {JSON.parse(fullJson).variants?.length || 0}
+                  {(medusaPayload as { variants?: unknown[] })?.variants?.length || 0}
                 </p>
               </div>
               <div className="p-3 rounded-xl bg-white/5 space-y-1">

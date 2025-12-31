@@ -63,6 +63,7 @@ export async function POST(req: Request) {
       'Content-Type': 'application/json',
     };
 
+    // NOTE: Kept for backward compatibility. New code should prefer `/api/medusa/products`.
     const res = await fetch(`${baseUrl}/admin/products`, {
       method: 'POST',
       headers,

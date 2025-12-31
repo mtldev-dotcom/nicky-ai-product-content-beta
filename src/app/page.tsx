@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown, ExternalLink, Star, Search, Filter } from 'lucide-react';
+import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, ImagePlus, X, FileDown, ExternalLink, Star, Search, Filter, Trash2, RefreshCw, Pencil, Eye, Save, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -11,6 +11,7 @@ import { createClient } from '@/utils/supabase/client';
 import { cn } from '@/lib/utils';
 import { translateAllActiveLanguages } from '@/lib/translations';
 import { getMedusaProducts } from './product-details/actions';
+import { buildMedusaAdminProductPayloadFromSavedProduct } from '@/lib/medusa/build-admin-product-payload';
 
 type SavedProductRow = {
   id: string;
@@ -23,6 +24,7 @@ type SavedProductRow = {
   created_at: string;
   data: unknown | null;
   is_template?: boolean | null;
+  medusa_product_id?: string | null;
 };
 
 type MedusaProductRow = {
@@ -35,9 +37,26 @@ type MedusaProductRow = {
   variants?: unknown[];
 };
 
+type MedusaProductDetails = {
+  id: string;
+  title?: string;
+  handle?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  thumbnail?: string | null;
+  [k: string]: unknown;
+};
+
 function getThumbnailFromProductData(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
   const maybe = (data as Record<string, unknown>).thumbnail;
+  return typeof maybe === 'string' && maybe.length > 0 ? maybe : null;
+}
+
+function getMedusaIdFromProductData(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const maybe = (data as Record<string, unknown>).medusa_product_id;
   return typeof maybe === 'string' && maybe.length > 0 ? maybe : null;
 }
 
@@ -53,6 +72,16 @@ export default function Dashboard() {
   const [isStoreConfigured, setIsStoreConfigured] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'draft' | 'published' | 'template'>('all');
+  const [isMedusaModalOpen, setIsMedusaModalOpen] = useState(false);
+  const [activeMedusaProductId, setActiveMedusaProductId] = useState<string | null>(null);
+  const [activeMedusaProduct, setActiveMedusaProduct] = useState<MedusaProductDetails | null>(null);
+  const [medusaEditTitle, setMedusaEditTitle] = useState('');
+  const [medusaEditHandle, setMedusaEditHandle] = useState('');
+  const [medusaEditStatus, setMedusaEditStatus] = useState<'draft' | 'published'>('draft');
+  const [isMedusaSaving, setIsMedusaSaving] = useState(false);
+  const [isMedusaDeleting, setIsMedusaDeleting] = useState(false);
+  const [isMedusaRefreshing, setIsMedusaRefreshing] = useState(false);
+  const [isMedusaExporting, setIsMedusaExporting] = useState(false);
   const {
     updateRoot,
     updateLocalization,
@@ -69,6 +98,37 @@ export default function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
+
+  const refreshLocalProducts = async (orgId: string) => {
+    const { data: productsData, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const withMedusa = (productsData as unknown as SavedProductRow[]).map((p) => ({
+      ...p,
+      medusa_product_id: getMedusaIdFromProductData(p.data),
+    }));
+    setProducts(withMedusa);
+  };
+
+  const refreshMedusaProducts = async (orgId: string) => {
+    setIsMedusaRefreshing(true);
+    try {
+      const res = await fetch('/api/medusa/products?limit=20', { cache: 'no-store' });
+      const data = (await res.json()) as { products?: MedusaProductRow[]; error?: string };
+      if (!res.ok) throw new Error(data.error || 'Failed to refresh Medusa products');
+      setStoreProducts(data.products || []);
+    } catch (err) {
+      console.error('Failed to refresh Medusa products:', err);
+      alert('Failed to refresh Medusa products');
+    } finally {
+      setIsMedusaRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     const getOrg = async () => {
@@ -95,7 +155,12 @@ export default function Dashboard() {
             .order('created_at', { ascending: false });
           
           if (!error && productsData) {
-            setProducts(productsData as unknown as SavedProductRow[]);
+            // Extract any persisted Medusa linkage from the JSON blob for display.
+            const withMedusa = (productsData as unknown as SavedProductRow[]).map((p) => ({
+              ...p,
+              medusa_product_id: getMedusaIdFromProductData(p.data),
+            }));
+            setProducts(withMedusa);
           }
           setIsLoadingProducts(false);
 
@@ -109,9 +174,17 @@ export default function Dashboard() {
           if (settingsData?.store_platform === 'medusa' && settingsData.medusa_url && settingsData.medusa_api_key) {
             setIsStoreConfigured(true);
             setIsLoadingStoreProducts(true);
-            const storeRes = await getMedusaProducts(orgId);
-            if (storeRes.success) {
-              setStoreProducts(storeRes.data as unknown as MedusaProductRow[]);
+            // Prefer new proxy route (keeps Medusa creds server-side) but fall back to existing action.
+            try {
+              const res = await fetch('/api/medusa/products?limit=20', { cache: 'no-store' });
+              const json = (await res.json()) as { products?: MedusaProductRow[]; error?: string };
+              if (!res.ok) throw new Error(json.error || 'Failed to fetch Medusa products');
+              setStoreProducts(json.products || []);
+            } catch {
+              const storeRes = await getMedusaProducts(orgId);
+              if (storeRes.success) {
+                setStoreProducts(storeRes.data as unknown as MedusaProductRow[]);
+              }
             }
             setIsLoadingStoreProducts(false);
           }
@@ -250,6 +323,198 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Failed to toggle template:', err);
       alert('Failed to update template flag');
+    }
+  };
+
+  const deleteSavedProduct = async (productId: string) => {
+    const ok = window.confirm('Delete this local product? This cannot be undone.');
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || 'Failed to delete product');
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      alert('Failed to delete local product');
+    }
+  };
+
+  const publishSavedProductToMedusa = async (p: SavedProductRow) => {
+    if (!isStoreConfigured) {
+      alert('Medusa is not configured for this organization.');
+      return;
+    }
+
+    const ok = window.confirm('Create this product in Medusa? (Local draft remains unchanged)');
+    if (!ok) return;
+
+    try {
+      const payload = buildMedusaAdminProductPayloadFromSavedProduct({
+        id: p.id,
+        title: p.title,
+        handle: p.handle,
+        status: p.status,
+        sku: p.sku ?? null,
+        price: p.price ?? null,
+        data: p.data ?? null,
+      });
+
+      const res = await fetch('/api/medusa/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+
+      const json = (await res.json()) as { product?: { id?: string }; error?: string };
+      if (!res.ok) throw new Error(json.error || 'Failed to create product in Medusa');
+
+      const medusaId = json.product?.id || null;
+      if (medusaId) {
+        // Persist linkage on the local record (org-scoped server-side).
+        await fetch('/api/products/link-medusa', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId: p.id, medusaProductId: medusaId }),
+        });
+
+        setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, medusa_product_id: medusaId } : x)));
+      }
+
+      alert(medusaId ? `Published to Medusa: ${medusaId}` : 'Published to Medusa (no id returned)');
+      // Refresh Medusa list so it shows immediately.
+      await refreshMedusaProducts(p.organization_id);
+    } catch (err) {
+      console.error('Publish to Medusa failed:', err);
+      alert('Failed to publish product to Medusa');
+    }
+  };
+
+  const openMedusaModal = async (id: string) => {
+    setIsMedusaModalOpen(true);
+    setActiveMedusaProductId(id);
+    setActiveMedusaProduct(null);
+
+    try {
+      const res = await fetch(`/api/medusa/products/${id}`, { cache: 'no-store' });
+      const json = (await res.json()) as { product?: MedusaProductDetails; error?: string };
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch Medusa product');
+
+      const prod = json.product || (json as unknown as MedusaProductDetails);
+      setActiveMedusaProduct(prod);
+      setMedusaEditTitle(typeof prod.title === 'string' ? prod.title : '');
+      setMedusaEditHandle(typeof prod.handle === 'string' ? prod.handle : '');
+      setMedusaEditStatus((prod.status === 'published' ? 'published' : 'draft') as 'draft' | 'published');
+    } catch (err) {
+      console.error('Failed to open Medusa product:', err);
+      alert('Failed to fetch Medusa product');
+    }
+  };
+
+  const closeMedusaModal = () => {
+    setIsMedusaModalOpen(false);
+    setActiveMedusaProductId(null);
+    setActiveMedusaProduct(null);
+  };
+
+  const saveMedusaEdits = async () => {
+    if (!activeMedusaProductId) return;
+    setIsMedusaSaving(true);
+    try {
+      const payload = {
+        title: medusaEditTitle,
+        handle: medusaEditHandle,
+        status: medusaEditStatus,
+      };
+
+      const res = await fetch(`/api/medusa/products/${activeMedusaProductId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload }),
+      });
+      const json = (await res.json()) as { product?: MedusaProductDetails; error?: string };
+      if (!res.ok) throw new Error(json.error || 'Failed to update Medusa product');
+
+      await refreshMedusaProducts(useProductStore.getState().organizationId || '');
+      alert('Updated Medusa product');
+      closeMedusaModal();
+    } catch (err) {
+      console.error('Failed to update Medusa product:', err);
+      alert('Failed to update Medusa product');
+    } finally {
+      setIsMedusaSaving(false);
+    }
+  };
+
+  const deleteMedusaProduct = async () => {
+    if (!activeMedusaProductId) return;
+    const ok = window.confirm(`Delete Medusa product ${activeMedusaProductId}? This is permanent.`);
+    if (!ok) return;
+
+    setIsMedusaDeleting(true);
+    try {
+      const res = await fetch(`/api/medusa/products/${activeMedusaProductId}`, { method: 'DELETE' });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(json.error || 'Failed to delete Medusa product');
+
+      await refreshMedusaProducts(useProductStore.getState().organizationId || '');
+      alert('Deleted Medusa product');
+      closeMedusaModal();
+    } catch (err) {
+      console.error('Failed to delete Medusa product:', err);
+      alert('Failed to delete Medusa product');
+    } finally {
+      setIsMedusaDeleting(false);
+    }
+  };
+
+  const exportMedusaToLocal = async (mode: 'copy' | 'move') => {
+    if (!activeMedusaProductId) return;
+
+    const ok =
+      mode === 'move'
+        ? window.confirm('Move to local? This will copy into Supabase then permanently delete it from Medusa.')
+        : window.confirm('Export to local? This will copy it into Supabase (Medusa product remains).');
+
+    if (!ok) return;
+
+    setIsMedusaExporting(true);
+    try {
+      const res = await fetch(`/api/medusa/products/${activeMedusaProductId}/export-to-local`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      });
+      const json = (await res.json()) as {
+        success?: boolean;
+        localProductId?: string;
+        deletedFromMedusa?: boolean;
+        error?: string;
+      };
+
+      if (!res.ok) throw new Error(json.error || 'Failed to export product to local storage');
+
+      const orgId = useProductStore.getState().organizationId;
+      if (orgId) await refreshLocalProducts(orgId);
+      await refreshMedusaProducts(orgId || '');
+
+      if (json.localProductId) {
+        alert(
+          mode === 'move'
+            ? `Moved to local (new id: ${json.localProductId}). Deleted from Medusa.`
+            : `Exported to local (new id: ${json.localProductId}).`
+        );
+      } else {
+        alert(mode === 'move' ? 'Moved to local.' : 'Exported to local.');
+      }
+
+      closeMedusaModal();
+    } catch (err) {
+      console.error('Export/Move failed:', err);
+      alert('Failed to export/move product to local storage');
+    } finally {
+      setIsMedusaExporting(false);
     }
   };
 
@@ -678,6 +943,12 @@ export default function Dashboard() {
                     <span className="font-mono">{product.sku}</span>
                   )}
                 </div>
+
+                {product.medusa_product_id && (
+                  <div className="mt-2 text-[10px] text-emerald-400 font-mono truncate">
+                    Medusa: {product.medusa_product_id}
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
@@ -693,6 +964,25 @@ export default function Dashboard() {
                   >
                     {product.is_template ? 'Use Template' : 'Edit'}
                   </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      publishSavedProductToMedusa(product);
+                    }}
+                    disabled={!isStoreConfigured}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-all",
+                      isStoreConfigured
+                        ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                        : "bg-white/5 text-zinc-600 cursor-not-allowed"
+                    )}
+                    aria-label="Publish to Medusa"
+                    title={isStoreConfigured ? "Create in Medusa" : "Medusa not configured"}
+                  >
+                    <UploadCloud className="w-3.5 h-3.5" />
+                  </button>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -707,6 +997,18 @@ export default function Dashboard() {
                     aria-label={product.is_template ? "Unmark as template" : "Mark as template"}
                   >
                     <Star className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSavedProduct(product.id);
+                    }}
+                    className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                    aria-label="Delete local product"
+                    title="Delete local product"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -723,8 +1025,21 @@ export default function Dashboard() {
               <Package className="w-6 h-6 text-emerald-400" />
               MedusaJS Catalog
             </h2>
-            <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
-              {storeProducts.length} External Products
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  const orgId = useProductStore.getState().organizationId;
+                  if (orgId) refreshMedusaProducts(orgId);
+                }}
+                disabled={isMedusaRefreshing}
+                className="glass px-3 py-2 rounded-xl text-xs font-semibold text-white flex items-center gap-2 hover:bg-white/5 transition-all disabled:text-zinc-500"
+              >
+                <RefreshCw className={cn("w-4 h-4", isMedusaRefreshing && "animate-spin")} />
+                Refresh
+              </button>
+              <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+                {storeProducts.length} External Products
+              </div>
             </div>
           </div>
 
@@ -811,8 +1126,13 @@ export default function Dashboard() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all">
-                              <ExternalLink className="w-4 h-4" />
+                            <button
+                              onClick={() => openMedusaModal(product.id)}
+                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                              aria-label="View / edit"
+                              title="View / edit"
+                            >
+                              <Eye className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -825,6 +1145,127 @@ export default function Dashboard() {
           </div>
         </section>
       )}
+
+      {/* Medusa Product Modal */}
+      <AnimatePresence>
+        {isMedusaModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60"
+            onClick={closeMedusaModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: 10 }}
+              className="w-full max-w-2xl glass-dark border border-white/10 rounded-2xl p-6 space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <Pencil className="w-5 h-5 text-emerald-400" />
+                    Medusa Product
+                  </h3>
+                  <p className="text-xs text-zinc-500 font-mono">{activeMedusaProductId}</p>
+                </div>
+                <button
+                  onClick={closeMedusaModal}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Title</span>
+                  <input
+                    value={medusaEditTitle}
+                    onChange={(e) => setMedusaEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Handle</span>
+                  <input
+                    value={medusaEditHandle}
+                    onChange={(e) => setMedusaEditHandle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Status</span>
+                  <select
+                    value={medusaEditStatus}
+                    onChange={(e) => setMedusaEditStatus(e.target.value === 'published' ? 'published' : 'draft')}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  >
+                    <option value="draft">draft</option>
+                    <option value="published">published</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <button
+                  onClick={deleteMedusaProduct}
+                  disabled={isMedusaDeleting}
+                  className="px-4 py-2 rounded-xl bg-red-500/10 text-red-300 border border-red-500/20 hover:bg-red-500/20 transition-all text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isMedusaDeleting ? 'Deleting…' : 'Delete'}
+                </button>
+
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <button
+                    onClick={() => exportMedusaToLocal('copy')}
+                    disabled={isMedusaExporting}
+                    className="px-4 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-all text-sm font-semibold flex items-center gap-2 disabled:text-zinc-500"
+                    title="Copy product from Medusa into local Supabase"
+                  >
+                    <Download className="w-4 h-4" />
+                    {isMedusaExporting ? 'Working…' : 'Export to Local'}
+                  </button>
+
+                  <button
+                    onClick={() => exportMedusaToLocal('move')}
+                    disabled={isMedusaExporting}
+                    className="px-4 py-2 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-all text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
+                    title="Copy into local Supabase, then delete from Medusa"
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    {isMedusaExporting ? 'Working…' : 'Move to Local'}
+                  </button>
+
+                  <button
+                    onClick={saveMedusaEdits}
+                    disabled={isMedusaSaving}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all text-sm font-semibold flex items-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isMedusaSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+
+              {activeMedusaProduct && (
+                <details className="pt-2">
+                  <summary className="cursor-pointer text-xs text-zinc-400 hover:text-zinc-200">
+                    Advanced JSON (read-only)
+                  </summary>
+                  <pre className="mt-3 max-h-[280px] overflow-auto rounded-xl bg-black/40 border border-white/10 p-3 text-[11px] text-indigo-200/90">
+                    {JSON.stringify(activeMedusaProduct, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
