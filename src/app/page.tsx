@@ -406,16 +406,38 @@ export default function Dashboard() {
         throw new Error('Invalid Medusa payload: missing variants');
       }
 
+      // Ensure shipping_profile_id is a string if the Medusa instance requires it.
+      // Prefer per-product field; otherwise fall back to org default from Settings.
+      if (payloadObj.shipping_profile_id == null) {
+        const defaultShippingProfileId = settings.defaultShippingProfileId;
+        if (defaultShippingProfileId && typeof defaultShippingProfileId === 'string') {
+          payloadObj.shipping_profile_id = defaultShippingProfileId;
+        } else {
+          throw new Error(
+            "Missing shipping_profile_id. Configure a default Shipping Profile in Settings → Medusa integration, or set it on the product before publishing."
+          );
+        }
+      }
+
       const res = await fetch('/api/medusa/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payload }),
       });
 
-      const json = (await res.json()) as {
+      // Defensive: if server returns HTML (Next error page / auth redirect), avoid crashing on `res.json()`.
+      const raw = await res.text();
+      const json = (() => {
+        try {
+          return JSON.parse(raw) as unknown;
+        } catch {
+          return { raw };
+        }
+      })() as {
         product?: { id?: string };
         error?: string;
         details?: unknown;
+        raw?: string;
       };
 
       if (!res.ok) {
@@ -423,7 +445,15 @@ export default function Dashboard() {
         // We surface `details` to make 400s debuggable (validation errors, missing fields, etc.).
         const detailsPreview =
           json.details !== undefined ? `\nDetails: ${JSON.stringify(json.details).slice(0, 2000)}` : '';
-        throw new Error((json.error || 'Failed to create product in Medusa') + detailsPreview);
+        const rawPreview =
+          json.details === undefined && typeof json.raw === 'string'
+            ? `\nNon-JSON response preview: ${json.raw.slice(0, 300)}`
+            : '';
+        throw new Error(
+          (json.error || `Failed to create product in Medusa (${res.status} ${res.statusText})`) +
+            detailsPreview +
+            rawPreview
+        );
       }
 
       const medusaId = json.product?.id || null;

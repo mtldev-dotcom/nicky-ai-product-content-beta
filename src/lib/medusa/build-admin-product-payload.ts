@@ -341,7 +341,20 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
       : [],
     categories: Array.isArray(input.categories) ? input.categories.map((c) => ({ id: c })) : [],
     sales_channels: Array.isArray(input.sales_channels) ? input.sales_channels.map((sc) => ({ id: sc })) : [],
-    shipping_profile_id: input.shipping_profile_id ?? null,
+    /**
+     * IMPORTANT:
+     * Some Medusa instances validate `shipping_profile_id` strictly as a string.
+     * Sending `null` causes 400s like:
+     *   Expected type: 'string' for field 'shipping_profile_id', got: 'null'
+     *
+     * So:
+     * - If we have a non-empty string -> send it.
+     * - Otherwise -> omit the field entirely (undefined).
+     */
+    shipping_profile_id:
+      typeof input.shipping_profile_id === 'string' && input.shipping_profile_id.trim().length > 0
+        ? input.shipping_profile_id
+        : undefined,
   };
 
   return sanitizeMedusaProductPayload(output);

@@ -585,4 +585,28 @@
 - `npm test` passes.
 - `npm run build` passes.
 
+## 2025-12-31 00:30 — Fix: bulk publish Medusa 400 (shipping_profile_id null) + robust non-JSON handling
+
+### What happened
+- Bulk publish to Medusa failed with:
+  - `Expected type: 'string' for field 'shipping_profile_id', got: 'null'`
+- Some publish attempts also threw:
+  - `Unexpected token '<' ... is not valid JSON`
+  - Cause: client tried `res.json()` but server responded with HTML (error page/redirect).
+
+### What was done
+- Payload hardening:
+  - `src/lib/medusa/build-admin-product-payload.ts` no longer emits `shipping_profile_id: null` (omits the field when unset).
+  - `src/app/page.tsx` publish flow now auto-fills `shipping_profile_id` from Settings default when missing, and fails fast with a clear message if no default is configured.
+- Response parsing hardening:
+  - publish flow now parses via `res.text()` + `JSON.parse` fallback, and includes a short non-JSON preview on failure.
+
+### Why it matters
+- Eliminates a common Medusa validation failure for bulk publishing.
+- Prevents the UI from crashing when the server returns HTML instead of JSON.
+
+### Verification
+- `npm test` passes.
+- `npm run build` passes.
+
 
