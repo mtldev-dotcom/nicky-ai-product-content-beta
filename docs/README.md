@@ -6,6 +6,7 @@ This folder contains the **authoritative documentation** for the Product Archite
 
 - **App Guide (features + flows + architecture)**: `docs/app-guide.md`
 - **Codebase Audit Report (issues, duplicates, dead files, risks)**: `docs/audit-report.md`
+- **LLMs & AI Models (models, prompts, settings, logging)**: `docs/llms.md`
 
 ## Feature / integration docs
 
