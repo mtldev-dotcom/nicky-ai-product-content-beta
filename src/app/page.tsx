@@ -82,6 +82,29 @@ export default function Dashboard() {
   const [isMedusaDeleting, setIsMedusaDeleting] = useState(false);
   const [isMedusaRefreshing, setIsMedusaRefreshing] = useState(false);
   const [isMedusaExporting, setIsMedusaExporting] = useState(false);
+
+  // Bulk selection state (Local + Medusa catalogs)
+  const [selectedLocalIds, setSelectedLocalIds] = useState<Set<string>>(new Set());
+  const [selectedMedusaIds, setSelectedMedusaIds] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<{
+    kind:
+      | 'local_delete'
+      | 'local_publish'
+      | 'medusa_export'
+      | 'medusa_move'
+      | 'medusa_delete'
+      | null;
+    running: boolean;
+    total: number;
+    done: number;
+    failures: Array<{ id: string; error: string }>;
+  }>({
+    kind: null,
+    running: false,
+    total: 0,
+    done: 0,
+    failures: [],
+  });
   const {
     updateRoot,
     updateLocalization,
@@ -341,14 +364,23 @@ export default function Dashboard() {
     }
   };
 
-  const publishSavedProductToMedusa = async (p: SavedProductRow) => {
+  const publishSavedProductToMedusa = async (
+    p: SavedProductRow,
+    opts?: { confirm?: boolean; alertOnSuccess?: boolean; silent?: boolean; skipRefresh?: boolean }
+  ) => {
     if (!isStoreConfigured) {
       alert('Medusa is not configured for this organization.');
       return;
     }
 
-    const ok = window.confirm('Create this product in Medusa? (Local draft remains unchanged)');
-    if (!ok) return;
+    const shouldConfirm = opts?.confirm ?? true;
+    const silent = opts?.silent ?? false;
+    const alertOnSuccess = opts?.alertOnSuccess ?? true;
+    const skipRefresh = opts?.skipRefresh ?? false;
+    if (shouldConfirm) {
+      const ok = window.confirm('Create this product in Medusa? (Local draft remains unchanged)');
+      if (!ok) return;
+    }
 
     try {
       const payload = buildMedusaAdminProductPayloadFromSavedProduct({
@@ -361,14 +393,38 @@ export default function Dashboard() {
         data: p.data ?? null,
       });
 
+      /**
+       * Preflight checks to avoid opaque 400s from Medusa for obvious missing data.
+       * We keep this minimal and actionable (Medusa rules vary per instance).
+       */
+      if (!payload || typeof payload !== 'object') {
+        throw new Error('Invalid Medusa payload (not an object)');
+      }
+      const payloadObj = payload as Record<string, unknown>;
+      const variants = payloadObj.variants;
+      if (!Array.isArray(variants) || variants.length === 0) {
+        throw new Error('Invalid Medusa payload: missing variants');
+      }
+
       const res = await fetch('/api/medusa/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ payload }),
       });
 
-      const json = (await res.json()) as { product?: { id?: string }; error?: string };
-      if (!res.ok) throw new Error(json.error || 'Failed to create product in Medusa');
+      const json = (await res.json()) as {
+        product?: { id?: string };
+        error?: string;
+        details?: unknown;
+      };
+
+      if (!res.ok) {
+        // This route returns `{ error, details }` on upstream Medusa failures.
+        // We surface `details` to make 400s debuggable (validation errors, missing fields, etc.).
+        const detailsPreview =
+          json.details !== undefined ? `\nDetails: ${JSON.stringify(json.details).slice(0, 2000)}` : '';
+        throw new Error((json.error || 'Failed to create product in Medusa') + detailsPreview);
+      }
 
       const medusaId = json.product?.id || null;
       if (medusaId) {
@@ -382,12 +438,18 @@ export default function Dashboard() {
         setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, medusa_product_id: medusaId } : x)));
       }
 
-      alert(medusaId ? `Published to Medusa: ${medusaId}` : 'Published to Medusa (no id returned)');
-      // Refresh Medusa list so it shows immediately.
-      await refreshMedusaProducts(p.organization_id);
+      if (alertOnSuccess && !silent) {
+        alert(medusaId ? `Published to Medusa: ${medusaId}` : 'Published to Medusa (no id returned)');
+      }
+
+      // Refresh Medusa list so it shows immediately (skip in bulk).
+      if (!skipRefresh) {
+        await refreshMedusaProducts(p.organization_id);
+      }
     } catch (err) {
-      console.error('Publish to Medusa failed:', err);
-      alert('Failed to publish product to Medusa');
+      console.error('Publish to Medusa failed:', err, { localProductId: p.id });
+      if (silent) throw err;
+      alert(err instanceof Error ? err.message : 'Failed to publish product to Medusa');
     }
   };
 
@@ -516,6 +578,197 @@ export default function Dashboard() {
     } finally {
       setIsMedusaExporting(false);
     }
+  };
+
+  const toggleSelectedLocal = (id: string, next: boolean) => {
+    setSelectedLocalIds((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(id);
+      else s.delete(id);
+      return s;
+    });
+  };
+
+  const toggleSelectedMedusa = (id: string, next: boolean) => {
+    setSelectedMedusaIds((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(id);
+      else s.delete(id);
+      return s;
+    });
+  };
+
+  const selectAllLocalFiltered = () => {
+    setSelectedLocalIds(new Set(filteredProducts.map((p) => p.id)));
+  };
+
+  const selectAllMedusaVisible = () => {
+    setSelectedMedusaIds(new Set(storeProducts.map((p) => p.id)));
+  };
+
+  const allMedusaSelected = storeProducts.length > 0 && storeProducts.every((p) => selectedMedusaIds.has(p.id));
+  const someMedusaSelected = storeProducts.some((p) => selectedMedusaIds.has(p.id)) && !allMedusaSelected;
+
+  const clearBulkStatus = () =>
+    setBulkStatus({
+      kind: null,
+      running: false,
+      total: 0,
+      done: 0,
+      failures: [],
+    });
+
+  const runBulkLocalDelete = async () => {
+    const ids = Array.from(selectedLocalIds);
+    if (ids.length === 0) return;
+    const ok = window.confirm(`Delete ${ids.length} local product(s)? This cannot be undone.`);
+    if (!ok) return;
+
+    clearBulkStatus();
+    setBulkStatus({ kind: 'local_delete', running: true, total: ids.length, done: 0, failures: [] });
+
+    const failures: Array<{ id: string; error: string }> = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
+        const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+        const data = (await res.json()) as { error?: string };
+        if (!res.ok) throw new Error(data.error || 'Failed to delete');
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+      } catch (e) {
+        failures.push({ id, error: e instanceof Error ? e.message : 'Failed to delete' });
+      } finally {
+        setBulkStatus((prev) => ({ ...prev, done: i + 1, failures }));
+      }
+    }
+
+    setSelectedLocalIds(new Set());
+    setBulkStatus((prev) => ({ ...prev, running: false }));
+  };
+
+  const runBulkLocalPublishToMedusa = async () => {
+    const ids = Array.from(selectedLocalIds);
+    if (ids.length === 0) return;
+    if (!isStoreConfigured) {
+      alert('Medusa is not configured for this organization.');
+      return;
+    }
+
+    const ok = window.confirm(`Publish ${ids.length} local product(s) to Medusa? (Local drafts remain unchanged)`);
+    if (!ok) return;
+
+    clearBulkStatus();
+    setBulkStatus({ kind: 'local_publish', running: true, total: ids.length, done: 0, failures: [] });
+
+    const failures: Array<{ id: string; error: string }> = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      const p = products.find((x) => x.id === id);
+      if (!p) {
+        failures.push({ id, error: 'Local product not found in current list' });
+        setBulkStatus((prev) => ({ ...prev, done: i + 1, failures }));
+        continue;
+      }
+
+      try {
+        await publishSavedProductToMedusa(p, { confirm: false, alertOnSuccess: false, silent: true, skipRefresh: true });
+      } catch (e) {
+        failures.push({ id, error: e instanceof Error ? e.message : 'Failed to publish' });
+      } finally {
+        setBulkStatus((prev) => ({ ...prev, done: i + 1, failures }));
+      }
+    }
+
+    const orgId = useProductStore.getState().organizationId;
+    if (orgId) {
+      try {
+        await refreshLocalProducts(orgId);
+      } catch {
+        // Best-effort refresh; UI already attempted to update linkage while publishing.
+      }
+      await refreshMedusaProducts(orgId);
+    }
+
+    setSelectedLocalIds(new Set());
+    setBulkStatus((prev) => ({ ...prev, running: false }));
+  };
+
+  const runBulkMedusaExport = async (mode: 'copy' | 'move') => {
+    const ids = Array.from(selectedMedusaIds);
+    if (ids.length === 0) return;
+
+    const ok =
+      mode === 'move'
+        ? window.confirm(`Move ${ids.length} Medusa product(s) to local? This will delete them from Medusa.`)
+        : window.confirm(`Export ${ids.length} Medusa product(s) to local? (Medusa products remain)`);
+    if (!ok) return;
+
+    clearBulkStatus();
+    setBulkStatus({
+      kind: mode === 'move' ? 'medusa_move' : 'medusa_export',
+      running: true,
+      total: ids.length,
+      done: 0,
+      failures: [],
+    });
+
+    const failures: Array<{ id: string; error: string }> = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
+        const res = await fetch(`/api/medusa/products/${id}/export-to-local`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode }),
+        });
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) throw new Error(json.error || 'Failed to export');
+      } catch (e) {
+        failures.push({ id, error: e instanceof Error ? e.message : 'Failed to export' });
+      } finally {
+        setBulkStatus((prev) => ({ ...prev, done: i + 1, failures }));
+      }
+    }
+
+    const orgId = useProductStore.getState().organizationId;
+    if (orgId) {
+      await refreshLocalProducts(orgId);
+      await refreshMedusaProducts(orgId);
+    }
+
+    setSelectedMedusaIds(new Set());
+    setBulkStatus((prev) => ({ ...prev, running: false }));
+  };
+
+  const runBulkMedusaDelete = async () => {
+    const ids = Array.from(selectedMedusaIds);
+    if (ids.length === 0) return;
+
+    const ok = window.confirm(`Delete ${ids.length} Medusa product(s)? This is permanent.`);
+    if (!ok) return;
+
+    clearBulkStatus();
+    setBulkStatus({ kind: 'medusa_delete', running: true, total: ids.length, done: 0, failures: [] });
+
+    const failures: Array<{ id: string; error: string }> = [];
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
+        const res = await fetch(`/api/medusa/products/${id}`, { method: 'DELETE' });
+        const json = (await res.json()) as { error?: string };
+        if (!res.ok) throw new Error(json.error || 'Failed to delete');
+      } catch (e) {
+        failures.push({ id, error: e instanceof Error ? e.message : 'Failed to delete' });
+      } finally {
+        setBulkStatus((prev) => ({ ...prev, done: i + 1, failures }));
+      }
+    }
+
+    const orgId = useProductStore.getState().organizationId;
+    if (orgId) await refreshMedusaProducts(orgId);
+
+    setSelectedMedusaIds(new Set());
+    setBulkStatus((prev) => ({ ...prev, running: false }));
   };
 
   const startFromTemplate = async (productId: string) => {
@@ -660,6 +913,12 @@ export default function Dashboard() {
     
     return filtered;
   }, [products, filterStatus, searchQuery]);
+
+  // Derived selection state (must be AFTER `filteredProducts` initialization to avoid TDZ errors).
+  const allLocalFilteredSelected =
+    filteredProducts.length > 0 && filteredProducts.every((p) => selectedLocalIds.has(p.id));
+  const someLocalFilteredSelected =
+    filteredProducts.some((p) => selectedLocalIds.has(p.id)) && !allLocalFilteredSelected;
 
   return (
     <div className="space-y-12">
@@ -837,8 +1096,59 @@ export default function Dashboard() {
             <Package className="w-6 h-6 text-indigo-400" />
             Product Library
           </h2>
-          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-            {products.length} Total
+          <div className="flex items-center gap-3">
+            {selectedLocalIds.size > 0 && (
+              <div className="flex items-center gap-2 glass px-3 py-2 rounded-xl border border-white/10">
+                <span className="text-xs text-zinc-300 font-semibold">{selectedLocalIds.size} selected</span>
+                <button
+                  onClick={runBulkLocalDelete}
+                  disabled={bulkStatus.running}
+                  className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all text-xs font-semibold disabled:opacity-60"
+                  title="Bulk delete local products"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={runBulkLocalPublishToMedusa}
+                  disabled={bulkStatus.running || !isStoreConfigured}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg transition-all text-xs font-semibold disabled:opacity-60",
+                    isStoreConfigured
+                      ? "bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                      : "bg-white/5 text-zinc-600 cursor-not-allowed"
+                  )}
+                  title={isStoreConfigured ? "Bulk publish to Medusa" : "Medusa not configured"}
+                >
+                  Publish to Medusa
+                </button>
+                <button
+                  onClick={() => setSelectedLocalIds(new Set())}
+                  disabled={bulkStatus.running}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 transition-all text-xs font-semibold disabled:opacity-60"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+            <div className="hidden md:flex items-center gap-2 glass px-3 py-2 rounded-xl border border-white/10">
+              <label className="flex items-center gap-2 text-xs text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={allLocalFilteredSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someLocalFilteredSelected;
+                  }}
+                  onChange={(e) => {
+                    if (e.target.checked) selectAllLocalFiltered();
+                    else setSelectedLocalIds(new Set());
+                  }}
+                />
+                Select all (filtered)
+              </label>
+            </div>
+            <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              {products.length} Total
+            </div>
           </div>
         </div>
 
@@ -901,6 +1211,21 @@ export default function Dashboard() {
                 onClick={() => openSavedProduct(product.id)}
                 className="glass rounded-2xl border border-white/10 p-4 hover:border-indigo-500/30 transition-all cursor-pointer group"
               >
+                {/* Bulk select checkbox */}
+                <div className="flex justify-end -mt-1 -mr-1">
+                  <label
+                    className="inline-flex items-center gap-2 text-[10px] text-zinc-400 bg-black/20 border border-white/10 rounded-lg px-2 py-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedLocalIds.has(product.id)}
+                      onChange={(e) => toggleSelectedLocal(product.id, e.target.checked)}
+                    />
+                    Select
+                  </label>
+                </div>
+
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-white/5 flex-shrink-0 overflow-hidden">
                     {getThumbnailFromProductData(product.data) ? (
@@ -1026,6 +1351,42 @@ export default function Dashboard() {
               MedusaJS Catalog
             </h2>
             <div className="flex items-center gap-3">
+              {selectedMedusaIds.size > 0 && (
+                <div className="flex items-center gap-2 glass px-3 py-2 rounded-xl border border-white/10">
+                  <span className="text-xs text-zinc-300 font-semibold">{selectedMedusaIds.size} selected</span>
+                  <button
+                    onClick={() => runBulkMedusaExport('copy')}
+                    disabled={bulkStatus.running}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-all text-xs font-semibold disabled:opacity-60"
+                    title="Bulk export from Medusa to local"
+                  >
+                    Export to Local
+                  </button>
+                  <button
+                    onClick={() => runBulkMedusaExport('move')}
+                    disabled={bulkStatus.running}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-all text-xs font-semibold disabled:opacity-60"
+                    title="Bulk move from Medusa to local (export + delete)"
+                  >
+                    Move to Local
+                  </button>
+                  <button
+                    onClick={runBulkMedusaDelete}
+                    disabled={bulkStatus.running}
+                    className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 transition-all text-xs font-semibold disabled:opacity-60"
+                    title="Bulk delete from Medusa"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setSelectedMedusaIds(new Set())}
+                    disabled={bulkStatus.running}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 transition-all text-xs font-semibold disabled:opacity-60"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
               <button
                 onClick={() => {
                   const orgId = useProductStore.getState().organizationId;
@@ -1048,17 +1409,37 @@ export default function Dashboard() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-white/5 border-b border-white/5">
+                    <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Select</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Product</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Variants</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Status</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest">Created</th>
                     <th className="px-6 py-4 text-xs font-bold text-zinc-500 uppercase tracking-widest text-right">Actions</th>
                   </tr>
+                  <tr className="bg-white/5 border-b border-white/5">
+                    <th className="px-6 py-3">
+                      <input
+                        type="checkbox"
+                        checked={allMedusaSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someMedusaSelected;
+                        }}
+                        onChange={(e) => {
+                          if (e.target.checked) selectAllMedusaVisible();
+                          else setSelectedMedusaIds(new Set());
+                        }}
+                        aria-label="Select all Medusa products on this page"
+                      />
+                    </th>
+                    <th colSpan={5} className="px-6 py-3 text-xs text-zinc-500">
+                      Select all (this page)
+                    </th>
+                  </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {isLoadingStoreProducts ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                         <div className="flex flex-col items-center gap-2">
                           <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
                           <span className="text-sm">Fetching from Medusa...</span>
@@ -1067,7 +1448,7 @@ export default function Dashboard() {
                     </tr>
                   ) : storeProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-zinc-500">
                         <div className="flex flex-col items-center gap-2">
                           <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
                             <Package className="w-6 h-6" />
@@ -1082,6 +1463,14 @@ export default function Dashboard() {
                         key={product.id} 
                         className="group hover:bg-emerald-500/[0.02] transition-colors"
                       >
+                        <td className="px-6 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedMedusaIds.has(product.id)}
+                            onChange={(e) => toggleSelectedMedusa(product.id, e.target.checked)}
+                            aria-label="Select Medusa product"
+                          />
+                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/5 flex-shrink-0 overflow-hidden">
@@ -1143,6 +1532,48 @@ export default function Dashboard() {
               </table>
             </div>
           </div>
+
+          {/* Bulk progress / result summary */}
+          {bulkStatus.kind && (
+            <div className="glass rounded-2xl border border-white/10 p-4 text-sm text-zinc-300">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className={cn("w-4 h-4", bulkStatus.running && "animate-spin")} />
+                  <span className="font-semibold">
+                    Bulk {bulkStatus.kind.replace(/_/g, ' ')}: {bulkStatus.done}/{bulkStatus.total}
+                  </span>
+                  {bulkStatus.failures.length > 0 && (
+                    <span className="text-red-300">({bulkStatus.failures.length} failed)</span>
+                  )}
+                </div>
+                {!bulkStatus.running && (
+                  <button
+                    onClick={clearBulkStatus}
+                    className="px-3 py-1.5 rounded-lg bg-white/5 text-zinc-300 hover:bg-white/10 transition-all text-xs font-semibold"
+                  >
+                    Dismiss
+                  </button>
+                )}
+              </div>
+              {bulkStatus.failures.length > 0 && !bulkStatus.running && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs text-zinc-400 hover:text-zinc-200">
+                    View failures
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {bulkStatus.failures.slice(0, 50).map((f) => (
+                      <div key={f.id} className="text-xs text-red-300 font-mono">
+                        {f.id}: {f.error}
+                      </div>
+                    ))}
+                    {bulkStatus.failures.length > 50 && (
+                      <div className="text-xs text-zinc-500">Showing first 50 failures.</div>
+                    )}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
         </section>
       )}
 

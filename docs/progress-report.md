@@ -509,4 +509,80 @@
 - `npm run lint` passes (warnings only)
 - `npm run build` passes
 
+## 2025-12-31 00:00 — Dashboard: Bulk actions (Local + Medusa catalogs)
+
+### What was done
+- Added multi-select + bulk action bars to the dashboard (`/`) for **both** catalogs:
+  - **Local (Supabase)**: bulk **Delete**, bulk **Publish to Medusa**
+  - **Medusa**: bulk **Export to Local**, bulk **Move to Local**, bulk **Delete**
+- Implemented safe execution:
+  - one confirmation per bulk action
+  - sequential processing with progress counter
+  - collected per-item failures and surfaced them in a collapsible “View failures” panel
+
+### Why it matters
+- Enables real catalog ops at scale without repetitive clicks.
+- Keeps destructive operations explicit and auditable (confirmation + per-item failures).
+
+### Files changed
+- `src/app/page.tsx`
+- `docs/progress-report.md`
+
+### What works
+- Checkboxes allow selecting multiple products.
+- Bulk actions run and report progress/failures.
+- Local publish uses existing secure Medusa proxy + local linkage.
+- Medusa export/move uses the existing export endpoint (copy or copy+delete).
+
+### What does NOT work yet
+- No concurrency controls / rate-limit backoff (sequential execution is intentionally conservative).
+- No “select all across pages” (current Medusa list is limited to the loaded page).
+
+### Tests that exist / are missing
+- Existing: `npm test` still passes.
+- Missing: UI/e2e tests for bulk flows (requires browser/e2e harness).
+
+## 2025-12-31 00:10 — Bulk publish: improved Medusa 400 diagnostics + Select All
+
+### What was done
+- Improved Medusa create error surfacing during single and bulk publish:
+  - `src/app/page.tsx` now includes upstream `details` payload in the thrown error message when Medusa returns 400/validation errors.
+  - Bulk publish uses a **silent** mode so failures are captured in the bulk “View failures” list (no alert spam).
+  - Added a minimal preflight check (missing variants) to avoid opaque 400s for clearly invalid payloads.
+- Added **Select All** UX:
+  - Local catalog: “Select all (filtered)” checkbox (desktop) selects all currently filtered cards.
+  - Medusa catalog: header “Select all (this page)” checkbox supports indeterminate state.
+
+### Why it matters
+- Bulk publishing failures are now debuggable without guessing (Medusa validation errors are visible).
+- Select-all makes bulk workflows practical (fewer clicks, less user error).
+
+### Files changed
+- `src/app/page.tsx`
+- `docs/progress-report.md`
+
+### What works
+- Bulk publish failures are aggregated (with details) instead of hidden behind a generic 400.
+- Select-all works for the current loaded lists (filtered local results, current Medusa page).
+
+### What does NOT work yet
+- “Select all across pagination” isn’t supported (Medusa list is limited to the loaded page by design).
+
+## 2025-12-31 00:20 — Fix: Dashboard Select-All TDZ runtime crash
+
+### What happened
+- Running `npm run dev` hit a runtime error on `/`:
+  - `ReferenceError: Cannot access 'filteredProducts' before initialization`
+  - Cause: `allLocalFilteredSelected` was computed before `filteredProducts` (a `useMemo`) was initialized.
+
+### What was done
+- Moved derived selection booleans (`allLocalFilteredSelected` / `someLocalFilteredSelected`) to **after** the `filteredProducts` `useMemo` initialization.
+
+### Why it matters
+- Fixes the `/` dashboard 500 in dev and restores the catalog UI.
+
+### Verification
+- `npm test` passes.
+- `npm run build` passes.
+
 
