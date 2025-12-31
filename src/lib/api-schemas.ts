@@ -39,6 +39,38 @@ export const GenerateRequestSchema = z
 
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
 
+// --- AI Studio Photo (image-to-image) ---
+
+export const JewelryTypeSchema = z.enum(["ring", "bracelet", "chain", "pendant", "earring"]);
+
+export const StudioGenerateRequestSchema = z.object({
+  productId: z.string().uuid(),
+  inputImages: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        url: UrlSchema,
+      })
+    )
+    .min(1),
+  jewelryType: JewelryTypeSchema,
+  setupId: z.string().min(1).max(200),
+  modelId: z.string().min(1).max(200),
+  options: z.object({
+    macro: z.boolean(),
+    noFingerprints: z.boolean(),
+    extraRimLight: z.boolean(),
+    darkness: z.number().min(0).max(100),
+  }),
+  variants: z.number().int().min(1).max(4).default(1),
+
+  // Provider override (optional; server can fall back to org defaults)
+  provider: z.enum(["openai", "fal", "gemini"]).optional(),
+  providerModel: z.string().trim().min(1).max(200).optional(),
+});
+
+export type StudioGenerateRequest = z.infer<typeof StudioGenerateRequestSchema>;
+
 export const EnhanceRequestSchema = z.object({
   field: z.string().min(1).max(50),
   currentValue: z.string().max(50_000).optional(),

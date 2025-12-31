@@ -24,6 +24,7 @@ import {
   Languages,
   Check
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
@@ -31,6 +32,8 @@ export default function SettingsPage() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [localState, setLocalState] = useState({
     openaiApiKey: '',
+    falApiKey: '',
+    geminiApiKey: '',
     r2AccountId: '',
     r2AccessKeyId: '',
     r2SecretAccessKey: '',
@@ -44,6 +47,10 @@ export default function SettingsPage() {
     medusaApiKey: '',
     activeLanguages: [] as string[],
 
+    // AI image generation defaults
+    aiImageProvider: 'openai',
+    aiImageModel: '',
+
     // Medusa defaults for new product drafts
     defaultSalesChannelId: null as string | null,
     defaultShippingProfileId: null as string | null,
@@ -52,6 +59,8 @@ export default function SettingsPage() {
   });
 
   const [showKey, setShowKey] = useState(false);
+  const [showFalKey, setShowFalKey] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [showMedusaKey, setShowMedusaKey] = useState(false);
   const [saved, setSaved] = useState(false);
   const supabase = createClient();
@@ -89,6 +98,8 @@ export default function SettingsPage() {
   useEffect(() => {
     setLocalState({
       openaiApiKey: settings.openaiApiKey,
+      falApiKey: settings.falApiKey,
+      geminiApiKey: settings.geminiApiKey,
       r2AccountId: settings.r2AccountId,
       r2AccessKeyId: settings.r2AccessKeyId,
       r2SecretAccessKey: settings.r2SecretAccessKey,
@@ -102,6 +113,9 @@ export default function SettingsPage() {
       medusaApiKey: settings.medusaApiKey,
       activeLanguages: settings.activeLanguages,
 
+      aiImageProvider: settings.aiImageProvider,
+      aiImageModel: settings.aiImageModel,
+
       defaultSalesChannelId: settings.defaultSalesChannelId,
       defaultShippingProfileId: settings.defaultShippingProfileId,
       defaultCollectionId: settings.defaultCollectionId,
@@ -109,6 +123,8 @@ export default function SettingsPage() {
     });
   }, [
     settings.openaiApiKey,
+    settings.falApiKey,
+    settings.geminiApiKey,
     settings.r2AccountId,
     settings.r2AccessKeyId,
     settings.r2SecretAccessKey,
@@ -121,6 +137,8 @@ export default function SettingsPage() {
     settings.medusaUrl,
     settings.medusaApiKey,
     settings.activeLanguages,
+    settings.aiImageProvider,
+    settings.aiImageModel,
     settings.defaultSalesChannelId,
     settings.defaultShippingProfileId,
     settings.defaultCollectionId,
@@ -158,6 +176,12 @@ export default function SettingsPage() {
     if (!orgId) return;
 
     settings.setOpenaiApiKey(localState.openaiApiKey);
+    settings.setFalApiKey(localState.falApiKey);
+    settings.setGeminiApiKey(localState.geminiApiKey);
+    settings.setAiImageDefaults({
+      aiImageProvider: localState.aiImageProvider,
+      aiImageModel: localState.aiImageModel,
+    });
     settings.setR2Settings({
       r2AccountId: localState.r2AccountId,
       r2AccessKeyId: localState.r2AccessKeyId,
@@ -502,6 +526,115 @@ export default function SettingsPage() {
                 A key is already saved. Leave blank to keep it, or type a new one to replace.
               </p>
             )}
+          </div>
+        </section>
+
+        {/* AI Studio Photo (Image Generation) */}
+        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+              AI Studio Photo (Image Generation)
+            </h2>
+            <div className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10 uppercase">
+              Provider defaults
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">Default Provider</label>
+              <select
+                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                value={localState.aiImageProvider}
+                onChange={(e) => setLocalState({ ...localState, aiImageProvider: e.target.value })}
+              >
+                <option value="openai">OpenAI</option>
+                <option value="fal">fal.ai</option>
+                <option value="gemini">Gemini</option>
+              </select>
+              <p className="text-[10px] text-zinc-500 italic px-1">
+                Used as the default on Product → Media → AI Studio Photo. You can override per generation in the modal.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">Default Model (optional)</label>
+              <input
+                type="text"
+                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-mono"
+                placeholder="e.g. models/gemini-3-pro-image-preview"
+                value={localState.aiImageModel}
+                onChange={(e) => setLocalState({ ...localState, aiImageModel: e.target.value })}
+              />
+              <p className="text-[10px] text-zinc-500 italic px-1">
+                Examples: <span className="font-mono">models/gemini-3-pro-image-preview</span>,{' '}
+                <span className="font-mono">fal-ai/flux/dev/image-to-image</span>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">fal.ai API Key</label>
+              <div className="relative">
+                <input
+                  type={showFalKey ? "text" : "password"}
+                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                  placeholder={settings.hasFalApiKey ? "•••••••• (saved)" : "FAL_KEY_ID:FAL_KEY_SECRET"}
+                  value={localState.falApiKey}
+                  onChange={(e) => setLocalState({ ...localState, falApiKey: e.target.value })}
+                />
+                <button
+                  onClick={() => setShowFalKey(!showFalKey)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  type="button"
+                >
+                  {showFalKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {settings.hasFalApiKey && !localState.falApiKey && (
+                <p className="text-[10px] text-emerald-400 italic px-1">
+                  A fal.ai key is already saved. Leave blank to keep it, or type a new one to replace.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-300">Gemini API Key</label>
+              <div className="relative">
+                <input
+                  type={showGeminiKey ? "text" : "password"}
+                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                  placeholder={settings.hasGeminiApiKey ? "•••••••• (saved)" : "AIza..."}
+                  value={localState.geminiApiKey}
+                  onChange={(e) => setLocalState({ ...localState, geminiApiKey: e.target.value })}
+                />
+                <button
+                  onClick={() => setShowGeminiKey(!showGeminiKey)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  type="button"
+                >
+                  {showGeminiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {settings.hasGeminiApiKey && !localState.geminiApiKey && (
+                <p className="text-[10px] text-emerald-400 italic px-1">
+                  A Gemini key is already saved. Leave blank to keep it, or type a new one to replace.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-white/10">
+            <Link
+              href="/settings/ai-studio"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-sm font-semibold"
+            >
+              Edit Prompt Library (Advanced)
+              <ExternalLink className="w-4 h-4 text-zinc-400" />
+            </Link>
+            <p className="text-[10px] text-zinc-500 mt-2">
+              Manage jewelry types, setups, model prompts, and toggle modifier phrases used by the Studio Photo generator.
+            </p>
           </div>
         </section>
 

@@ -13,6 +13,8 @@ import { z } from "zod";
 export const SettingsForClientSchema = z.object({
   // Secrets are always blank on the client
   openaiApiKey: z.literal(""),
+  falApiKey: z.literal(""),
+  geminiApiKey: z.literal(""),
   r2AccountId: z.literal(""),
   r2AccessKeyId: z.literal(""),
   r2SecretAccessKey: z.literal(""),
@@ -20,6 +22,8 @@ export const SettingsForClientSchema = z.object({
 
   // Secret presence flags
   hasOpenaiApiKey: z.boolean(),
+  hasFalApiKey: z.boolean(),
+  hasGeminiApiKey: z.boolean(),
   hasR2AccountId: z.boolean(),
   hasR2AccessKeyId: z.boolean(),
   hasR2SecretAccessKey: z.boolean(),
@@ -34,6 +38,21 @@ export const SettingsForClientSchema = z.object({
   storePlatform: z.string(),
   medusaUrl: z.string(),
   activeLanguages: z.array(z.string()),
+
+  // AI image generation defaults (non-secrets)
+  aiImageProvider: z.string(),
+  aiImageModel: z.string(),
+
+  // AI Studio Photo prompt customization (non-secrets)
+  // Stored as JSON in `organization_settings` and used by both UI + server.
+  aiStudioPromptLibrary: z.unknown().nullable(),
+  aiStudioTogglePhrases: z
+    .object({
+      macro: z.string(),
+      noFingerprints: z.string(),
+      extraRimLight: z.string(),
+    })
+    .nullable(),
 
   // Medusa defaults for new product drafts (non-secrets)
   defaultSalesChannelId: z.string().nullable(),
@@ -55,6 +74,8 @@ export type SettingsForClient = z.infer<typeof SettingsForClientSchema>;
 export const SettingsUpdateSchema = z.object({
   // Secrets: update semantics
   openaiApiKey: z.union([z.string(), z.null()]).optional(),
+  falApiKey: z.union([z.string(), z.null()]).optional(),
+  geminiApiKey: z.union([z.string(), z.null()]).optional(),
   r2AccountId: z.union([z.string(), z.null()]).optional(),
   r2AccessKeyId: z.union([z.string(), z.null()]).optional(),
   r2SecretAccessKey: z.union([z.string(), z.null()]).optional(),
@@ -69,6 +90,21 @@ export const SettingsUpdateSchema = z.object({
   storePlatform: z.string().optional(),
   medusaUrl: z.string().optional(),
   activeLanguages: z.array(z.string()).optional(),
+
+  // AI image generation defaults (non-secrets)
+  aiImageProvider: z.string().optional(),
+  aiImageModel: z.string().optional(),
+
+  // AI Studio Photo prompt customization (non-secrets)
+  aiStudioPromptLibrary: z.unknown().nullable().optional(),
+  aiStudioTogglePhrases: z
+    .object({
+      macro: z.string(),
+      noFingerprints: z.string(),
+      extraRimLight: z.string(),
+    })
+    .nullable()
+    .optional(),
 
   // Medusa defaults (non-secrets)
   defaultSalesChannelId: z.string().nullable().optional(),

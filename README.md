@@ -49,6 +49,17 @@ Directly connect your product orchestration pipeline to your storefront.
 - **Inventory Readiness:** Map stock levels to specific MedusaJS Stock Locations.
 - **Quick Add:** One-click "Default Variant" setup for rapid catalog prototyping.
 
+### 8. AI Studio Photo (Product → Media)
+Generate professional **studio product photos** from your already-uploaded product images:
+- **Selection mode** in Media grid (multi-select) + “AI Studio Photo” modal
+- **Prompted image-to-image** generation with reusable studio setups and model prompts
+- **Auto-attach** results back into the same product media list (persisted in `products.data`)
+
+Provider support:
+- OpenAI (placeholder until image-to-image is wired)
+- fal.ai (image-to-image via `@fal-ai/client`)
+- Gemini (image-to-image via `@google/genai`, outputs uploaded to R2)
+
 ## Technical Stack
 
 - **Frontend:** Next.js 16 (App Router) + Tailwind CSS v4
@@ -82,6 +93,10 @@ S3_ACCOUNT_ID=...        # Cloudflare R2 Account ID
 S3_BUCKET=...
 S3_FILE_URL=...          # Public base URL where bucket objects are served
 
+# Used by /api/ai/studio-generate if org-level keys are not set (optional)
+FAL_API_KEY=...          # Format: FAL_KEY_ID:FAL_KEY_SECRET
+GEMINI_API_KEY=...
+
 # Used only in the browser UI to detect "synced" images (optional)
 NEXT_PUBLIC_S3_FILE_URL=...
 
@@ -89,6 +104,16 @@ NEXT_PUBLIC_S3_FILE_URL=...
 # Examples: "images.unsplash.com,cdn.shopify.com,.example-cdn.com"
 MEDIA_SYNC_ALLOWED_HOSTS=
 ```
+
+### AI Studio Photo: how to use
+- Go to **Media**.
+- Click **Select**, choose 1+ images.
+- Click **AI Studio Photo**.
+- Choose jewelry type + setup + model + toggles and (optionally) provider/model.
+- Click **Generate**.
+
+Where to configure provider keys:
+- **Settings → AI Studio Photo (Image Generation)**: save fal.ai + Gemini keys and set default provider/model.
 
 ### 2) Database Setup (Supabase)
 This repo assumes the following tables exist (names referenced in code):
