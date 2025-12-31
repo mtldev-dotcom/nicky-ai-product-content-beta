@@ -118,6 +118,7 @@ export default function UsagePage() {
               <option value="GENERATE">Generate</option>
               <option value="ENHANCE">Enhance</option>
               <option value="TRANSLATE">Translate</option>
+              <option value="AI_STUDIO_IMAGE">AI Studio Photo</option>
             </select>
           </div>
           <div>

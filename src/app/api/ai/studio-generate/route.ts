@@ -6,6 +6,8 @@ import { StudioGenerateRequestSchema } from '@/lib/api-schemas';
 import { buildStudioPrompt } from '@/lib/ai/studioPrompt';
 import { generateStudioImages, type GeneratedImage, type ImageProviderId } from '@/lib/ai/imageProvider';
 import { loadDecryptedSettingsForServer } from '@/app/settings/actions';
+import { createSession, logPipelineEvent, updateSessionError, updateSessionStatus } from '@/lib/llm/session-manager';
+import { logCallPreview } from '@/lib/llm/logger';
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
@@ -64,6 +66,7 @@ function toProviderId(v: unknown): ImageProviderId {
 }
 
 export async function POST(req: Request) {
+  let sessionId: string | null = null;
   try {
     const parsed = StudioGenerateRequestSchema.parse(await req.json());
 
@@ -87,6 +90,20 @@ export async function POST(req: Request) {
     }
 
     const orgId = membership.organization_id as string;
+
+    // Best-effort usage logging session (must never break the endpoint).
+    try {
+      sessionId = await createSession({
+        orgId,
+        userId: user.id,
+        module: 'AI_STUDIO_IMAGE',
+        inputSummary: `productId=${parsed.productId}, inputs=${parsed.inputImages.length}, jewelryType=${parsed.jewelryType}, setupId=${parsed.setupId}, modelId=${parsed.modelId}, variants=${parsed.variants}`,
+      });
+      await logPipelineEvent(sessionId, 'STUDIO_GENERATE_RECEIVED');
+    } catch (e) {
+      console.error('AI Studio usage logging disabled for this request (session create failed):', e);
+      sessionId = null;
+    }
 
     // Load product row (org scoped) so we can patch the `data` blob.
     const { data: productRow, error: readErr } = await supabase
@@ -119,6 +136,17 @@ export async function POST(req: Request) {
       togglePhrases: settings.aiStudioTogglePhrases,
     });
 
+    if (sessionId) {
+      await logPipelineEvent(sessionId, 'STUDIO_PROMPT_BUILT', JSON.stringify({ setupId: parsed.setupId, modelId: parsed.modelId }));
+      await logCallPreview({
+        sessionId,
+        step: 'STUDIO_PROMPT',
+        model: 'prompt_template',
+        promptText,
+        responseText: null,
+      });
+    }
+
     // Validate setup ↔ jewelry type consistency server-side (defense in depth).
     // We only validate that the setupId exists in the library via `buildStudioPrompt`.
     // `jewelryType` is kept for UI filtering and persisted metadata.
@@ -130,6 +158,19 @@ export async function POST(req: Request) {
     const openaiApiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY || '';
     const falApiKey = settings.falApiKey || process.env.FAL_API_KEY || '';
     const geminiApiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || '';
+
+    if (sessionId) {
+      await logPipelineEvent(
+        sessionId,
+        'STUDIO_PROVIDER_REQUEST',
+        JSON.stringify({
+          provider,
+          providerModel: providerModel || null,
+          inputCount: parsed.inputImages.length,
+          variants: parsed.variants,
+        })
+      );
+    }
 
     const generated = await generateStudioImages({
       provider,
@@ -246,8 +287,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: writeErr.message }, { status: 500 });
     }
 
+    if (sessionId) {
+      await logPipelineEvent(
+        sessionId,
+        'STUDIO_PROVIDER_RESPONSE',
+        JSON.stringify({ outputCount: outputUrls.length })
+      );
+      await logCallPreview({
+        sessionId,
+        step: 'STUDIO_OUTPUTS',
+        model: `${provider}${providerModel ? `:${providerModel}` : ''}`,
+        promptText,
+        responseText: JSON.stringify({ outputUrls }),
+        tokensPrompt: 0,
+        tokensCompletion: 0,
+      });
+      await updateSessionStatus({
+        sessionId,
+        status: 'success',
+        blueprintSummary: JSON.stringify({
+          productId: parsed.productId,
+          provider,
+          providerModel: providerModel || null,
+          inputs: parsed.inputImages.length,
+          outputs: outputUrls.length,
+        }),
+      });
+    }
+
     return NextResponse.json({ generations });
   } catch (error: unknown) {
+    if (sessionId) {
+      const msg = error instanceof Error ? error.message : 'Failed to generate studio images';
+      await updateSessionError(sessionId, msg);
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message || 'Invalid request' }, { status: 400 });
     }

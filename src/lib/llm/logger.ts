@@ -37,6 +37,48 @@ export interface LLMCallResult {
 }
 
 /**
+ * Logs a non-chat "AI call" into the same LLM call tables.
+ *
+ * Use this for providers that are not OpenAI chat completions (e.g. image generation),
+ * so the Usage page can still show the prompt + outputs in a consistent place.
+ *
+ * Notes:
+ * - Token counts may be unknown; pass 0 if unavailable.
+ * - This must never throw (logging is best-effort).
+ */
+export async function logCallPreview(params: {
+  sessionId: string;
+  step: string;
+  model: string;
+  promptText: string;
+  responseText?: string | null;
+  tokensPrompt?: number;
+  tokensCompletion?: number;
+}): Promise<void> {
+  try {
+    const supabase = await createClient();
+
+    const promptPreview = minimizeContent(params.promptText || '', 2048);
+    const promptFull = minimizeContent(params.promptText || '', 4096);
+    const responsePreview = params.responseText ? minimizeContent(params.responseText, 2048) : null;
+
+    await supabase.from('llm_calls').insert({
+      session_id: params.sessionId,
+      step: params.step,
+      model: params.model,
+      prompt_preview: promptPreview,
+      prompt_full: promptFull.length > promptPreview.length ? promptFull : null,
+      response_preview: responsePreview,
+      tokens_prompt: params.tokensPrompt ?? 0,
+      tokens_completion: params.tokensCompletion ?? 0,
+      created_at: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error logging call preview (non-fatal):', error);
+  }
+}
+
+/**
  * Executes an LLM call with automatic logging.
  * 
  * This is the ONLY function that should be used for LLM calls in the codebase.
