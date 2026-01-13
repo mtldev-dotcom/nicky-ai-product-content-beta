@@ -78,6 +78,11 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
       parsed.aiStudioTogglePhrases ??
       (((existing as unknown as Record<string, unknown> | null)?.ai_studio_toggle_phrases as unknown) ?? null),
 
+    // Preview layout (non-secrets)
+    preview_layout:
+      parsed.previewLayout ??
+      (((existing as unknown as Record<string, unknown> | null)?.preview_layout as unknown) ?? null),
+
     // Medusa defaults (non-secrets)
     default_sales_channel_id: parsed.defaultSalesChannelId ?? existing?.default_sales_channel_id ?? null,
     default_shipping_profile_id: parsed.defaultShippingProfileId ?? existing?.default_shipping_profile_id ?? null,
@@ -115,7 +120,8 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
         msg.includes('fal_api_key') ||
         msg.includes('gemini_api_key') ||
         msg.includes('ai_studio_prompt_library') ||
-        msg.includes('ai_studio_toggle_phrases'));
+        msg.includes('ai_studio_toggle_phrases') ||
+        msg.includes('preview_layout'));
 
     if (looksLikeMissingColumnSchemaCache) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -126,6 +132,7 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
         gemini_api_key,
         ai_studio_prompt_library,
         ai_studio_toggle_phrases,
+        preview_layout,
         ...fallbackPayload
       } = payload as any;
       const { error: retryErr } = await writeOnce(fallbackPayload);
@@ -193,6 +200,9 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
         | { macro: string; noFingerprints: string; extraRimLight: string }
         | null
         | undefined) ?? null,
+
+    // Preview layout (non-secrets)
+    previewLayout: ((data as unknown as Record<string, unknown>).preview_layout as unknown) ?? null,
 
     // Medusa defaults
     defaultSalesChannelId: data.default_sales_channel_id ?? null,

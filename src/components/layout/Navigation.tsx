@@ -10,6 +10,7 @@ import {
   Layers, 
   Settings,
   Database,
+  Eye,
   LogOut,
   BarChart3,
   Sparkles
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dash', href: '/' },
   { icon: Sparkles, label: 'Create', href: '/create' },
   { icon: Languages, label: 'Details', href: '/product-details' },
+  { icon: Eye, label: 'Preview', href: '/preview' },
   { icon: ImageIcon, label: 'Media', href: '/media' },
   { icon: Layers, label: 'Variants', href: '/variants' },
   { icon: Database, label: 'JSON', href: '/json' },

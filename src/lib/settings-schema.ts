@@ -54,6 +54,9 @@ export const SettingsForClientSchema = z.object({
     })
     .nullable(),
 
+  // Preview page layout (non-secrets)
+  previewLayout: z.unknown().nullable(),
+
   // Medusa defaults for new product drafts (non-secrets)
   defaultSalesChannelId: z.string().nullable(),
   defaultShippingProfileId: z.string().nullable(),
@@ -105,6 +108,9 @@ export const SettingsUpdateSchema = z.object({
     })
     .nullable()
     .optional(),
+
+  // Preview page layout (non-secrets)
+  previewLayout: z.unknown().nullable().optional(),
 
   // Medusa defaults (non-secrets)
   defaultSalesChannelId: z.string().nullable().optional(),

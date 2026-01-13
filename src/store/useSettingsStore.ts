@@ -34,6 +34,9 @@ interface SettingsState {
   aiStudioPromptLibrary: unknown | null;
   aiStudioTogglePhrases: { macro: string; noFingerprints: string; extraRimLight: string } | null;
 
+  // Preview page layout (org-wide default) (non-secrets)
+  previewLayout: unknown | null;
+
   // Medusa defaults for new product drafts
   defaultSalesChannelId: string | null;
   defaultShippingProfileId: string | null;
@@ -57,6 +60,7 @@ interface SettingsState {
         | 'medusaUrl'
         | 'medusaApiKey'
         | 'activeLanguages'
+        | 'previewLayout'
         | 'defaultSalesChannelId'
         | 'defaultShippingProfileId'
         | 'defaultCollectionId'
@@ -95,6 +99,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   aiImageModel: '',
   aiStudioPromptLibrary: null,
   aiStudioTogglePhrases: null,
+  previewLayout: null,
   defaultSalesChannelId: null,
   defaultShippingProfileId: null,
   defaultCollectionId: null,
@@ -155,6 +160,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
         aiStudioPromptLibrary: state.aiStudioPromptLibrary,
         aiStudioTogglePhrases: state.aiStudioTogglePhrases,
+
+        previewLayout: state.previewLayout,
 
         defaultSalesChannelId: state.defaultSalesChannelId,
         defaultShippingProfileId: state.defaultShippingProfileId,
