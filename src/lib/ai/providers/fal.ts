@@ -1,6 +1,35 @@
 import { fal } from '@fal-ai/client';
 import type { GeneratedImage } from '@/lib/ai/imageProvider';
 
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(v: unknown): v is JsonRecord {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function extractFalImageUrls(result: unknown): string[] {
+  /**
+   * fal client responses vary by method/model:
+   * - Some return `{ images: [{ url }] }`
+   * - Others return `{ data: { images: [{ url }] } }` (notably `subscribe`, and some `run` responses)
+   *
+   * We normalize to a list of URL strings.
+   */
+  const root = isRecord(result) ? result : null;
+  const imagesRaw =
+    (root && Array.isArray(root.images) ? root.images : null) ||
+    (root && isRecord(root.data) && Array.isArray(root.data.images) ? root.data.images : null) ||
+    [];
+
+  const urls: string[] = [];
+  for (const img of imagesRaw) {
+    if (!isRecord(img)) continue;
+    const url = img.url;
+    if (typeof url === 'string' && url.length > 0) urls.push(url);
+  }
+  return urls;
+}
+
 /**
  * fal.ai provider
  *
@@ -10,6 +39,9 @@ import type { GeneratedImage } from '@/lib/ai/imageProvider';
  * This implementation targets a common image-to-image convention:
  * - `image_url`: input image
  * - `prompt`: text prompt
+ *
+ * Special case:
+ * - `fal-ai/flux-2/edit` expects `image_urls` (array) rather than `image_url` (string).
  *
  * NOTE:
  * - Different fal models accept different input field names. We keep this minimal
@@ -37,20 +69,39 @@ export async function generateWithFal(params: {
     for (let i = 0; i < variants; i++) {
       try {
         const result = (await fal.run(model, {
-          input: {
-            prompt,
-            image_url: imageUrl,
-            // Some models accept `num_images`. We still request 1 per call for predictable IDs.
-            num_images: 1,
-          },
+          input:
+            model === 'fal-ai/flux-2/edit'
+              ? {
+                  /**
+                   * FLUX.2 edit schema (from fal docs):
+                   * - required: prompt, image_urls (max 4)
+                   * - optional: num_images (default 1)
+                   *
+                   * We send exactly 1 input image per call to keep the app’s variant logic predictable.
+                   */
+                  prompt,
+                  image_urls: [imageUrl],
+                  num_images: 1,
+                }
+              : {
+                  /**
+                   * Common image-to-image schema used by many fal models.
+                   */
+                  prompt,
+                  image_url: imageUrl,
+                  // Some models accept `num_images`. We still request 1 per call for predictable IDs.
+                  num_images: 1,
+                },
         })) as unknown as { images?: Array<{ url?: string }> };
 
-        const url = result?.images?.[0]?.url;
-        if (typeof url === 'string' && url.length > 0) {
+        const urls = extractFalImageUrls(result);
+        for (const url of urls) {
           outputs.push({ kind: 'url', url });
         }
       } catch {
-        // Best-effort: keep going for other images/variants.
+        // Best-effort: keep going for other images/variants, but leave a breadcrumb for debugging.
+        // NOTE: Never log credentials here.
+        console.error('fal image generation failed', { model });
       }
     }
   }

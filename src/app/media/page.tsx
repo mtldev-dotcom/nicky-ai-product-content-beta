@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useProductStore } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { PROMPT_LIBRARY_JSON } from '@/lib/ai/promptLibrary';
+import { providerLabel, topImageModelsForProvider, type AiImageProviderId } from '@/lib/ai/topImageModels';
+import { ImageLightbox } from '@/components/ui/ImageLightbox';
 import { 
   ImageIcon, 
   Upload, 
@@ -20,6 +22,7 @@ import {
   Sparkles,
   Square,
   CheckSquare2,
+  Expand,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -53,6 +56,7 @@ export default function MediaPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [syncingUrls, setSyncingUrls] = useState<string[]>([]);
   const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -173,6 +177,7 @@ export default function MediaPage() {
 
   return (
     <div className="space-y-10 pb-20">
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
       <header className="space-y-4">
         <h1 className="text-3xl font-bold text-white flex items-center gap-3">
           <ImageIcon className="text-indigo-400 w-8 h-8" />
@@ -384,20 +389,34 @@ export default function MediaPage() {
                       {/* Overlay Actions (kept for parity with non-selection mode) */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 z-20 pointer-events-none">
                         <div className="flex justify-between items-start pointer-events-auto">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setThumbnail(url);
-                            }}
-                            className={cn(
-                              "p-1.5 rounded-lg transition-all",
-                              isThumbnail
-                                ? "bg-amber-500 text-white shadow-lg scale-110"
-                                : "bg-white/10 text-white/50 hover:text-white hover:bg-white/20"
-                            )}
-                          >
-                            <Star className={cn("w-4 h-4", isThumbnail && "fill-white")} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxUrl(url);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all"
+                              aria-label="Preview image"
+                              title="Preview image"
+                            >
+                              <Expand className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setThumbnail(url);
+                              }}
+                              className={cn(
+                                "p-1.5 rounded-lg transition-all",
+                                isThumbnail
+                                  ? "bg-amber-500 text-white shadow-lg scale-110"
+                                  : "bg-white/10 text-white/50 hover:text-white hover:bg-white/20"
+                              )}
+                            >
+                              <Star className={cn("w-4 h-4", isThumbnail && "fill-white")} />
+                            </button>
+                          </div>
 
                           <button
                             onClick={(e) => {
@@ -523,20 +542,35 @@ export default function MediaPage() {
                       {/* Overlay Actions */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3 z-30">
                         <div className="flex justify-between items-start">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setThumbnail(url);
-                            }}
-                            className={cn(
-                              "p-1.5 rounded-lg transition-all",
-                              isThumbnail
-                                ? "bg-amber-500 text-white shadow-lg scale-110"
-                                : "bg-white/10 text-white/50 hover:text-white hover:bg-white/20"
-                            )}
-                          >
-                            <Star className={cn("w-4 h-4", isThumbnail && "fill-white")} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLightboxUrl(url);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all"
+                              aria-label="Preview image"
+                              title="Preview image"
+                            >
+                              <Expand className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setThumbnail(url);
+                              }}
+                              className={cn(
+                                "p-1.5 rounded-lg transition-all",
+                                isThumbnail
+                                  ? "bg-amber-500 text-white shadow-lg scale-110"
+                                  : "bg-white/10 text-white/50 hover:text-white hover:bg-white/20"
+                              )}
+                            >
+                              <Star className={cn("w-4 h-4", isThumbnail && "fill-white")} />
+                            </button>
+                          </div>
 
                           <button
                             onClick={(e) => {
@@ -688,7 +722,7 @@ function AiStudioPhotoModalBody(props: {
   const [extraRimLight, setExtraRimLight] = useState(false);
   const [darkness, setDarkness] = useState<number>(40);
 
-  // Provider overrides (defaults will be wired from Settings in a later todo).
+  // Provider overrides (defaults are wired from Settings, but user can override).
   const [provider, setProvider] = useState<ProviderId>('openai');
   const [providerModel, setProviderModel] = useState<string>('');
 
@@ -696,10 +730,23 @@ function AiStudioPhotoModalBody(props: {
   const [error, setError] = useState<string | null>(null);
   const [generations, setGenerations] = useState<StudioGeneration[]>([]);
   const [lastRequestFingerprint, setLastRequestFingerprint] = useState<string>('');
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Canonical options (powered by PROMPT_LIBRARY_JSON as required).
   const setups = effectiveLibrary.setups;
   const models = effectiveLibrary.models;
+
+  /**
+   * Only show providers that have valid keys saved in Settings.
+   * (In this modal we only have access to `has*` flags, not typed-but-unsaved values.)
+   */
+  const availableProviders = useMemo(() => {
+    const providers: ProviderId[] = [];
+    if (settings.hasOpenaiApiKey) providers.push('openai');
+    if (settings.hasFalApiKey) providers.push('fal');
+    if (settings.hasGeminiApiKey) providers.push('gemini');
+    return providers;
+  }, [settings.hasOpenaiApiKey, settings.hasFalApiKey, settings.hasGeminiApiKey]);
 
   /**
    * Setup filtering rules:
@@ -737,15 +784,40 @@ function AiStudioPhotoModalBody(props: {
 
   // Default provider/model from Settings, but don't clobber user edits once they start typing.
   useEffect(() => {
-    const p = settings.aiImageProvider;
-    if (p === 'openai' || p === 'fal' || p === 'gemini') {
-      setProvider(p);
-    }
-    if (!providerModel && settings.aiImageModel) {
-      setProviderModel(settings.aiImageModel);
-    }
+    // 1) Ensure provider is valid vs. the "only providers with keys" filter.
+    const settingsProvider = (settings.aiImageProvider === 'openai' || settings.aiImageProvider === 'fal' || settings.aiImageProvider === 'gemini')
+      ? (settings.aiImageProvider as ProviderId)
+      : 'openai';
+
+    const fallbackProvider: ProviderId =
+      availableProviders.length > 0
+        ? (availableProviders.includes(settingsProvider) ? settingsProvider : availableProviders[0])
+        : 'openai';
+
+    setProvider((prev) => (prev === fallbackProvider ? prev : fallbackProvider));
+
+    // 2) Default provider model from Settings if it matches the chosen provider, otherwise pick provider’s #1.
+    // We only set this if the user hasn't edited it yet (providerModel is empty or invalid).
+    const topModels = topImageModelsForProvider(fallbackProvider);
+    const settingsModel = (settings.aiImageModel || '').trim();
+    const preferredDefault =
+      settingsProvider === fallbackProvider && topModels.includes(settingsModel)
+        ? settingsModel
+        : (topModels[0] || '');
+
+    setProviderModel((prev) => {
+      if (!prev) return preferredDefault;
+      if (topModels.includes(prev)) return prev;
+      return preferredDefault;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.aiImageProvider, settings.aiImageModel]);
+  }, [settings.aiImageProvider, settings.aiImageModel, availableProviders.join('|')]);
+
+  // When provider changes (user-driven), snap providerModel to a valid choice if needed.
+  useEffect(() => {
+    const topModels = topImageModelsForProvider(provider);
+    setProviderModel((prev) => (topModels.includes(prev) ? prev : (topModels[0] || '')));
+  }, [provider]);
 
   // If selection becomes empty while modal is open, close it.
   useEffect(() => {
@@ -833,10 +905,15 @@ function AiStudioPhotoModalBody(props: {
     }
   };
 
-  const canGenerate = selectedImageUrls.length > 0 && setupId.length > 0;
+  const canGenerate =
+    selectedImageUrls.length > 0 &&
+    setupId.length > 0 &&
+    // If no providers have keys, block generation and push the user to Settings.
+    availableProviders.length > 0;
 
   return (
     <div className="space-y-6">
+      <ImageLightbox src={lightboxUrl} onClose={() => setLightboxUrl(null)} />
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -866,9 +943,15 @@ function AiStudioPhotoModalBody(props: {
                 key={url}
                 className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 border border-white/10"
               >
-                <div className="w-14 h-14 rounded-lg overflow-hidden border border-white/10 bg-black/30 shrink-0">
+                <button
+                  type="button"
+                  className="w-14 h-14 rounded-lg overflow-hidden border border-white/10 bg-black/30 shrink-0 cursor-zoom-in"
+                  onClick={() => setLightboxUrl(url)}
+                  aria-label="Preview selected image"
+                  title="Preview image"
+                >
                   <img src={url} alt="" className="w-full h-full object-cover" />
-                </div>
+                </button>
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] text-zinc-400 font-mono truncate">{url}</div>
                 </div>
@@ -939,27 +1022,34 @@ function AiStudioPhotoModalBody(props: {
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as ProviderId)}
+                disabled={availableProviders.length === 0}
               >
-                <option value="openai">openai</option>
-                <option value="fal">fal</option>
-                <option value="gemini">gemini</option>
+                {availableProviders.length === 0 ? (
+                  <option value={provider}>No providers configured</option>
+                ) : (
+                  availableProviders.map((p) => (
+                    <option key={p} value={p}>
+                      {providerLabel(p as AiImageProviderId)}
+                    </option>
+                  ))
+                )}
               </select>
             </label>
 
             <label className="space-y-1 md:col-span-2">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Provider Model (optional override)</span>
-              <input
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Provider Model</span>
+              <select
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
-                placeholder={
-                  provider === 'gemini'
-                    ? 'models/gemini-3-pro-image-preview'
-                    : provider === 'fal'
-                      ? 'fal-ai/flux/dev/image-to-image'
-                      : 'gpt-image-1'
-                }
                 value={providerModel}
                 onChange={(e) => setProviderModel(e.target.value)}
-              />
+                disabled={availableProviders.length === 0}
+              >
+                {topImageModelsForProvider(provider).map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1013,6 +1103,12 @@ function AiStudioPhotoModalBody(props: {
           {error && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
               {error}
+            </div>
+          )}
+
+          {availableProviders.length === 0 && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
+              No image providers are configured. Add an API key in Settings to enable generation.
             </div>
           )}
 
@@ -1075,9 +1171,15 @@ function AiStudioPhotoModalBody(props: {
                   const downloadable = safeDownloadUrl(g.outputImageUrl);
                   return (
                     <div key={g.id} className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-900/30">
-                      <div className="aspect-square bg-black/30">
+                      <button
+                        type="button"
+                        className="aspect-square bg-black/30 w-full cursor-zoom-in"
+                        onClick={() => setLightboxUrl(g.outputImageUrl)}
+                        aria-label="Preview generated image"
+                        title="Preview image"
+                      >
                         <img src={g.outputImageUrl} alt="" className="w-full h-full object-cover" />
-                      </div>
+                      </button>
                       <div className="p-3 space-y-2">
                         <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
                           Added to product media

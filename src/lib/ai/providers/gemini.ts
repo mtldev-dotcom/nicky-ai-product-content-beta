@@ -24,7 +24,15 @@ export async function generateWithGemini(params: {
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const model = params.model || 'models/gemini-3-pro-image-preview';
+  /**
+   * Model ID compatibility:
+   * - Some Gemini examples use IDs like `gemini-3-pro-image-preview`
+   * - Some surfaces show `models/gemini-3-pro-image-preview`
+   *
+   * We pass through the user-selected string as-is to maximize compatibility,
+   * and default to the requested "Nano Banana Pro" model ID.
+   */
+  const model = (params.model || '').trim() || 'gemini-3-pro-image-preview';
 
   const outputs: GeneratedImage[] = [];
 

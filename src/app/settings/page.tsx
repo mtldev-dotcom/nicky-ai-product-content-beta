@@ -25,6 +25,12 @@ import {
   Check
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  coerceAiImageProviderId,
+  providerLabel,
+  topImageModelsForProvider,
+  type AiImageProviderId,
+} from '@/lib/ai/topImageModels';
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
@@ -144,6 +150,69 @@ export default function SettingsPage() {
     settings.defaultCollectionId,
     settings.defaultCategoryIds,
   ]);
+
+  /**
+   * Determine which image providers are currently usable (have an API key).
+   *
+   * We treat a provider as "available" if either:
+   * - the org has a saved key (settings.has* flag), OR
+   * - the user has typed a key into the input (not saved yet).
+   *
+   * This keeps the Settings UX responsive while users are configuring keys.
+   */
+  const availableImageProviders = (() => {
+    const hasOpenai = settings.hasOpenaiApiKey || localState.openaiApiKey.trim().length > 0;
+    const hasFal = settings.hasFalApiKey || localState.falApiKey.trim().length > 0;
+    const hasGemini = settings.hasGeminiApiKey || localState.geminiApiKey.trim().length > 0;
+
+    const providers: AiImageProviderId[] = [];
+    if (hasOpenai) providers.push('openai');
+    if (hasFal) providers.push('fal');
+    if (hasGemini) providers.push('gemini');
+    return providers;
+  })();
+
+  /**
+   * Keep the selected provider valid vs. the available-provider filter.
+   *
+   * If the current provider has no key, auto-switch to the first available provider.
+   * If none are available, we keep the current selection and show a CTA message.
+   */
+  useEffect(() => {
+    if (availableImageProviders.length === 0) return;
+    const current = coerceAiImageProviderId(localState.aiImageProvider);
+    if (availableImageProviders.includes(current)) return;
+
+    const nextProvider = availableImageProviders[0];
+    setLocalState((prev) => ({
+      ...prev,
+      aiImageProvider: nextProvider,
+      aiImageModel: topImageModelsForProvider(nextProvider)[0] || '',
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableImageProviders.join('|'), localState.aiImageProvider]);
+
+  /**
+   * Auto-reset legacy/invalid model selections.
+   *
+   * Requirement (from plan):
+   * - If the org already has a saved aiImageModel NOT in the new top-3 list,
+   *   auto-reset it to the #1 model for the selected provider.
+   */
+  useEffect(() => {
+    const topModels = topImageModelsForProvider(localState.aiImageProvider);
+    const isValid = topModels.includes(localState.aiImageModel);
+    if (isValid) return;
+
+    // Reset to “best” default model for the provider.
+    setLocalState((prev) => ({
+      ...prev,
+      aiImageProvider: coerceAiImageProviderId(prev.aiImageProvider),
+      aiImageModel: topImageModelsForProvider(prev.aiImageProvider)[0] || '',
+    }));
+    // Intentionally only runs on provider/model changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localState.aiImageProvider, localState.aiImageModel]);
 
   const syncTaxonomy = async () => {
     if (!orgId) return;
@@ -548,28 +617,44 @@ export default function SettingsPage() {
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                 value={localState.aiImageProvider}
                 onChange={(e) => setLocalState({ ...localState, aiImageProvider: e.target.value })}
+                disabled={availableImageProviders.length === 0}
               >
-                <option value="openai">OpenAI</option>
-                <option value="fal">fal.ai</option>
-                <option value="gemini">Gemini</option>
+                {availableImageProviders.length === 0 ? (
+                  <option value={localState.aiImageProvider}>Configure API keys to enable providers</option>
+                ) : (
+                  availableImageProviders.map((p) => (
+                    <option key={p} value={p}>
+                      {providerLabel(p)}
+                    </option>
+                  ))
+                )}
               </select>
               <p className="text-[10px] text-zinc-500 italic px-1">
                 Used as the default on Product → Media → AI Studio Photo. You can override per generation in the modal.
               </p>
+              {availableImageProviders.length === 0 && (
+                <p className="text-[10px] text-amber-300/90 px-1">
+                  Add at least one provider API key (OpenAI / fal / Gemini) to enable image generation providers.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Default Model (optional)</label>
-              <input
-                type="text"
+              <label className="text-sm font-medium text-zinc-300">Default Model</label>
+              <select
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-mono"
-                placeholder="e.g. models/gemini-3-pro-image-preview"
                 value={localState.aiImageModel}
                 onChange={(e) => setLocalState({ ...localState, aiImageModel: e.target.value })}
-              />
+                disabled={availableImageProviders.length === 0}
+              >
+                {topImageModelsForProvider(localState.aiImageProvider).map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
               <p className="text-[10px] text-zinc-500 italic px-1">
-                Examples: <span className="font-mono">models/gemini-3-pro-image-preview</span>,{' '}
-                <span className="font-mono">fal-ai/flux/dev/image-to-image</span>.
+                Pick one of the top recommended models for your provider. This becomes the default for Product → Media → AI Studio Photo.
               </p>
             </div>
 
