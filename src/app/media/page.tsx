@@ -129,7 +129,18 @@ export default function MediaPage() {
           body: JSON.stringify({ filename: file.name, contentType: file.type }),
         });
         
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('Failed to get presigned URL:', errorData.error || res.statusText);
+          continue;
+        }
+        
         const { presignedUrl, publicUrl } = await res.json();
+
+        if (!presignedUrl || !publicUrl) {
+          console.error('Invalid response from presigned endpoint:', { presignedUrl, publicUrl });
+          continue;
+        }
 
         await fetch(presignedUrl, {
           method: 'PUT',
@@ -320,7 +331,7 @@ export default function MediaPage() {
           {selectionMode ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <AnimatePresence>
-                {images.map((url) => {
+                {images.filter((url): url is string => typeof url === 'string' && url.length > 0).map((url) => {
                   const isSynced =
                     url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
                   const isIgnored = ignoredUrls.includes(url);
@@ -489,7 +500,7 @@ export default function MediaPage() {
               className="grid grid-cols-2 sm:grid-cols-3 gap-4"
             >
               <AnimatePresence>
-                {images.map((url) => {
+                {images.filter((url): url is string => typeof url === 'string' && url.length > 0).map((url) => {
                   const isSynced =
                     url.includes(process.env.NEXT_PUBLIC_S3_FILE_URL || 'r2.dev') || url.includes('cloudflarestorage.com');
                   const isIgnored = ignoredUrls.includes(url);

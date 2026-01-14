@@ -28,7 +28,7 @@ function extForMime(mimeType: string): string {
 }
 
 async function uploadBase64ToR2(params: {
-  orgId: string;
+  userId: string;
   bucket: string;
   publicUrlBase: string;
   s3Client: S3Client;
@@ -39,14 +39,15 @@ async function uploadBase64ToR2(params: {
    * Upload generated image bytes to the same R2 bucket used for media uploads.
    *
    * Preconditions:
-   * - `s3Client` is configured with org credentials.
+   * - `s3Client` is configured with org credentials or env vars.
    *
    * Postconditions:
    * - Returns a public URL that can be stored in product media list.
    */
   const ext = extForMime(params.mimeType);
   const id = crypto.randomUUID();
-  const key = `${params.orgId}/ai-studio/${Date.now()}-${id}.${ext}`;
+  // Use per-user folders instead of per-organization for better isolation
+  const key = `${params.userId}/ai-studio/${Date.now()}-${id}.${ext}`;
   const body = Buffer.from(params.dataBase64, 'base64');
 
   const command = new PutObjectCommand({
@@ -186,7 +187,17 @@ export async function POST(req: Request) {
     // Configure R2 client for uploads (needed for Gemini base64 outputs).
     const bucket = settings.r2BucketName || process.env.S3_BUCKET || '';
     const publicUrlBase = settings.r2PublicUrl || process.env.S3_FILE_URL || '';
-    const accountId = settings.r2AccountId || process.env.S3_ACCOUNT_ID || '';
+    
+    // Support both S3_ACCOUNT_ID and S3_ENDPOINT (extract account ID from endpoint URL)
+    let accountId = settings.r2AccountId || process.env.S3_ACCOUNT_ID || '';
+    if (!accountId && process.env.S3_ENDPOINT) {
+      // Extract account ID from endpoint URL: https://{accountId}.r2.cloudflarestorage.com/...
+      const endpointMatch = process.env.S3_ENDPOINT.match(/https?:\/\/([a-f0-9]+)\.r2\.cloudflarestorage\.com/);
+      if (endpointMatch && endpointMatch[1]) {
+        accountId = endpointMatch[1];
+      }
+    }
+    
     const accessKeyId = settings.r2AccessKeyId || process.env.S3_ACCESS_KEY_ID || '';
     const secretAccessKey = settings.r2SecretAccessKey || process.env.S3_SECRET_ACCESS_KEY || '';
 
@@ -216,7 +227,7 @@ export async function POST(req: Request) {
       }
 
       const url = await uploadBase64ToR2({
-        orgId,
+        userId: user.id,
         bucket,
         publicUrlBase,
         s3Client,

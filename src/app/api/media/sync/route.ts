@@ -54,13 +54,28 @@ export async function POST(req: Request) {
 
     accessKeyId = accessKeyId || process.env.S3_ACCESS_KEY_ID;
     secretAccessKey = secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
-    accountId = accountId || process.env.S3_ACCOUNT_ID;
+    
+    // Support both S3_ACCOUNT_ID and S3_ENDPOINT (extract account ID from endpoint URL)
+    if (!accountId) {
+      accountId = process.env.S3_ACCOUNT_ID;
+      if (!accountId && process.env.S3_ENDPOINT) {
+        // Extract account ID from endpoint URL: https://{accountId}.r2.cloudflarestorage.com/...
+        const endpointMatch = process.env.S3_ENDPOINT.match(/https?:\/\/([a-f0-9]+)\.r2\.cloudflarestorage\.com/);
+        if (endpointMatch && endpointMatch[1]) {
+          accountId = endpointMatch[1];
+        }
+      }
+    }
     
     const bucket = settings?.r2_bucket_name || process.env.S3_BUCKET;
     const publicUrlBase = settings?.r2_public_url || process.env.S3_FILE_URL;
 
+    // Env vars are used as defaults when org settings not configured
+    // No error if missing - they should be present in .env.local
     if (!accessKeyId || !secretAccessKey || !bucket || !accountId) {
-      return NextResponse.json({ error: 'R2/S3 not configured' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'R2/S3 not configured. Please set S3_* environment variables or configure R2 in organization settings.' 
+      }, { status: 500 });
     }
 
     // 1) SSRF-safe URL validation + DNS private-network blocking
@@ -96,7 +111,8 @@ export async function POST(req: Request) {
     // Prevent path traversal: only use URL pathname basename as the filename.
     const filename = safeUrl.pathname.split('/').pop() || 'image';
     const safeFilename = filename.replace(/[^\w.\-]+/g, '_').slice(0, 120);
-    const fileKey = `${membership.organization_id}/sync/${Date.now()}-${safeFilename}`;
+    // Use per-user folders instead of per-organization for better isolation
+    const fileKey = `${user.id}/sync/${Date.now()}-${safeFilename}`;
 
     // 3. Upload to R2
     const command = new PutObjectCommand({

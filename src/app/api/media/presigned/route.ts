@@ -75,13 +75,28 @@ export async function POST(req: Request) {
 
     accessKeyId = accessKeyId || process.env.S3_ACCESS_KEY_ID;
     secretAccessKey = secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
-    accountId = accountId || process.env.S3_ACCOUNT_ID;
+    
+    // Support both S3_ACCOUNT_ID and S3_ENDPOINT (extract account ID from endpoint URL)
+    if (!accountId) {
+      accountId = process.env.S3_ACCOUNT_ID;
+      if (!accountId && process.env.S3_ENDPOINT) {
+        // Extract account ID from endpoint URL: https://{accountId}.r2.cloudflarestorage.com/...
+        const endpointMatch = process.env.S3_ENDPOINT.match(/https?:\/\/([a-f0-9]+)\.r2\.cloudflarestorage\.com/);
+        if (endpointMatch && endpointMatch[1]) {
+          accountId = endpointMatch[1];
+        }
+      }
+    }
     
     const bucket = settings?.r2_bucket_name || process.env.S3_BUCKET;
     const publicUrlBase = settings?.r2_public_url || process.env.S3_FILE_URL;
 
-    if (!accessKeyId || !secretAccessKey || !bucket || !accountId) {
-      return NextResponse.json({ error: 'R2/S3 not configured' }, { status: 500 });
+    // Env vars are used as defaults when org settings not configured
+    // Check all required values including publicUrlBase
+    if (!accessKeyId || !secretAccessKey || !bucket || !accountId || !publicUrlBase) {
+      return NextResponse.json({ 
+        error: 'R2/S3 not configured. Please set S3_* environment variables (S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_ACCOUNT_ID, S3_BUCKET, S3_FILE_URL) or configure R2 in organization settings.' 
+      }, { status: 500 });
     }
 
     const s3Client = new S3Client({
@@ -97,7 +112,8 @@ export async function POST(req: Request) {
     const safeFilename = filename.replace(/[^\w.\-]+/g, '_').slice(0, 120);
     // Use 'ingest' folder for ingest files, 'uploads' for regular images
     const folder = forIngest ? 'ingest' : 'uploads';
-    const fileKey = `${membership.organization_id}/${folder}/${Date.now()}-${safeFilename}`;
+    // Use per-user folders instead of per-organization for better isolation
+    const fileKey = `${user.id}/${folder}/${Date.now()}-${safeFilename}`;
     
     const command = new PutObjectCommand({
       Bucket: bucket,
