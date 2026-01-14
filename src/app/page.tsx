@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { Sparkles, ArrowRight, Zap, Globe, Package, Loader2, FileJson, UploadCloud, X, FileDown, ExternalLink, Star, Search, Filter, Trash2, RefreshCw, Pencil, Eye, Save, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProductStore } from '@/store/useProductStore';
@@ -64,6 +64,34 @@ function getMedusaIdFromProductData(data: unknown): string | null {
   return typeof maybe === 'string' && maybe.length > 0 ? maybe : null;
 }
 
+// Component that uses useSearchParams - must be wrapped in Suspense
+function OnboardingCompletionHandler() {
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams?.get('onboarding') === 'complete') {
+      markOnboardingComplete();
+      // Show welcome toast after a brief delay
+      setTimeout(() => {
+        toast({
+          type: 'success',
+          title: 'Setup complete!',
+          description: 'Welcome to Product Architect. Ready to create your first product?',
+          duration: 6000,
+          action: {
+            label: 'Create Product',
+            onClick: () => router.push('/create'),
+          },
+        });
+      }, 500);
+    }
+  }, [searchParams, toast, router]);
+
+  return null;
+}
+
 export default function Dashboard() {
   const [isImporting, setIsImporting] = useState(false);
   const [products, setProducts] = useState<SavedProductRow[]>([]);
@@ -89,12 +117,12 @@ export default function Dashboard() {
   const [selectedMedusaIds, setSelectedMedusaIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<{
     kind:
-      | 'local_delete'
-      | 'local_publish'
-      | 'medusa_export'
-      | 'medusa_move'
-      | 'medusa_delete'
-      | null;
+    | 'local_delete'
+    | 'local_publish'
+    | 'medusa_export'
+    | 'medusa_move'
+    | 'medusa_delete'
+    | null;
     running: boolean;
     total: number;
     done: number;
@@ -119,8 +147,6 @@ export default function Dashboard() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore((s) => s.loadFromDb);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
@@ -164,21 +190,21 @@ export default function Dashboard() {
           .select('organization_id')
           .eq('user_id', user.id)
           .single();
-        
+
         if (membership) {
           const orgId = membership.organization_id;
           setOrganizationId(orgId);
 
           // Ensure org settings (including Medusa defaults) are loaded for auto-fill behaviors.
           await loadSettingsFromDb(orgId);
-          
+
           // Fetch products for this org
           const { data: productsData, error } = await supabase
             .from('products')
             .select('*')
             .eq('organization_id', orgId)
             .order('created_at', { ascending: false });
-          
+
           if (!error && productsData) {
             // Extract any persisted Medusa linkage from the JSON blob for display.
             const withMedusa = (productsData as unknown as SavedProductRow[]).map((p) => ({
@@ -186,7 +212,7 @@ export default function Dashboard() {
               medusa_product_id: getMedusaIdFromProductData(p.data),
             }));
             setProducts(withMedusa);
-            
+
             // Mark first product as created if products exist
             if (withMedusa.length > 0) {
               updateOnboardingState({ firstProductCreated: true });
@@ -200,7 +226,7 @@ export default function Dashboard() {
             .select('store_platform, medusa_url, medusa_api_key, openai_api_key')
             .eq('organization_id', orgId)
             .single();
-          
+
           if (settingsData?.store_platform === 'medusa' && settingsData.medusa_url && settingsData.medusa_api_key) {
             setIsStoreConfigured(true);
             updateOnboardingState({ storeConfigured: true });
@@ -219,7 +245,7 @@ export default function Dashboard() {
             }
             setIsLoadingStoreProducts(false);
           }
-          
+
           // Check if AI is configured (openai_api_key can be encrypted, so check if it exists)
           if (settingsData?.openai_api_key) {
             updateOnboardingState({ aiConfigured: true });
@@ -371,8 +397,8 @@ export default function Dashboard() {
             : '';
         throw new Error(
           (json.error || `Failed to create product in Medusa (${res.status} ${res.statusText})`) +
-            detailsPreview +
-            rawPreview
+          detailsPreview +
+          rawPreview
         );
       }
 
@@ -774,18 +800,18 @@ export default function Dashboard() {
 
         // Save to DB immediately after import
         await saveToDb();
-        
+
         // Load settings to get active languages before translating
         const orgId = useProductStore.getState().organizationId;
         if (orgId) {
           await settings.loadFromDb(orgId);
         }
-        
+
         // Start background translations for all active languages
         translateAllActiveLanguages().catch(err => {
           console.error('Background translation error:', err);
         });
-        
+
         router.push('/product-details');
       } catch (err) {
         console.error('Invalid JSON import:', err);
@@ -841,7 +867,7 @@ export default function Dashboard() {
   // Memoize filtered products - must be at top level to follow Rules of Hooks
   const filteredProducts = useMemo(() => {
     let filtered = products;
-    
+
     // Filter by status
     if (filterStatus === 'draft') {
       filtered = filtered.filter(p => p.status === 'draft' && !p.is_template);
@@ -850,17 +876,17 @@ export default function Dashboard() {
     } else if (filterStatus === 'template') {
       filtered = filtered.filter(p => p.is_template);
     }
-    
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.title.toLowerCase().includes(query) ||
         p.handle?.toLowerCase().includes(query) ||
         p.sku?.toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
   }, [products, filterStatus, searchQuery]);
 
@@ -870,28 +896,11 @@ export default function Dashboard() {
   const someLocalFilteredSelected =
     filteredProducts.some((p) => selectedLocalIds.has(p.id)) && !allLocalFilteredSelected;
 
-  // Handle onboarding completion
-  useEffect(() => {
-    if (searchParams?.get('onboarding') === 'complete') {
-      markOnboardingComplete();
-      // Show welcome toast after a brief delay
-      setTimeout(() => {
-        toast({
-          type: 'success',
-          title: 'Setup complete!',
-          description: 'Welcome to Product Architect. Ready to create your first product?',
-          duration: 6000,
-          action: {
-            label: 'Create Product',
-            onClick: () => router.push('/create'),
-          },
-        });
-      }, 500);
-    }
-  }, [searchParams, toast, router]);
-
   return (
     <div className="space-y-12">
+      <Suspense fallback={null}>
+        <OnboardingCompletionHandler />
+      </Suspense>
       <FirstTimeGuide />
       {/* Header Section */}
       <header className="space-y-4">
@@ -912,7 +921,7 @@ export default function Dashboard() {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Import & Demo Actions */}
         <div className="lg:col-span-12 flex flex-col gap-4">
-          <button 
+          <button
             onClick={() => router.push('/create')}
             disabled={isImporting}
             className="w-full flex-1 glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
@@ -928,15 +937,15 @@ export default function Dashboard() {
               <p className="text-xs text-zinc-500">Unified creation flow</p>
             </div>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
             className="w-full flex-1 glass rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
           >
-            <input 
-              type="file" 
-              className="hidden" 
+            <input
+              type="file"
+              className="hidden"
               ref={fileInputRef}
               accept=".json"
               onChange={handleFileImport}
@@ -953,7 +962,7 @@ export default function Dashboard() {
             </div>
           </button>
 
-          <button 
+          <button
             onClick={handleDownloadDemo}
             className="w-full glass rounded-2xl p-4 border border-white/10 hover:border-emerald-500/30 transition-all flex items-center justify-center gap-4 group active:scale-[0.98]"
           >
@@ -978,7 +987,7 @@ export default function Dashboard() {
           { icon: Globe, title: 'Multi-Lingual', desc: 'Automated localization for global markets.' },
           { icon: Package, title: 'Schema Ready', desc: 'Valid output for headless platforms.' },
         ].map((feature, i) => (
-          <motion.div 
+          <motion.div
             key={feature.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1095,7 +1104,7 @@ export default function Dashboard() {
             </div>
             <p className="text-sm font-medium text-zinc-400 mb-1">No products found</p>
             <p className="text-xs text-zinc-500">
-              {searchQuery || filterStatus !== 'all' 
+              {searchQuery || filterStatus !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'Create your first product using the AI bar above'}
             </p>
@@ -1151,12 +1160,12 @@ export default function Dashboard() {
                     <p className="text-[10px] text-zinc-500 font-mono truncate mt-0.5">{product.handle}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className={cn(
                     "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                    product.status === 'published' 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                    product.status === 'published'
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                       : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
                   )}>
                     <div className={cn("w-1 h-1 rounded-full", product.status === 'published' ? "bg-emerald-400" : "bg-zinc-400")} />
@@ -1166,7 +1175,7 @@ export default function Dashboard() {
                     <span className="text-xs font-medium text-white">${product.price.toFixed(2)}</span>
                   )}
                 </div>
-                
+
                 <div className="flex items-center justify-between text-[10px] text-zinc-500">
                   <span>{new Date(product.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                   {product.sku && (
@@ -1179,7 +1188,7 @@ export default function Dashboard() {
                     Medusa: {product.medusa_product_id}
                   </div>
                 )}
-                
+
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
@@ -1220,8 +1229,8 @@ export default function Dashboard() {
                     }}
                     className={cn(
                       "p-1.5 rounded-lg transition-all",
-                      product.is_template 
-                        ? "bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20" 
+                      product.is_template
+                        ? "bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20"
                         : "bg-white/5 text-zinc-400 hover:bg-white/10"
                     )}
                     aria-label={product.is_template ? "Unmark as template" : "Mark as template"}
@@ -1364,8 +1373,8 @@ export default function Dashboard() {
                     </tr>
                   ) : (
                     storeProducts.map((product) => (
-                      <tr 
-                        key={product.id} 
+                      <tr
+                        key={product.id}
                         className="group hover:bg-emerald-500/[0.02] transition-colors"
                       >
                         <td className="px-6 py-4">
@@ -1401,8 +1410,8 @@ export default function Dashboard() {
                         <td className="px-6 py-4">
                           <div className={cn(
                             "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                            product.status === 'published' 
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            product.status === 'published'
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                               : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
                           )}>
                             <div className={cn("w-1 h-1 rounded-full", product.status === 'published' ? "bg-emerald-400" : "bg-zinc-400")} />
@@ -1411,10 +1420,10 @@ export default function Dashboard() {
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-[10px] text-zinc-500 uppercase">
-                            {new Date(product.created_at).toLocaleDateString(undefined, { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
+                            {new Date(product.created_at).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
                             })}
                           </span>
                         </td>
