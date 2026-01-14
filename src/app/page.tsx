@@ -197,7 +197,7 @@ export default function Dashboard() {
           // Check if store is configured and fetch products
           const { data: settingsData } = await supabase
             .from('organization_settings')
-            .select('store_platform, medusa_url, medusa_api_key')
+            .select('store_platform, medusa_url, medusa_api_key, openai_api_key')
             .eq('organization_id', orgId)
             .single();
           
@@ -220,7 +220,7 @@ export default function Dashboard() {
             setIsLoadingStoreProducts(false);
           }
           
-          // Check if AI is configured
+          // Check if AI is configured (openai_api_key can be encrypted, so check if it exists)
           if (settingsData?.openai_api_key) {
             updateOnboardingState({ aiConfigured: true });
           }
