@@ -70,21 +70,44 @@ function OnboardingWizard() {
       formData.append('name', orgName.trim());
 
       const result = await createOrganization(formData);
-      if (result && 'organizationId' in result && result.organizationId) {
-        setOrgId(result.organizationId);
-        setCurrentStep(2);
-        toast({
-          type: 'success',
-          title: 'Workspace created!',
-          description: 'Your organization is ready. Let\'s connect your store next.',
-          duration: 4000,
-        });
+      
+      // Check if result has organizationId (success case)
+      if (result && typeof result === 'object' && 'organizationId' in result) {
+        const orgId = (result as { organizationId: string }).organizationId;
+        if (orgId) {
+          setOrgId(orgId);
+          setCurrentStep(2);
+          toast({
+            type: 'success',
+            title: 'Workspace created!',
+            description: 'Your organization is ready. Let\'s connect your store next.',
+            duration: 4000,
+          });
+          return;
+        }
       }
-    } catch (err) {
+      
+      // If we get here, something unexpected happened
       toast({
         type: 'error',
         title: 'Failed to create workspace',
-        description: err instanceof Error ? err.message : 'Please try again.',
+        description: 'An unexpected error occurred. Please try again.',
+        duration: 5000,
+      });
+    } catch (err) {
+      // Note: redirect() throws NEXT_REDIRECT which is expected, but if there's a real error, show it
+      const errorMessage = err instanceof Error ? err.message : 'Please try again.';
+      
+      // Don't show error if it's a redirect (NEXT_REDIRECT)
+      if (errorMessage.includes('NEXT_REDIRECT')) {
+        // Redirect is happening, let it proceed
+        return;
+      }
+      
+      toast({
+        type: 'error',
+        title: 'Failed to create workspace',
+        description: errorMessage,
         duration: 5000,
       });
     } finally {

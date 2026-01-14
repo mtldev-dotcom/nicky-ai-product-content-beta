@@ -28,19 +28,32 @@ export async function signup(formData: FormData) {
   const supabase = await createClient()
 
   // Get the base URL for email redirect
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                  'http://localhost:3000'
+  // Supabase will append token_hash and type to this URL
+  let baseUrl = 'http://localhost:3000'
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+  } else if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`
+  }
   
-  const emailRedirectTo = `${baseUrl}/auth/confirm`
+  // Use auth/callback route which will handle the token and redirect to /auth/confirm
+  const emailRedirectTo = `${baseUrl}/auth/callback`
+
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const fullName = formData.get('full_name') as string
+
+  if (!email || !password) {
+    redirect('/login?error=' + encodeURIComponent('Email and password are required'))
+  }
 
   const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+    email,
+    password,
     options: {
       emailRedirectTo,
       data: {
-        full_name: formData.get('full_name') as string,
+        full_name: fullName,
       }
     }
   }
@@ -64,7 +77,7 @@ export async function signup(formData: FormData) {
     revalidatePath('/', 'layout')
     redirect('/onboarding')
   } else {
-    // Fallback
+    // Fallback - assume email was sent
     revalidatePath('/', 'layout')
     redirect('/login?message=Check your email to confirm your account')
   }

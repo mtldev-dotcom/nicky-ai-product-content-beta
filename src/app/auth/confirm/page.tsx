@@ -14,42 +14,71 @@ function ConfirmEmailContent() {
   const [countdown, setCountdown] = useState(3);
   const [autoRedirect, setAutoRedirect] = useState(true);
 
+  // Handle countdown reaching zero and redirect
+  useEffect(() => {
+    if (countdown === 0 && status === 'success' && autoRedirect) {
+      router.push('/onboarding');
+    }
+  }, [countdown, status, autoRedirect, router]);
+
   useEffect(() => {
     const verifyEmail = async () => {
       const supabase = createClient();
-      
-      // Get token and type from URL
+
+      // Supabase sends confirmation links with token_hash in the URL
+      // The URL format is: /auth/confirm?token_hash=...&type=signup
+      const tokenHash = searchParams.get('token_hash');
       const token = searchParams.get('token');
-      const type = searchParams.get('type');
-      
-      if (!token || type !== 'signup') {
+      const type = searchParams.get('type') || 'signup';
+      const success = searchParams.get('success');
+
+      // If already successful (from callback route), show success
+      if (success === 'true') {
+        setStatus('success');
+        if (autoRedirect) {
+          const interval = setInterval(() => {
+            setCountdown((prev) => {
+              if (prev <= 1) {
+                clearInterval(interval);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          return () => clearInterval(interval);
+        }
+        return;
+      }
+
+      if (!tokenHash && !token) {
         setStatus('error');
         setErrorMessage('Invalid confirmation link. Please check your email and try again.');
         return;
       }
 
       try {
-        // Verify the email confirmation token
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'signup',
+        // Use verifyOtp with token_hash (Supabase's standard method)
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash || token || '',
+          type: type as 'signup' | 'email' | 'recovery',
         });
 
-        if (error) {
+        if (verifyError) {
           setStatus('error');
-          setErrorMessage(error.message || 'Failed to confirm email. The link may have expired.');
+          setErrorMessage(verifyError.message || 'Failed to confirm email. The link may have expired.');
+          console.error('Verification error:', verifyError);
           return;
         }
 
+        // Success
         setStatus('success');
-        
+
         // Start countdown for auto-redirect
         if (autoRedirect) {
           const interval = setInterval(() => {
             setCountdown((prev) => {
               if (prev <= 1) {
                 clearInterval(interval);
-                router.push('/onboarding');
                 return 0;
               }
               return prev - 1;
@@ -66,7 +95,7 @@ function ConfirmEmailContent() {
     };
 
     verifyEmail();
-  }, [searchParams, router, autoRedirect]);
+  }, [searchParams, autoRedirect]);
 
   const handleContinue = () => {
     router.push('/onboarding');
@@ -167,7 +196,7 @@ function ConfirmEmailContent() {
             {/* Instructions */}
             <div className="pt-4 border-t border-white/5">
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Next, you'll create your organization workspace and configure your store settings. 
+                Next, you'll create your organization workspace and configure your store settings.
                 This takes just a few minutes.
               </p>
             </div>

@@ -18,6 +18,7 @@ import {
   Layers,
   Truck,
   RefreshCw,
+  ExternalLink,
   // Box,
   // MapPin
 } from 'lucide-react';
@@ -675,13 +676,32 @@ export default function ProductDetailsPage() {
             </div>
 
             {syncError && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <p className="font-semibold">Sync Error</p>
-                  <p className="opacity-80">{syncError}</p>
-                </div>
-              </div>
+              <>
+                {syncError === 'MedusaJS integration not configured' ? (
+                  <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-start gap-3 text-indigo-300 text-xs">
+                    <Layers className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <p className="font-semibold">Connect a Store</p>
+                      <p className="opacity-80">Link your MedusaJS store to sync products and taxonomy.</p>
+                      <a
+                        href="/settings"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 text-xs font-medium transition-colors mt-2"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Go to Settings
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 text-red-400 text-xs">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-semibold">Sync Error</p>
+                      <p className="opacity-80">{syncError}</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <div className="space-y-4">

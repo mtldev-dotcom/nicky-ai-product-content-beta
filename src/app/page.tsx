@@ -119,6 +119,8 @@ export default function Dashboard() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore((s) => s.loadFromDb);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
