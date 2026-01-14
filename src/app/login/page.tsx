@@ -2,19 +2,33 @@
 
 import React, { useState, Suspense } from 'react';
 import { login, signup } from './actions';
-import { Sparkles, Loader2, ArrowRight, Mail, Lock, User } from 'lucide-react';
+import { Sparkles, Loader2, ArrowRight, Mail, Lock, User, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
 
 function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+  });
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const message = searchParams.get('message');
+  const isDev = process.env.NODE_ENV === 'development';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setIsLoading(true);
+  };
+
+  const handleAutoFill = () => {
+    setFormData({
+      full_name: 'Test User',
+      email: 'nickybcotroni@gmail.com',
+      password: 'Lise3517',
+    });
   };
 
   return (
@@ -52,6 +66,19 @@ function LoginForm() {
           </div>
         )}
 
+        {isDev && !isLogin && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <button
+              type="button"
+              onClick={handleAutoFill}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold transition-all"
+            >
+              <Zap className="w-3 h-3" />
+              Dev: Auto-fill Test Data
+            </button>
+          </div>
+        )}
+
         <form action={isLogin ? login : signup} onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div className="space-y-1">
@@ -62,6 +89,8 @@ function LoginForm() {
                   name="full_name"
                   type="text"
                   placeholder="John Doe"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   required
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40 transition-all"
                 />
@@ -77,10 +106,15 @@ function LoginForm() {
                 name="email"
                 type="email"
                 placeholder="name@company.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40 transition-all"
               />
             </div>
+            <p className="text-[10px] text-zinc-500 px-1 leading-relaxed mt-1">
+              Enter your email address. We'll send a confirmation link to verify your account.
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -91,10 +125,16 @@ function LoginForm() {
                 name="password"
                 type="password"
                 placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
+                minLength={6}
                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40 transition-all"
               />
             </div>
+            <p className="text-[10px] text-zinc-500 px-1 leading-relaxed mt-1">
+              Use at least 6 characters. Choose a strong password to keep your account secure.
+            </p>
           </div>
 
           <button 

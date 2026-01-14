@@ -35,10 +35,13 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Allow auth routes (login, confirm, etc.) without authentication
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/login') || 
+                      request.nextUrl.pathname.startsWith('/auth')
+
   if (
     !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth')
+    !isAuthRoute
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
@@ -46,13 +49,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Redirect authenticated users away from login page
   if (user && request.nextUrl.pathname.startsWith('/login')) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  if (user && !request.nextUrl.pathname.startsWith('/onboarding') && !request.nextUrl.pathname.startsWith('/auth')) {
+  // Handle email confirmation - allow access to /auth/confirm
+  if (request.nextUrl.pathname.startsWith('/auth/confirm')) {
+    return supabaseResponse
+  }
+
+  // For authenticated users, check organization membership (except onboarding and auth routes)
+  if (user && !request.nextUrl.pathname.startsWith('/onboarding') && !isAuthRoute) {
     // Check if user has an organization
     const { data: membership } = await supabase
       .from('organization_members')

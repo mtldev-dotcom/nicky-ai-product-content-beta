@@ -12,6 +12,10 @@ import { cn } from '@/lib/utils';
 import { translateAllActiveLanguages } from '@/lib/translations';
 import { getMedusaProducts } from './product-details/actions';
 import { buildMedusaAdminProductPayloadFromSavedProduct } from '@/lib/medusa/build-admin-product-payload';
+import { FirstTimeGuide } from '@/components/onboarding/FirstTimeGuide';
+import { updateOnboardingState, markOnboardingComplete } from '@/lib/user-onboarding';
+import { useToast } from '@/components/ui/ToastProvider';
+import { useSearchParams } from 'next/navigation';
 
 type SavedProductRow = {
   id: string;
@@ -180,6 +184,11 @@ export default function Dashboard() {
               medusa_product_id: getMedusaIdFromProductData(p.data),
             }));
             setProducts(withMedusa);
+            
+            // Mark first product as created if products exist
+            if (withMedusa.length > 0) {
+              updateOnboardingState({ firstProductCreated: true });
+            }
           }
           setIsLoadingProducts(false);
 
@@ -192,6 +201,7 @@ export default function Dashboard() {
           
           if (settingsData?.store_platform === 'medusa' && settingsData.medusa_url && settingsData.medusa_api_key) {
             setIsStoreConfigured(true);
+            updateOnboardingState({ storeConfigured: true });
             setIsLoadingStoreProducts(true);
             // Prefer new proxy route (keeps Medusa creds server-side) but fall back to existing action.
             try {
@@ -206,6 +216,11 @@ export default function Dashboard() {
               }
             }
             setIsLoadingStoreProducts(false);
+          }
+          
+          // Check if AI is configured
+          if (settingsData?.openai_api_key) {
+            updateOnboardingState({ aiConfigured: true });
           }
         }
       }
@@ -853,8 +868,29 @@ export default function Dashboard() {
   const someLocalFilteredSelected =
     filteredProducts.some((p) => selectedLocalIds.has(p.id)) && !allLocalFilteredSelected;
 
+  // Handle onboarding completion
+  useEffect(() => {
+    if (searchParams?.get('onboarding') === 'complete') {
+      markOnboardingComplete();
+      // Show welcome toast after a brief delay
+      setTimeout(() => {
+        toast({
+          type: 'success',
+          title: 'Setup complete!',
+          description: 'Welcome to Product Architect. Ready to create your first product?',
+          duration: 6000,
+          action: {
+            label: 'Create Product',
+            onClick: () => router.push('/create'),
+          },
+        });
+      }, 500);
+    }
+  }, [searchParams, toast, router]);
+
   return (
     <div className="space-y-12">
+      <FirstTimeGuide />
       {/* Header Section */}
       <header className="space-y-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium uppercase tracking-wider">
