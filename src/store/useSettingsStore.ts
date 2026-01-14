@@ -155,6 +155,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         medusaUrl: state.medusaUrl,
         activeLanguages: state.activeLanguages,
 
+        // Always explicitly send AI image defaults (send actual values, server will handle defaults)
         aiImageProvider: state.aiImageProvider,
         aiImageModel: state.aiImageModel,
 
@@ -168,6 +169,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         defaultCollectionId: state.defaultCollectionId,
         defaultCategoryIds: state.defaultCategoryIds,
       };
+
+      // Debug logging
+      console.log('[Store Save] Sending payload:', {
+        organizationId,
+        aiImageProvider: payload.aiImageProvider,
+        aiImageModel: payload.aiImageModel,
+        stateValues: {
+          aiImageProvider: state.aiImageProvider,
+          aiImageModel: state.aiImageModel,
+        },
+      });
 
       await saveEncryptedSettings(organizationId, payload);
     } catch (err) {

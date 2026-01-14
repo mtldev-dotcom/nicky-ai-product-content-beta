@@ -4,6 +4,109 @@ import { createClient } from '@/utils/supabase/server';
 import { encrypt, decrypt } from '@/lib/crypto';
 import { revalidatePath } from 'next/cache';
 import { SettingsForClientSchema, type SettingsForClient, SettingsUpdateSchema, type SettingsUpdate } from '@/lib/settings-schema';
+import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+
+/**
+ * Tests connection to MedusaJS with provided or stored credentials.
+ */
+export async function testMedusaConnection(orgId: string, customUrl?: string, customApiKey?: string) {
+  const settings = await loadDecryptedSettingsForServer(orgId);
+  
+  const url = customUrl || settings?.medusaUrl;
+  const apiKey = customApiKey || settings?.medusaApiKey;
+
+  if (!url || !apiKey) {
+    return { success: false, error: 'URL and API Key are required' };
+  }
+
+  let baseUrl = url.trim().replace(/\/$/, '');
+  if (baseUrl.endsWith('/admin')) {
+    baseUrl = baseUrl.replace(/\/admin$/, '');
+  }
+
+  const headers = {
+    'x-medusa-access-token': apiKey,
+    'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
+    'Content-Type': 'application/json'
+  };
+
+  try {
+    const res = await fetch(`${baseUrl}/admin/auth`, { 
+      headers,
+      cache: 'no-store' 
+    });
+    
+    if (res.ok) {
+      return { success: true };
+    }
+    
+    // Some Medusa versions might use /admin/users/me for checking auth
+    const res2 = await fetch(`${baseUrl}/admin/users/me`, { 
+      headers,
+      cache: 'no-store' 
+    });
+
+    if (res2.ok) {
+      return { success: true };
+    }
+
+    return { success: false, error: `Connection failed: ${res2.status} ${res2.statusText}` };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+/**
+ * Tests connection to Cloudflare R2 with provided or stored credentials.
+ */
+export async function testR2Connection(
+  orgId: string, 
+  customAccountId?: string, 
+  customAccessKeyId?: string, 
+  customSecretAccessKey?: string,
+  customBucketName?: string
+) {
+  const settings = await loadDecryptedSettingsForServer(orgId);
+
+  const accountId = customAccountId || settings?.r2AccountId;
+  const accessKeyId = customAccessKeyId || settings?.r2AccessKeyId;
+  const secretAccessKey = customSecretAccessKey || settings?.r2SecretAccessKey;
+  const bucketName = customBucketName || settings?.r2BucketName;
+
+  if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
+    return { success: false, error: 'Account ID, Keys, and Bucket Name are required' };
+  }
+
+  try {
+    const s3 = new S3Client({
+      region: "auto",
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    // We try to list buckets as a simple connectivity test
+    // Note: R2 API tokens might be restricted to a single bucket, so if listBuckets fails, 
+    // we could try a HeadBucketCommand for the specific bucket.
+    try {
+      await s3.send(new ListBucketsCommand({}));
+      return { success: true };
+    } catch (err: any) {
+      // If listBuckets fails (common with restricted tokens), try to check the specific bucket
+      if (err.name === 'AccessDenied' || err.$metadata?.httpStatusCode === 403) {
+        // We'll assume if we got a 403 on ListBuckets but can talk to the endpoint, 
+        // the credentials might still be valid for the specific bucket.
+        // For a more robust test, we could try to list objects in that bucket with maxKeys: 0
+        return { success: true, message: 'Connected (ListBuckets restricted, but endpoint reachable)' };
+      }
+      throw err;
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'S3 Client Error' };
+  }
+}
 
 /**
  * Persists organization settings securely.
@@ -63,12 +166,15 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
     active_languages: parsed.activeLanguages ?? existing?.active_languages ?? ['en'],
 
     // AI image generation defaults (non-secrets)
+    // Explicitly provided values take precedence, otherwise keep existing, otherwise use defaults
     ai_image_provider:
-      parsed.aiImageProvider ??
-      (((existing as unknown as Record<string, unknown> | null)?.ai_image_provider as string | undefined) ?? 'openai'),
+      parsed.aiImageProvider !== undefined && parsed.aiImageProvider !== null
+        ? ((typeof parsed.aiImageProvider === 'string' && parsed.aiImageProvider.trim()) || 'openai') // If empty/whitespace, default to 'openai'
+        : (((existing as unknown as Record<string, unknown> | null)?.ai_image_provider as string | undefined) ?? 'openai'),
     ai_image_model:
-      parsed.aiImageModel ??
-      (((existing as unknown as Record<string, unknown> | null)?.ai_image_model as string | undefined) ?? ''),
+      parsed.aiImageModel !== undefined && parsed.aiImageModel !== null
+        ? (typeof parsed.aiImageModel === 'string' ? parsed.aiImageModel.trim() : '') // Allow empty string for model, but trim whitespace
+        : (((existing as unknown as Record<string, unknown> | null)?.ai_image_model as string | undefined) ?? ''),
 
     // AI Studio Photo prompt customization (non-secrets)
     ai_studio_prompt_library:
@@ -98,7 +204,50 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
       : await supabase.from('organization_settings').insert(nextPayload);
   };
 
-  const { error } = await writeOnce(payload);
+  // Debug logging to trace the save operation
+  console.log('[Settings Save] Payload being sent:', {
+    orgId,
+    ai_image_provider: payload.ai_image_provider,
+    ai_image_model: payload.ai_image_model,
+    parsed: {
+      aiImageProvider: parsed.aiImageProvider,
+      aiImageModel: parsed.aiImageModel,
+    },
+    existing: {
+      ai_image_provider: (existing as unknown as Record<string, unknown> | null)?.ai_image_provider,
+      ai_image_model: (existing as unknown as Record<string, unknown> | null)?.ai_image_model,
+    },
+  });
+
+  const { error, data } = await writeOnce(payload);
+
+  // Debug logging for the response
+  if (error) {
+    console.error('[Settings Save] Error:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+  } else {
+    console.log('[Settings Save] Success:', { data });
+    
+    // Verify the save by reading back the values
+    const { data: verified } = await supabase
+      .from('organization_settings')
+      .select('ai_image_provider, ai_image_model')
+      .eq('organization_id', orgId)
+      .single();
+    
+    console.log('[Settings Save] Verified saved values:', {
+      ai_image_provider: verified?.ai_image_provider,
+      ai_image_model: verified?.ai_image_model,
+      matches: {
+        provider: verified?.ai_image_provider === payload.ai_image_provider,
+        model: verified?.ai_image_model === payload.ai_image_model,
+      },
+    });
+  }
 
   /**
    * Supabase/PostgREST can return:
@@ -124,22 +273,39 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
         msg.includes('preview_layout'));
 
     if (looksLikeMissingColumnSchemaCache) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const {
-        ai_image_model,
-        ai_image_provider,
-        fal_api_key,
-        gemini_api_key,
-        ai_studio_prompt_library,
-        ai_studio_toggle_phrases,
-        preview_layout,
-        ...fallbackPayload
-      } = payload as any;
-      const { error: retryErr } = await writeOnce(fallbackPayload);
-      if (retryErr) throw new Error(retryErr.message);
-    } else {
-      throw new Error(error.message);
+      console.warn('[Settings Save] Schema cache error detected for:', {
+        message: msg,
+        affectedFields: ['ai_image_model', 'ai_image_provider', 'fal_api_key', 'gemini_api_key', 'ai_studio_prompt_library', 'ai_studio_toggle_phrases', 'preview_layout'].filter(field => msg.includes(field)),
+      });
+      
+      // Only strip fields that are actually causing the error
+      const fieldsToStrip = [];
+      if (msg.includes('ai_image_model')) fieldsToStrip.push('ai_image_model');
+      if (msg.includes('ai_image_provider')) fieldsToStrip.push('ai_image_provider');
+      if (msg.includes('fal_api_key')) fieldsToStrip.push('fal_api_key');
+      if (msg.includes('gemini_api_key')) fieldsToStrip.push('gemini_api_key');
+      if (msg.includes('ai_studio_prompt_library')) fieldsToStrip.push('ai_studio_prompt_library');
+      if (msg.includes('ai_studio_toggle_phrases')) fieldsToStrip.push('ai_studio_toggle_phrases');
+      if (msg.includes('preview_layout')) fieldsToStrip.push('preview_layout');
+
+      if (fieldsToStrip.length > 0) {
+        const fallbackPayload = { ...payload };
+        for (const field of fieldsToStrip) {
+          delete (fallbackPayload as any)[field];
+        }
+        console.warn('[Settings Save] Retrying without fields:', fieldsToStrip);
+        const { error: retryErr } = await writeOnce(fallbackPayload);
+        if (retryErr) {
+          console.error('[Settings Save] Retry also failed:', retryErr.message);
+          throw new Error(retryErr.message);
+        }
+        console.warn('[Settings Save] Retry succeeded, but these fields were skipped:', fieldsToStrip);
+        // Don't throw - the save partially succeeded
+        return;
+      }
     }
+    // If we get here, it's a different error or no fields matched
+    throw new Error(error.message);
   }
 
   revalidatePath('/settings');

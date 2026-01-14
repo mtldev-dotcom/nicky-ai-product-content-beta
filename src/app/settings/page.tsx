@@ -1,41 +1,36 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
-import { cn } from '@/lib/utils';
-import { ALL_LANGUAGES } from '@/lib/languages';
+import { Shield } from 'lucide-react';
+
+// Sections
+import { GeneralSection } from '@/components/settings/sections/GeneralSection';
+import { StoreSection } from '@/components/settings/sections/StoreSection';
+import { AIEngineSection } from '@/components/settings/sections/AIEngineSection';
+import { AIStudioSection } from '@/components/settings/sections/AIStudioSection';
+import { StorageSection } from '@/components/settings/sections/StorageSection';
+import { LocalizationSection } from '@/components/settings/sections/LocalizationSection';
+
+// UI
+import { SettingsSidebar, type SettingsTab } from '@/components/settings/ui/SettingsSidebar';
+import { StickySaveBar } from '@/components/settings/ui/StickySaveBar';
+
 import { getMedusaTaxonomy } from '@/app/product-details/actions';
 import {
-  Shield,
-  Key,
-  Cloud,
-  Save,
-  CheckCircle2,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  UserCircle,
-  MessageSquare,
-  Sparkles,
-  Store,
-  Globe,
-  Lock,
-  Languages,
-  Check
-} from 'lucide-react';
-import Link from 'next/link';
-import {
   coerceAiImageProviderId,
-  providerLabel,
   topImageModelsForProvider,
-  type AiImageProviderId,
 } from '@/lib/ai/topImageModels';
 
 export default function SettingsPage() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [localState, setLocalState] = useState({
     openaiApiKey: '',
     falApiKey: '',
@@ -52,36 +47,20 @@ export default function SettingsPage() {
     medusaUrl: '',
     medusaApiKey: '',
     activeLanguages: [] as string[],
-
-    // AI image generation defaults
     aiImageProvider: 'openai',
     aiImageModel: '',
-
-    // Medusa defaults for new product drafts
     defaultSalesChannelId: null as string | null,
     defaultShippingProfileId: null as string | null,
     defaultCollectionId: null as string | null,
     defaultCategoryIds: [] as string[],
   });
 
-  const [showKey, setShowKey] = useState(false);
-  const [showFalKey, setShowFalKey] = useState(false);
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [showMedusaKey, setShowMedusaKey] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const supabase = createClient();
-
-  type MedusaTaxonomy = {
-    collections: Array<{ id: string; title: string }>;
-    categories: Array<{ id: string; name: string }>;
-    sales_channels: Array<{ id: string; name: string }>;
-    shipping_profiles: Array<{ id: string; name: string }>;
-  };
-
-  const [taxonomy, setTaxonomy] = useState<MedusaTaxonomy | null>(null);
+  const [taxonomy, setTaxonomy] = useState<any>(null);
   const [isLoadingTaxonomy, setIsLoadingTaxonomy] = useState(false);
   const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+  const supabase = createClient();
 
+  // Load Initial Settings
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -101,6 +80,7 @@ export default function SettingsPage() {
     init();
   }, [loadSettingsFromDb, supabase]);
 
+  // Sync Store to Local State
   useEffect(() => {
     setLocalState({
       openaiApiKey: settings.openaiApiKey,
@@ -118,66 +98,55 @@ export default function SettingsPage() {
       medusaUrl: settings.medusaUrl,
       medusaApiKey: settings.medusaApiKey,
       activeLanguages: settings.activeLanguages,
-
       aiImageProvider: settings.aiImageProvider,
       aiImageModel: settings.aiImageModel,
-
       defaultSalesChannelId: settings.defaultSalesChannelId,
       defaultShippingProfileId: settings.defaultShippingProfileId,
       defaultCollectionId: settings.defaultCollectionId,
       defaultCategoryIds: settings.defaultCategoryIds,
     });
-  }, [
-    settings.openaiApiKey,
-    settings.falApiKey,
-    settings.geminiApiKey,
-    settings.r2AccountId,
-    settings.r2AccessKeyId,
-    settings.r2SecretAccessKey,
-    settings.r2BucketName,
-    settings.r2PublicUrl,
-    settings.brandName,
-    settings.brandVoice,
-    settings.customInstructions,
-    settings.storePlatform,
-    settings.medusaUrl,
-    settings.medusaApiKey,
-    settings.activeLanguages,
-    settings.aiImageProvider,
-    settings.aiImageModel,
-    settings.defaultSalesChannelId,
-    settings.defaultShippingProfileId,
-    settings.defaultCollectionId,
-    settings.defaultCategoryIds,
-  ]);
+  }, [settings]);
 
-  /**
-   * Determine which image providers are currently usable (have an API key).
-   *
-   * We treat a provider as "available" if either:
-   * - the org has a saved key (settings.has* flag), OR
-   * - the user has typed a key into the input (not saved yet).
-   *
-   * This keeps the Settings UX responsive while users are configuring keys.
-   */
-  const availableImageProviders = (() => {
+  // Dirty State Detection
+  const isDirty = useMemo(() => {
+    return (
+      localState.openaiApiKey !== settings.openaiApiKey ||
+      localState.falApiKey !== settings.falApiKey ||
+      localState.geminiApiKey !== settings.geminiApiKey ||
+      localState.r2AccountId !== settings.r2AccountId ||
+      localState.r2AccessKeyId !== settings.r2AccessKeyId ||
+      localState.r2SecretAccessKey !== settings.r2SecretAccessKey ||
+      localState.r2BucketName !== settings.r2BucketName ||
+      localState.r2PublicUrl !== settings.r2PublicUrl ||
+      localState.brandName !== settings.brandName ||
+      localState.brandVoice !== settings.brandVoice ||
+      localState.customInstructions !== settings.customInstructions ||
+      localState.storePlatform !== settings.storePlatform ||
+      localState.medusaUrl !== settings.medusaUrl ||
+      localState.medusaApiKey !== settings.medusaApiKey ||
+      JSON.stringify(localState.activeLanguages) !== JSON.stringify(settings.activeLanguages) ||
+      localState.aiImageProvider !== settings.aiImageProvider ||
+      localState.aiImageModel !== settings.aiImageModel ||
+      localState.defaultSalesChannelId !== settings.defaultSalesChannelId ||
+      localState.defaultShippingProfileId !== settings.defaultShippingProfileId ||
+      localState.defaultCollectionId !== settings.defaultCollectionId ||
+      JSON.stringify(localState.defaultCategoryIds) !== JSON.stringify(settings.defaultCategoryIds)
+    );
+  }, [localState, settings]);
+
+  const availableImageProviders = useMemo(() => {
     const hasOpenai = settings.hasOpenaiApiKey || localState.openaiApiKey.trim().length > 0;
     const hasFal = settings.hasFalApiKey || localState.falApiKey.trim().length > 0;
     const hasGemini = settings.hasGeminiApiKey || localState.geminiApiKey.trim().length > 0;
 
-    const providers: AiImageProviderId[] = [];
+    const providers: string[] = [];
     if (hasOpenai) providers.push('openai');
     if (hasFal) providers.push('fal');
     if (hasGemini) providers.push('gemini');
     return providers;
-  })();
+  }, [settings, localState.openaiApiKey, localState.falApiKey, localState.geminiApiKey]);
 
-  /**
-   * Keep the selected provider valid vs. the available-provider filter.
-   *
-   * If the current provider has no key, auto-switch to the first available provider.
-   * If none are available, we keep the current selection and show a CTA message.
-   */
+  // Provider/Model Auto-Sync
   useEffect(() => {
     if (availableImageProviders.length === 0) return;
     const current = coerceAiImageProviderId(localState.aiImageProvider);
@@ -187,34 +156,25 @@ export default function SettingsPage() {
     setLocalState((prev) => ({
       ...prev,
       aiImageProvider: nextProvider,
-      aiImageModel: topImageModelsForProvider(nextProvider)[0] || '',
+      aiImageModel: topImageModelsForProvider(nextProvider as any)[0] || '',
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableImageProviders.join('|'), localState.aiImageProvider]);
+  }, [availableImageProviders, localState.aiImageProvider]);
 
-  /**
-   * Auto-reset legacy/invalid model selections.
-   *
-   * Requirement (from plan):
-   * - If the org already has a saved aiImageModel NOT in the new top-3 list,
-   *   auto-reset it to the #1 model for the selected provider.
-   */
+  // Validate model is valid for current provider
   useEffect(() => {
-    const topModels = topImageModelsForProvider(localState.aiImageProvider);
-    const isValid = topModels.includes(localState.aiImageModel);
-    if (isValid) return;
+    const currentProvider = coerceAiImageProviderId(localState.aiImageProvider);
+    const availableModels = topImageModelsForProvider(currentProvider);
 
-    // Reset to “best” default model for the provider.
+    if (availableModels.length > 0 && !availableModels.includes(localState.aiImageModel)) {
     setLocalState((prev) => ({
       ...prev,
-      aiImageProvider: coerceAiImageProviderId(prev.aiImageProvider),
-      aiImageModel: topImageModelsForProvider(prev.aiImageProvider)[0] || '',
+        aiImageModel: availableModels[0],
     }));
-    // Intentionally only runs on provider/model changes.
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [localState.aiImageProvider, localState.aiImageModel]);
+  }, [localState.aiImageProvider]);
 
-  const syncTaxonomy = async () => {
+  const syncTaxonomy = useCallback(async () => {
     if (!orgId) return;
     setIsLoadingTaxonomy(true);
     setTaxonomyError(null);
@@ -225,13 +185,7 @@ export default function SettingsPage() {
         setTaxonomy(null);
         return;
       }
-
-      setTaxonomy({
-        collections: (res.data.collections || []) as MedusaTaxonomy['collections'],
-        categories: (res.data.categories || []) as MedusaTaxonomy['categories'],
-        sales_channels: (res.data.sales_channels || []) as MedusaTaxonomy['sales_channels'],
-        shipping_profiles: (res.data.shipping_profiles || []) as MedusaTaxonomy['shipping_profiles'],
-      });
+      setTaxonomy(res.data);
     } catch (e) {
       console.error('Failed to sync taxonomy:', e);
       setTaxonomyError('Network error syncing taxonomy');
@@ -239,18 +193,44 @@ export default function SettingsPage() {
     } finally {
       setIsLoadingTaxonomy(false);
     }
-  };
+  }, [orgId]);
 
   const handleSave = async () => {
     if (!orgId) return;
+    setIsSaving(true);
+    try {
+      // Validate and ensure AI image model is valid for the selected provider
+      const currentProvider = coerceAiImageProviderId(localState.aiImageProvider);
+      const availableModels = topImageModelsForProvider(currentProvider);
+      let validModel = localState.aiImageModel;
+      
+      // If model is empty or invalid, use the first available model
+      if (!validModel || !availableModels.includes(validModel)) {
+        validModel = availableModels[0] || '';
+      }
+
+      // Debug logging
+      console.log('[Settings Page] handleSave - AI Image values:', {
+        localState: {
+          aiImageProvider: localState.aiImageProvider,
+          aiImageModel: localState.aiImageModel,
+        },
+        computed: {
+          currentProvider,
+          validModel,
+          availableModels,
+        },
+      });
 
     settings.setOpenaiApiKey(localState.openaiApiKey);
     settings.setFalApiKey(localState.falApiKey);
     settings.setGeminiApiKey(localState.geminiApiKey);
     settings.setAiImageDefaults({
-      aiImageProvider: localState.aiImageProvider,
-      aiImageModel: localState.aiImageModel,
+        aiImageProvider: currentProvider,
+        aiImageModel: validModel,
     });
+
+      // Note: Store update is async in React, so we verify in saveToDb instead
     settings.setR2Settings({
       r2AccountId: localState.r2AccountId,
       r2AccessKeyId: localState.r2AccessKeyId,
@@ -268,7 +248,6 @@ export default function SettingsPage() {
       medusaUrl: localState.medusaUrl,
       medusaApiKey: localState.medusaApiKey,
       activeLanguages: localState.activeLanguages,
-
       defaultSalesChannelId: localState.defaultSalesChannelId,
       defaultShippingProfileId: localState.defaultShippingProfileId,
       defaultCollectionId: localState.defaultCollectionId,
@@ -276,611 +255,112 @@ export default function SettingsPage() {
     });
 
     await settings.saveToDb(orgId);
-
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setLocalState({
+      openaiApiKey: settings.openaiApiKey,
+      falApiKey: settings.falApiKey,
+      geminiApiKey: settings.geminiApiKey,
+      r2AccountId: settings.r2AccountId,
+      r2AccessKeyId: settings.r2AccessKeyId,
+      r2SecretAccessKey: settings.r2SecretAccessKey,
+      r2BucketName: settings.r2BucketName,
+      r2PublicUrl: settings.r2PublicUrl,
+      brandName: settings.brandName,
+      brandVoice: settings.brandVoice,
+      customInstructions: settings.customInstructions,
+      storePlatform: settings.storePlatform,
+      medusaUrl: settings.medusaUrl,
+      medusaApiKey: settings.medusaApiKey,
+      activeLanguages: settings.activeLanguages,
+      aiImageProvider: settings.aiImageProvider,
+      aiImageModel: settings.aiImageModel,
+      defaultSalesChannelId: settings.defaultSalesChannelId,
+      defaultShippingProfileId: settings.defaultShippingProfileId,
+      defaultCollectionId: settings.defaultCollectionId,
+      defaultCategoryIds: settings.defaultCategoryIds,
+    });
   };
 
   return (
-    <div className="max-w-4xl space-y-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-32 px-4 md:px-6 lg:px-8">
       <header className="space-y-4">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+        <h1 className="text-4xl font-black text-white flex items-center gap-4 tracking-tight">
+          <div className="bg-indigo-500/10 p-2.5 rounded-2xl border border-indigo-500/20">
           <Shield className="text-indigo-400 w-8 h-8" />
-          Command Center Settings
+          </div>
+          Command Center
+          <span className="text-zinc-600 font-medium text-lg ml-2">/ Settings</span>
         </h1>
-        <p className="text-zinc-400">
-          Configure your service credentials. Data is saved securely in your organization&apos;s workspace in the cloud.
+        <p className="text-zinc-400 max-w-2xl leading-relaxed">
+          Configure your service credentials and brand identity. All data is encrypted at rest and stored securely in your organization's private workspace.
         </p>
       </header>
 
-      <div className="grid gap-8">
-        {/* Store Integration */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Store className="w-5 h-5 text-indigo-400" />
-              Store Integration
-            </h2>
-            <div className="flex gap-2">
-              <select 
-                className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500/50"
-                value={localState.storePlatform}
-                onChange={(e) => setLocalState({ ...localState, storePlatform: e.target.value })}
-              >
-                <option value="medusa">MedusaJS</option>
-                <option value="shopify" disabled>Shopify (Coming Soon)</option>
-                <option value="none">No Integration</option>
-              </select>
-            </div>
-          </div>
+      <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
+        {/* Navigation Sidebar */}
+        <SettingsSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-          {localState.storePlatform === 'medusa' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-zinc-500" />
-                  Medusa API URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://your-medusa-server.com"
-                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                  value={localState.medusaUrl}
-                  onChange={(e) => setLocalState({ ...localState, medusaUrl: e.target.value })}
-                />
-                <p className="text-[10px] text-zinc-500 italic px-1">
-                  The backend URL of your MedusaJS installation.
-                </p>
-              </div>
-
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-zinc-500" />
-                  Medusa API Key (Admin)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showMedusaKey ? "text" : "password"}
-                    placeholder="medusa_admin_..."
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                    value={localState.medusaApiKey}
-                    onChange={(e) => setLocalState({ ...localState, medusaApiKey: e.target.value })}
-                  />
-                  <button
-                    onClick={() => setShowMedusaKey(!showMedusaKey)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  >
-                    {showMedusaKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-                {settings.hasMedusaApiKey && !localState.medusaApiKey && (
-                  <p className="text-[10px] text-emerald-400 italic px-1">
-                    A Medusa key is already saved. Leave blank to keep it, or type a new one to replace.
-                  </p>
-                )}
-                <p className="text-[10px] text-zinc-500 italic px-1">
-                  Used to sync products and media directly to your MedusaJS catalog.
-                </p>
-              </div>
-
-              {/* Default Medusa selections for NEW products */}
-              {orgId && (localState.medusaUrl && (settings.hasMedusaApiKey || localState.medusaApiKey)) && (
-                <div className="md:col-span-2 space-y-4 pt-2 border-t border-white/10">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-sm font-semibold text-white">Default selections for new products</h3>
-                      <p className="text-[10px] text-zinc-500">
-                        These values will be auto-selected when you create a new product draft.
-                      </p>
-                    </div>
-                    <button
-                      onClick={syncTaxonomy}
-                      disabled={isLoadingTaxonomy}
-                      className={cn(
-                        "px-3 py-2 rounded-lg text-xs font-semibold border transition-colors",
-                        isLoadingTaxonomy
-                          ? "bg-zinc-900/50 border-white/10 text-zinc-500"
-                          : "bg-white/5 border-white/10 text-zinc-200 hover:bg-white/10"
-                      )}
-                    >
-                      {isLoadingTaxonomy ? 'Syncing...' : 'Sync Taxonomy'}
-                    </button>
-                  </div>
-
-                  {taxonomyError && (
-                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
-                      {taxonomyError}
-                    </div>
-                  )}
-
-                  {!taxonomy && !taxonomyError && (
-                    <div className="p-3 rounded-xl bg-zinc-900/50 border border-white/10 text-zinc-500 text-xs">
-                      Click “Sync Taxonomy” to load your store’s collections, categories, sales channels, and shipping profiles.
-                    </div>
-                  )}
-
-                  {taxonomy && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs text-zinc-500">Default Sales Channel</label>
-                        <select
-                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
-                          value={localState.defaultSalesChannelId ?? ''}
-                          onChange={(e) => setLocalState({ ...localState, defaultSalesChannelId: e.target.value || null })}
-                        >
-                          <option value="">None</option>
-                          {taxonomy.sales_channels.map((sc) => (
-                            <option key={sc.id} value={sc.id}>
-                              {sc.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs text-zinc-500">Default Shipping Profile</label>
-                        <select
-                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
-                          value={localState.defaultShippingProfileId ?? ''}
-                          onChange={(e) => setLocalState({ ...localState, defaultShippingProfileId: e.target.value || null })}
-                        >
-                          <option value="">None</option>
-                          {taxonomy.shipping_profiles.map((sp) => (
-                            <option key={sp.id} value={sp.id}>
-                              {sp.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-xs text-zinc-500">Default Collection</label>
-                        <select
-                          className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
-                          value={localState.defaultCollectionId ?? ''}
-                          onChange={(e) => setLocalState({ ...localState, defaultCollectionId: e.target.value || null })}
-                        >
-                          <option value="">None</option>
-                          {taxonomy.collections.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.title}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs text-zinc-500">Default Categories</label>
-                          <button
-                            onClick={() => setLocalState({ ...localState, defaultCategoryIds: [] })}
-                            className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                        <div className="max-h-48 overflow-auto custom-scrollbar rounded-xl border border-white/10 bg-zinc-900/30 p-3 space-y-2">
-                          {taxonomy.categories.length === 0 ? (
-                            <p className="text-xs text-zinc-500">No categories found.</p>
-                          ) : (
-                            taxonomy.categories.map((cat) => {
-                              const checked = localState.defaultCategoryIds.includes(cat.id);
-                              return (
-                                <label key={cat.id} className="flex items-center gap-2 text-xs text-zinc-300">
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => {
-                                      const next = checked
-                                        ? localState.defaultCategoryIds.filter((id) => id !== cat.id)
-                                        : [...localState.defaultCategoryIds, cat.id];
-                                      setLocalState({ ...localState, defaultCategoryIds: next });
-                                    }}
-                                  />
-                                  <span>{cat.name}</span>
-                                </label>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+        {/* Content Area - Fixed width for consistency */}
+        <main className="flex-1 w-full md:max-w-none bg-zinc-900/20 border border-white/5 rounded-[2rem] p-6 md:p-8 lg:p-12 backdrop-blur-sm">
+          {activeTab === 'general' && (
+            <GeneralSection localState={localState} setLocalState={setLocalState} />
           )}
-
-          {localState.storePlatform === 'none' && (
-            <div className="bg-zinc-900/50 border border-dashed border-white/10 rounded-xl p-8 text-center">
-              <p className="text-zinc-500 text-sm">
-                No store integration selected. You can still generate content and download it manually.
-              </p>
-            </div>
+          {activeTab === 'store' && (
+            <StoreSection 
+              localState={localState} 
+              setLocalState={setLocalState} 
+              settings={settings}
+              taxonomy={taxonomy}
+              isLoadingTaxonomy={isLoadingTaxonomy}
+              taxonomyError={taxonomyError}
+              syncTaxonomy={syncTaxonomy}
+              orgId={orgId}
+            />
           )}
-        </section>
-
-        {/* Localization & Markets */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Languages className="w-5 h-5 text-indigo-400" />
-              Localization & Supported Markets
-            </h2>
-            <div className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
-              Global reach
-            </div>
+          {activeTab === 'ai-engine' && (
+            <AIEngineSection 
+              localState={localState} 
+              setLocalState={setLocalState} 
+              settings={settings}
+            />
+          )}
+          {activeTab === 'ai-studio' && (
+            <AIStudioSection 
+              localState={localState} 
+              setLocalState={setLocalState} 
+              availableImageProviders={availableImageProviders}
+            />
+          )}
+          {activeTab === 'storage' && (
+            <StorageSection 
+              localState={localState} 
+              setLocalState={setLocalState} 
+              settings={settings}
+              orgId={orgId}
+            />
+          )}
+          {activeTab === 'localization' && (
+            <LocalizationSection localState={localState} setLocalState={setLocalState} />
+          )}
+        </main>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-400">
-              Select the languages your organization supports. These will be available for AI content generation and translation in the Product Architect command center.
-            </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {ALL_LANGUAGES.map((lang) => {
-                const isActive = localState.activeLanguages.includes(lang.code);
-                return (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      const newLangs = isActive
-                        ? localState.activeLanguages.filter(c => c !== lang.code)
-                        : [...localState.activeLanguages, lang.code];
-                      
-                      // Ensure at least one language is active
-                      if (newLangs.length === 0) return;
-                      
-                      setLocalState({ ...localState, activeLanguages: newLangs });
-                    }}
-                    className={cn(
-                      "flex flex-col items-center gap-3 p-4 rounded-xl border transition-all relative overflow-hidden group",
-                      isActive 
-                        ? "bg-indigo-500/10 border-indigo-500/50 text-white shadow-lg shadow-indigo-500/5" 
-                        : "bg-zinc-900/50 border-white/5 text-zinc-500 hover:border-white/10"
-                    )}
-                  >
-                    <span className="text-3xl filter group-hover:scale-110 transition-transform duration-300">
-                      {lang.flag}
-                    </span>
-                    <span className="text-xs font-bold uppercase tracking-wider">
-                      {lang.name}
-                    </span>
-                    {isActive && (
-                      <div className="absolute top-2 right-2">
-                        <Check className="w-3 h-3 text-indigo-400" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-zinc-500 italic px-1">
-              Note: English (US) is the default base language for all AI generation.
-            </p>
-          </div>
-        </section>
-
-        {/* AI Configuration */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Key className="w-5 h-5 text-indigo-400" />
-              AI Content Engine
-            </h2>
-            <div className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
-              OpenAI
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-300">OpenAI API Key</label>
-            <div className="relative">
-              <input
-                type={showKey ? "text" : "password"}
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                placeholder={settings.hasOpenaiApiKey ? "•••••••• (saved)" : "sk-..."}
-                value={localState.openaiApiKey}
-                onChange={(e) => setLocalState({ ...localState, openaiApiKey: e.target.value })}
-              />
-              <button
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-              >
-                {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-            {settings.hasOpenaiApiKey && !localState.openaiApiKey && (
-              <p className="text-[10px] text-emerald-400 italic px-1">
-                A key is already saved. Leave blank to keep it, or type a new one to replace.
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* AI Studio Photo (Image Generation) */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              AI Studio Photo (Image Generation)
-            </h2>
-            <div className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10 uppercase">
-              Provider defaults
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Default Provider</label>
-              <select
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.aiImageProvider}
-                onChange={(e) => setLocalState({ ...localState, aiImageProvider: e.target.value })}
-                disabled={availableImageProviders.length === 0}
-              >
-                {availableImageProviders.length === 0 ? (
-                  <option value={localState.aiImageProvider}>Configure API keys to enable providers</option>
-                ) : (
-                  availableImageProviders.map((p) => (
-                    <option key={p} value={p}>
-                      {providerLabel(p)}
-                    </option>
-                  ))
-                )}
-              </select>
-              <p className="text-[10px] text-zinc-500 italic px-1">
-                Used as the default on Product → Media → AI Studio Photo. You can override per generation in the modal.
-              </p>
-              {availableImageProviders.length === 0 && (
-                <p className="text-[10px] text-amber-300/90 px-1">
-                  Add at least one provider API key (OpenAI / fal / Gemini) to enable image generation providers.
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Default Model</label>
-              <select
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-mono"
-                value={localState.aiImageModel}
-                onChange={(e) => setLocalState({ ...localState, aiImageModel: e.target.value })}
-                disabled={availableImageProviders.length === 0}
-              >
-                {topImageModelsForProvider(localState.aiImageProvider).map((modelId) => (
-                  <option key={modelId} value={modelId}>
-                    {modelId}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] text-zinc-500 italic px-1">
-                Pick one of the top recommended models for your provider. This becomes the default for Product → Media → AI Studio Photo.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">fal.ai API Key</label>
-              <div className="relative">
-                <input
-                  type={showFalKey ? "text" : "password"}
-                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                  placeholder={settings.hasFalApiKey ? "•••••••• (saved)" : "FAL_KEY_ID:FAL_KEY_SECRET"}
-                  value={localState.falApiKey}
-                  onChange={(e) => setLocalState({ ...localState, falApiKey: e.target.value })}
-                />
-                <button
-                  onClick={() => setShowFalKey(!showFalKey)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  type="button"
-                >
-                  {showFalKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {settings.hasFalApiKey && !localState.falApiKey && (
-                <p className="text-[10px] text-emerald-400 italic px-1">
-                  A fal.ai key is already saved. Leave blank to keep it, or type a new one to replace.
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Gemini API Key</label>
-              <div className="relative">
-                <input
-                  type={showGeminiKey ? "text" : "password"}
-                  className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                  placeholder={settings.hasGeminiApiKey ? "•••••••• (saved)" : "AIza..."}
-                  value={localState.geminiApiKey}
-                  onChange={(e) => setLocalState({ ...localState, geminiApiKey: e.target.value })}
-                />
-                <button
-                  onClick={() => setShowGeminiKey(!showGeminiKey)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  type="button"
-                >
-                  {showGeminiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {settings.hasGeminiApiKey && !localState.geminiApiKey && (
-                <p className="text-[10px] text-emerald-400 italic px-1">
-                  A Gemini key is already saved. Leave blank to keep it, or type a new one to replace.
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-white/10">
-            <Link
-              href="/settings/ai-studio"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-sm font-semibold"
-            >
-              Edit Prompt Library (Advanced)
-              <ExternalLink className="w-4 h-4 text-zinc-400" />
-            </Link>
-            <p className="text-[10px] text-zinc-500 mt-2">
-              Manage jewelry types, setups, model prompts, and toggle modifier phrases used by the Studio Photo generator.
-            </p>
-          </div>
-        </section>
-
-        {/* AI Agent Personality */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
-              AI Agent Personality
-            </h2>
-            <div className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase">
-              Brand Alignment
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                <UserCircle className="w-4 h-4 text-zinc-500" />
-                Brand Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., The Uncut Brand"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.brandName}
-                onChange={(e) => setLocalState({ ...localState, brandName: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-zinc-500" />
-                Brand Voice & Tone
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., Minimalist, Luxury, Professional, Playful"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.brandVoice}
-                onChange={(e) => setLocalState({ ...localState, brandVoice: e.target.value })}
-              />
-            </div>
-
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-zinc-500" />
-                Custom AI Instructions (Style, Theme, etc.)
-              </label>
-              <textarea
-                placeholder="e.g., Focus on sustainability. Use short, punchy sentences. Always mention the artisanal process. Avoid technical jargon."
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all min-h-[120px] resize-y"
-                value={localState.customInstructions}
-                onChange={(e) => setLocalState({ ...localState, customInstructions: e.target.value })}
-              />
-              <p className="text-[10px] text-zinc-500 italic px-1">
-                These instructions are injected into the AI&apos;s core logic to ensure every product follows your brand&apos;s unique identity.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Storage Configuration */}
-        <section className="glass rounded-2xl p-6 md:p-8 space-y-6 border border-white/10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-              <Cloud className="w-5 h-5 text-indigo-400" />
-              Cloudflare R2 Storage
-            </h2>
-            <a href="https://dash.cloudflare.com/" target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
-              Cloudflare Dashboard
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Account ID</label>
-              <input
-                type="text"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.r2AccountId}
-                onChange={(e) => setLocalState({ ...localState, r2AccountId: e.target.value })}
-              />
-              {settings.hasR2AccountId && !localState.r2AccountId && (
-                <p className="text-[10px] text-emerald-400 italic px-1">
-                  An Account ID is already saved. Leave blank to keep it.
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Bucket Name</label>
-              <input
-                type="text"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.r2BucketName}
-                onChange={(e) => setLocalState({ ...localState, r2BucketName: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Access Key ID</label>
-              <input
-                type="text"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.r2AccessKeyId}
-                onChange={(e) => setLocalState({ ...localState, r2AccessKeyId: e.target.value })}
-              />
-              {settings.hasR2AccessKeyId && !localState.r2AccessKeyId && (
-                <p className="text-[10px] text-emerald-400 italic px-1">
-                  An Access Key ID is already saved. Leave blank to keep it.
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Secret Access Key</label>
-              <input
-                type="password"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.r2SecretAccessKey}
-                onChange={(e) => setLocalState({ ...localState, r2SecretAccessKey: e.target.value })}
-              />
-              {settings.hasR2SecretAccessKey && !localState.r2SecretAccessKey && (
-                <p className="text-[10px] text-emerald-400 italic px-1">
-                  A Secret Access Key is already saved. Leave blank to keep it.
-                </p>
-              )}
-            </div>
-            <div className="md:col-span-2 space-y-2">
-              <label className="text-sm font-medium text-zinc-300">Public Bucket URL (Custom Domain)</label>
-              <input
-                type="url"
-                placeholder="https://pub-xyz.r2.dev or https://assets.yourdomain.com"
-                className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                value={localState.r2PublicUrl}
-                onChange={(e) => setLocalState({ ...localState, r2PublicUrl: e.target.value })}
-              />
-            </div>
-          </div>
-        </section>
-
-        <div className="flex justify-end pt-4 pb-20 md:pb-0">
-          <button
-            onClick={handleSave}
-            disabled={saved}
-            className="group relative bg-indigo-500 hover:bg-indigo-600 disabled:bg-emerald-500 text-white px-10 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-xl shadow-indigo-500/20 active:scale-95 overflow-hidden"
-          >
-            {saved ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 animate-in zoom-in" />
-                Configuration Saved
-              </>
-            ) : (
-              <>
-                <Save className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                Save All Credentials
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      <StickySaveBar 
+        isDirty={isDirty}
+        isSaving={isSaving}
+        onSave={handleSave}
+        onReset={handleReset}
+        saved={saved}
+      />
     </div>
   );
 }
-
