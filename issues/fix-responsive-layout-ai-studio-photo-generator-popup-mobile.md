@@ -1,0 +1,2 @@
+### Issue
+When the AI Studio Photo Generator pop-up window is opened on mobile devices, only the top section is currently visible to the user. This issue needs to address the layout problem to ensure the pop-up window is fully accessible on mobile devices.
