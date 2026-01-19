@@ -124,6 +124,7 @@ export async function POST(req: Request) {
     }
 
     // Build prompt from the canonical library.
+    // If modelImageUrl or studioImageUrl are provided, they will replace text-based prompts.
     const { promptText } = buildStudioPrompt({
       setupId: parsed.setupId,
       modelId: parsed.modelId,
@@ -135,6 +136,8 @@ export async function POST(req: Request) {
       },
       library: settings.aiStudioPromptLibrary,
       togglePhrases: settings.aiStudioTogglePhrases,
+      modelImageUrl: parsed.modelImageUrl || null,
+      studioImageUrl: parsed.studioImageUrl || null,
     });
 
     if (sessionId) {
@@ -179,6 +182,8 @@ export async function POST(req: Request) {
       inputImageUrls: parsed.inputImages.map((x) => x.url),
       prompt: promptText,
       variants: parsed.variants,
+      modelImageUrl: parsed.modelImageUrl || undefined,
+      studioImageUrl: parsed.studioImageUrl || undefined,
       openaiApiKey,
       falApiKey,
       geminiApiKey,

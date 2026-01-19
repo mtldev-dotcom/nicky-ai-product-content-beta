@@ -733,6 +733,13 @@ function AiStudioPhotoModalBody(props: {
   const [extraRimLight, setExtraRimLight] = useState(false);
   const [darkness, setDarkness] = useState<number>(40);
 
+  // Studio Assets: toggle between text model and uploaded asset
+  const [useLibraryAsset, setUseLibraryAsset] = useState(false);
+  const [selectedModelAssetId, setSelectedModelAssetId] = useState<string | null>(null);
+  const [selectedStudioAssetId, setSelectedStudioAssetId] = useState<string | null>(null);
+  const [availableAssets, setAvailableAssets] = useState<Array<{ id: string; type: 'model' | 'studio'; name: string; image_url: string; thumbnail_url?: string }>>([]);
+  const [loadingAssets, setLoadingAssets] = useState(false);
+
   // Provider overrides (defaults are wired from Settings, but user can override).
   const [provider, setProvider] = useState<ProviderId>('openai');
   const [providerModel, setProviderModel] = useState<string>('');
@@ -835,6 +842,24 @@ function AiStudioPhotoModalBody(props: {
     if (selectedImageUrls.length === 0) onClose();
   }, [selectedImageUrls.length, onClose]);
 
+  // Fetch available studio assets when library mode is enabled
+  useEffect(() => {
+    if (useLibraryAsset) {
+      setLoadingAssets(true);
+      fetch('/api/studio-assets?limit=100')
+        .then(res => res.json())
+        .then(data => {
+          setAvailableAssets(data.assets || []);
+        })
+        .catch(err => {
+          console.error('Failed to fetch assets:', err);
+        })
+        .finally(() => {
+          setLoadingAssets(false);
+        });
+    }
+  }, [useLibraryAsset]);
+
   const buildFingerprint = (variants: number) =>
     JSON.stringify({
       selectedImageUrls,
@@ -868,6 +893,10 @@ function AiStudioPhotoModalBody(props: {
       const reqFingerprint = buildFingerprint(variants);
       setLastRequestFingerprint(reqFingerprint);
 
+      // Get selected asset URLs if using library assets
+      const selectedModelAsset = availableAssets.find(a => a.id === selectedModelAssetId);
+      const selectedStudioAsset = availableAssets.find(a => a.id === selectedStudioAssetId);
+
       const res = await fetch('/api/ai/studio-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -887,6 +916,9 @@ function AiStudioPhotoModalBody(props: {
           // Provider override (server will fall back to Settings defaults when absent)
           provider,
           providerModel: providerModel || undefined,
+          // Include uploaded asset URLs if selected
+          modelImageUrl: useLibraryAsset && selectedModelAsset ? selectedModelAsset.image_url : undefined,
+          studioImageUrl: useLibraryAsset && selectedStudioAsset ? selectedStudioAsset.image_url : undefined,
         }),
       });
 
@@ -998,33 +1030,125 @@ function AiStudioPhotoModalBody(props: {
             </label>
 
             <label className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Model</span>
-              <select
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value as ModelId)}
-              >
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.id}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Model</span>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-3 h-3 rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent"
+                    checked={useLibraryAsset}
+                    onChange={(e) => {
+                      setUseLibraryAsset(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedModelAssetId(null);
+                        setSelectedStudioAssetId(null);
+                      }
+                    }}
+                  />
+                  <span className="text-[10px] text-zinc-500">Use Library</span>
+                </label>
+              </div>
+              {useLibraryAsset ? (
+                <div className="space-y-2">
+                  <select
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    value={selectedModelAssetId || ''}
+                    onChange={(e) => setSelectedModelAssetId(e.target.value || null)}
+                  >
+                    <option value="">Select a model...</option>
+                    {loadingAssets ? (
+                      <option disabled>Loading...</option>
+                    ) : (
+                      availableAssets
+                        .filter(a => a.type === 'model')
+                        .map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </option>
+                        ))
+                    )}
+                  </select>
+                  {selectedModelAssetId && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                      <img
+                        src={availableAssets.find(a => a.id === selectedModelAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedModelAssetId)?.image_url}
+                        alt="Selected model"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <select
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  value={modelId}
+                  onChange={(e) => setModelId(e.target.value as ModelId)}
+                >
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.id}
+                    </option>
+                  ))}
+                </select>
+              )}
             </label>
 
             <label className="space-y-1">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Setup</span>
-              <select
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
-                value={setupId}
-                onChange={(e) => setSetupId(e.target.value)}
-              >
-                {filteredSetups.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
+              {useLibraryAsset ? (
+                <div className="space-y-2">
+                  <select
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    value={selectedStudioAssetId || ''}
+                    onChange={(e) => setSelectedStudioAssetId(e.target.value || null)}
+                  >
+                    <option value="">Select a studio (optional)...</option>
+                    {loadingAssets ? (
+                      <option disabled>Loading...</option>
+                    ) : (
+                      availableAssets
+                        .filter(a => a.type === 'studio')
+                        .map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.name}
+                          </option>
+                        ))
+                    )}
+                  </select>
+                  {selectedStudioAssetId && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                      <img
+                        src={availableAssets.find(a => a.id === selectedStudioAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedStudioAssetId)?.image_url}
+                        alt="Selected studio"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <select
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    value={setupId}
+                    onChange={(e) => setSetupId(e.target.value)}
+                  >
+                    {filteredSetups.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <select
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/10 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  value={setupId}
+                  onChange={(e) => setSetupId(e.target.value)}
+                >
+                  {filteredSetups.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              )}
             </label>
 
             <label className="space-y-1">
