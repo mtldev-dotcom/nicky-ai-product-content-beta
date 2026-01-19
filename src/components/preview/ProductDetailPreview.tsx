@@ -144,14 +144,26 @@ export function ProductDetailPreview(props: {
               <div className="space-y-3">
                 <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-white/10 bg-black/20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={mainImg} alt="Product image" className="w-full h-full object-cover" />
+                  <img 
+                    src={mainImg} 
+                    alt="Product image" 
+                    className="w-full h-full object-cover" 
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
                 {imgs.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {imgs.slice(0, 8).map((u, idx) => (
                       <div key={`${u}-${idx}`} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 bg-black/20">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={u} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img 
+                          src={u} 
+                          alt={`Thumbnail ${idx + 1}`} 
+                          className="w-full h-full object-cover" 
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                     ))}
                   </div>

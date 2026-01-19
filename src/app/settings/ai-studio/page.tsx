@@ -8,6 +8,7 @@ import { PROMPT_LIBRARY_JSON } from '@/lib/ai/promptLibrary';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Plus, Save, Trash2, AlertCircle, RotateCcw } from 'lucide-react';
 import { z } from 'zod';
+import { useIsMobile } from '@/lib/mobile-utils';
 
 /**
  * Structured editor for the AI Studio prompt library.
@@ -127,6 +128,7 @@ export default function AiStudioSettingsPage() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore((s) => s.loadFromDb);
   const supabase = createClient();
+  const isMobile = useIsMobile();
 
   const [orgId, setOrgId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -200,56 +202,60 @@ export default function AiStudioSettingsPage() {
 
   const header = useMemo(
     () => (
-      <div className="flex items-start justify-between gap-4">
+      <div className={cn("flex items-start justify-between gap-4", isMobile && "flex-col")}>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <Link
               href="/settings"
-              className="inline-flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+              className={cn("inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors touch-target", isMobile ? "text-sm" : "text-xs")}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
               Back to Settings
             </Link>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">AI Studio Photo — Prompt Library</h1>
-          <p className="text-sm text-zinc-400">
+          <h1 className={cn("font-bold text-white", isMobile ? "text-xl" : "text-2xl md:text-3xl")}>AI Studio Photo — Prompt Library</h1>
+          <p className={cn("text-zinc-400", isMobile ? "text-xs" : "text-sm")}>
             Edit the prompt library and toggle modifier phrases used by Product → Media → AI Studio Photo.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className={cn("flex items-center gap-2", isMobile && "w-full flex-col")}>
           <button
             onClick={clearOverrides}
-            className="px-4 py-2 rounded-xl bg-white/5 text-zinc-200 hover:bg-white/10 border border-white/10 text-sm font-semibold flex items-center gap-2"
+            className={cn(
+              "rounded-xl bg-white/5 text-zinc-200 hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 touch-target-large",
+              isMobile ? "w-full px-4 py-3 text-base" : "px-4 py-2 text-sm"
+            )}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             Reset to defaults
           </button>
           <button
             onClick={handleSave}
             disabled={saved}
             className={cn(
-              "px-5 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 border transition-all",
+              "rounded-xl font-semibold flex items-center justify-center gap-2 border transition-all touch-target-large",
+              isMobile ? "w-full px-5 py-3 text-base" : "px-5 py-2 text-sm",
               saved
                 ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
                 : "bg-indigo-500 text-white border-indigo-500/30 hover:bg-indigo-600"
             )}
           >
-            <Save className="w-4 h-4" />
+            <Save className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             {saved ? 'Saved' : 'Save'}
           </button>
         </div>
       </div>
     ),
-    [clearOverrides, handleSave, saved]
+    [clearOverrides, handleSave, saved, isMobile]
   );
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className={cn("max-w-6xl space-y-6 md:space-y-8", isMobile && "pb-24")}>
       {header}
 
       {error && (
-        <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm whitespace-pre-line flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+        <div className={cn("rounded-2xl bg-red-500/10 border border-red-500/20 text-red-300 whitespace-pre-line flex items-start gap-3", isMobile ? "p-3 text-xs" : "p-4 text-sm")}>
+          <AlertCircle className={cn("mt-0.5 shrink-0", isMobile ? "w-4 h-4" : "w-5 h-5")} />
           <div>
             <div className="font-semibold">Fix validation issues</div>
             <div className="opacity-90">{error}</div>
@@ -258,33 +264,42 @@ export default function AiStudioSettingsPage() {
       )}
 
       {/* Toggle phrases */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Toggle modifier phrases</h2>
-        <p className="text-xs text-zinc-500">
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Toggle modifier phrases</h2>
+        <p className={cn("text-zinc-500", isMobile ? "text-xs" : "text-xs")}>
           These strings are injected into the final prompt when the user enables the toggle in the Studio modal.
           Guardrails (preserve identity + no watermark) are still enforced server-side.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3")}>
           <label className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Macro</span>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Macro</span>
             <textarea
-              className="w-full min-h-[90px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                isMobile ? "min-h-[100px] px-4 py-3 text-base" : "min-h-[90px] px-3 py-2 text-sm"
+              )}
               value={togglePhrases.macro}
               onChange={(e) => setTogglePhrases({ ...togglePhrases, macro: e.target.value })}
             />
           </label>
           <label className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">No fingerprints / dust</span>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>No fingerprints / dust</span>
             <textarea
-              className="w-full min-h-[90px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                isMobile ? "min-h-[100px] px-4 py-3 text-base" : "min-h-[90px] px-3 py-2 text-sm"
+              )}
               value={togglePhrases.noFingerprints}
               onChange={(e) => setTogglePhrases({ ...togglePhrases, noFingerprints: e.target.value })}
             />
           </label>
           <label className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Extra rim light</span>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Extra rim light</span>
             <textarea
-              className="w-full min-h-[90px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                isMobile ? "min-h-[100px] px-4 py-3 text-base" : "min-h-[90px] px-3 py-2 text-sm"
+              )}
               value={togglePhrases.extraRimLight}
               onChange={(e) => setTogglePhrases({ ...togglePhrases, extraRimLight: e.target.value })}
             />
@@ -293,29 +308,38 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Brand */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Brand</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Brand</h2>
+        <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
           <label className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Name</span>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Name</span>
             <input
-              className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+              )}
               value={library.brand.name}
               onChange={(e) => setLibrary({ ...library, brand: { ...library.brand, name: e.target.value } })}
             />
           </label>
           <label className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Visual style</span>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Visual style</span>
             <input
-              className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+              )}
               value={library.brand.visualStyle}
               onChange={(e) => setLibrary({ ...library, brand: { ...library.brand, visualStyle: e.target.value } })}
             />
           </label>
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Global base prompt</span>
+          <label className={cn("space-y-1", isMobile ? "" : "md:col-span-2")}>
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Global base prompt</span>
             <textarea
-              className="w-full min-h-[120px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+              className={cn(
+                "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                isMobile ? "min-h-[120px] px-4 py-3 text-base" : "min-h-[120px] px-3 py-2 text-sm"
+              )}
               value={library.brand.globalBase}
               onChange={(e) => setLibrary({ ...library, brand: { ...library.brand, globalBase: e.target.value } })}
             />
@@ -324,22 +348,28 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Jewelry types */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Jewelry types</h2>
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <div className={cn("flex items-center justify-between gap-3", isMobile && "flex-col items-stretch")}>
+          <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Jewelry types</h2>
           <button
             onClick={() => setLibrary({ ...library, jewelryTypes: [...library.jewelryTypes, `type_${library.jewelryTypes.length + 1}`] })}
-            className="px-3 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center gap-2"
+            className={cn(
+              "rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 touch-target-large",
+              isMobile ? "w-full px-4 py-3 text-base" : "px-3 py-2 text-xs"
+            )}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             Add type
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
           {library.jewelryTypes.map((t, idx) => (
             <div key={`${t}-${idx}`} className="flex items-center gap-2">
               <input
-                className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+                className={cn(
+                  "flex-1 bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
                 value={t}
                 onChange={(e) => {
                   const next = [...library.jewelryTypes];
@@ -349,10 +379,10 @@ export default function AiStudioSettingsPage() {
               />
               <button
                 onClick={() => setLibrary({ ...library, jewelryTypes: library.jewelryTypes.filter((_, i) => i !== idx) })}
-                className="p-2 rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20"
+                className={cn("rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 touch-target", isMobile ? "p-3" : "p-2")}
                 aria-label="Remove jewelry type"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
               </button>
             </div>
           ))}
@@ -360,9 +390,9 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Setups */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Setups</h2>
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <div className={cn("flex items-center justify-between gap-3", isMobile && "flex-col items-stretch")}>
+          <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Setups</h2>
           <button
             onClick={() =>
               setLibrary({
@@ -378,32 +408,38 @@ export default function AiStudioSettingsPage() {
                 ],
               })
             }
-            className="px-3 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center gap-2"
+            className={cn(
+              "rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 touch-target-large",
+              isMobile ? "w-full px-4 py-3 text-base" : "px-3 py-2 text-xs"
+            )}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             Add setup
           </button>
         </div>
 
         <div className="space-y-4">
           {library.setups.map((s, idx) => (
-            <div key={`${s.id}-${idx}`} className="rounded-2xl border border-white/10 bg-zinc-900/30 p-4 space-y-3">
+            <div key={`${s.id}-${idx}`} className={cn("rounded-2xl border border-white/10 bg-zinc-900/30 space-y-3", isMobile ? "p-3" : "p-4")}>
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-zinc-400 font-semibold">Setup #{idx + 1}</div>
+                <div className={cn("text-zinc-400 font-semibold", isMobile ? "text-sm" : "text-xs")}>Setup #{idx + 1}</div>
                 <button
                   onClick={() => setLibrary({ ...library, setups: library.setups.filter((_, i) => i !== idx) })}
-                  className="p-2 rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20"
+                  className={cn("rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 touch-target", isMobile ? "p-3" : "p-2")}
                   aria-label="Remove setup"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-3")}>
                 <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">ID</span>
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>ID</span>
                   <input
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+                    className={cn(
+                      "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono touch-target",
+                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                    )}
                     value={s.id}
                     onChange={(e) => {
                       const next = [...library.setups];
@@ -413,9 +449,12 @@ export default function AiStudioSettingsPage() {
                   />
                 </label>
                 <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Jewelry type</span>
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Jewelry type</span>
                   <select
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    className={cn(
+                      "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                    )}
                     value={s.jewelryType}
                     onChange={(e) => {
                       const next = [...library.setups];
@@ -431,9 +470,12 @@ export default function AiStudioSettingsPage() {
                   </select>
                 </label>
                 <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Title</span>
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Title</span>
                   <input
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    className={cn(
+                      "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                    )}
                     value={s.title}
                     onChange={(e) => {
                       const next = [...library.setups];
@@ -445,9 +487,12 @@ export default function AiStudioSettingsPage() {
               </div>
 
               <label className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Prompt</span>
+                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Prompt</span>
                 <textarea
-                  className="w-full min-h-[120px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  className={cn(
+                    "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                    isMobile ? "min-h-[120px] px-4 py-3 text-base" : "min-h-[120px] px-3 py-2 text-sm"
+                  )}
                   value={s.prompt}
                   onChange={(e) => {
                     const next = [...library.setups];
@@ -462,9 +507,9 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Models */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Models</h2>
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <div className={cn("flex items-center justify-between gap-3", isMobile && "flex-col items-stretch")}>
+          <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Models</h2>
           <button
             onClick={() =>
               setLibrary({
@@ -479,32 +524,38 @@ export default function AiStudioSettingsPage() {
                 ],
               })
             }
-            className="px-3 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center gap-2"
+            className={cn(
+              "rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 touch-target-large",
+              isMobile ? "w-full px-4 py-3 text-base" : "px-3 py-2 text-xs"
+            )}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             Add model
           </button>
         </div>
 
         <div className="space-y-4">
           {library.models.map((m, idx) => (
-            <div key={`${m.id}-${idx}`} className="rounded-2xl border border-white/10 bg-zinc-900/30 p-4 space-y-3">
+            <div key={`${m.id}-${idx}`} className={cn("rounded-2xl border border-white/10 bg-zinc-900/30 space-y-3", isMobile ? "p-3" : "p-4")}>
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-zinc-400 font-semibold">Model #{idx + 1}</div>
+                <div className={cn("text-zinc-400 font-semibold", isMobile ? "text-sm" : "text-xs")}>Model #{idx + 1}</div>
                 <button
                   onClick={() => setLibrary({ ...library, models: library.models.filter((_, i) => i !== idx) })}
-                  className="p-2 rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20"
+                  className={cn("rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 touch-target", isMobile ? "p-3" : "p-2")}
                   aria-label="Remove model"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
                 <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">ID</span>
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>ID</span>
                   <input
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+                    className={cn(
+                      "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono touch-target",
+                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                    )}
                     value={m.id}
                     onChange={(e) => {
                       const next = [...library.models];
@@ -514,9 +565,12 @@ export default function AiStudioSettingsPage() {
                   />
                 </label>
                 <label className="space-y-1">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Title</span>
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Title</span>
                   <input
-                    className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                    className={cn(
+                      "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                    )}
                     value={m.title}
                     onChange={(e) => {
                       const next = [...library.models];
@@ -528,9 +582,12 @@ export default function AiStudioSettingsPage() {
               </div>
 
               <label className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Prompt</span>
+                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Prompt</span>
                 <textarea
-                  className="w-full min-h-[120px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                  className={cn(
+                    "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+                    isMobile ? "min-h-[120px] px-4 py-3 text-base" : "min-h-[120px] px-3 py-2 text-sm"
+                  )}
                   value={m.prompt}
                   onChange={(e) => {
                     const next = [...library.models];
@@ -545,14 +602,17 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Optional modifiers */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Optional modifiers</h2>
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <div className={cn("flex items-center justify-between gap-3", isMobile && "flex-col items-stretch")}>
+          <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Optional modifiers</h2>
           <button
             onClick={() => setLibrary({ ...library, optionalModifiers: [...library.optionalModifiers, 'new modifier'] })}
-            className="px-3 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center gap-2"
+            className={cn(
+              "rounded-xl bg-white/5 text-white hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 touch-target-large",
+              isMobile ? "w-full px-4 py-3 text-base" : "px-3 py-2 text-xs"
+            )}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
             Add modifier
           </button>
         </div>
@@ -560,7 +620,10 @@ export default function AiStudioSettingsPage() {
           {library.optionalModifiers.map((m, idx) => (
             <div key={`${idx}-${m.slice(0, 12)}`} className="flex items-center gap-2">
               <input
-                className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                className={cn(
+                  "flex-1 bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
                 value={m}
                 onChange={(e) => {
                   const next = [...library.optionalModifiers];
@@ -570,10 +633,10 @@ export default function AiStudioSettingsPage() {
               />
               <button
                 onClick={() => setLibrary({ ...library, optionalModifiers: library.optionalModifiers.filter((_, i) => i !== idx) })}
-                className="p-2 rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20"
+                className={cn("rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/20 touch-target", isMobile ? "p-3" : "p-2")}
                 aria-label="Remove modifier"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className={cn(isMobile ? "w-5 h-5" : "w-4 h-4")} />
               </button>
             </div>
           ))}
@@ -581,12 +644,15 @@ export default function AiStudioSettingsPage() {
       </section>
 
       {/* Final prompt template */}
-      <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Final prompt template</h2>
+      <section className={cn("glass rounded-2xl border border-white/10 space-y-4", isMobile ? "p-4" : "p-6")}>
+        <h2 className={cn("font-semibold text-white", isMobile ? "text-base" : "text-lg")}>Final prompt template</h2>
         <label className="space-y-1">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Description</span>
+          <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Description</span>
           <textarea
-            className="w-full min-h-[80px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+            className={cn(
+              "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30",
+              isMobile ? "min-h-[100px] px-4 py-3 text-base" : "min-h-[80px] px-3 py-2 text-sm"
+            )}
             value={library.finalPromptTemplate.description}
             onChange={(e) =>
               setLibrary({ ...library, finalPromptTemplate: { ...library.finalPromptTemplate, description: e.target.value } })
@@ -594,19 +660,50 @@ export default function AiStudioSettingsPage() {
           />
         </label>
         <label className="space-y-1">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Template</span>
+          <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Template</span>
           <textarea
-            className="w-full min-h-[140px] bg-zinc-900/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono"
+            className={cn(
+              "w-full bg-zinc-900/50 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono",
+              isMobile ? "min-h-[160px] px-4 py-3 text-base" : "min-h-[140px] px-3 py-2 text-sm"
+            )}
             value={library.finalPromptTemplate.template}
             onChange={(e) =>
               setLibrary({ ...library, finalPromptTemplate: { ...library.finalPromptTemplate, template: e.target.value } })
             }
           />
-          <p className="text-[10px] text-zinc-500">
+          <p className={cn("text-zinc-500", isMobile ? "text-xs" : "text-[10px]")}>
             Keep placeholders: <span className="font-mono">{'{GLOBAL_BASE} {SETUP_PROMPT} {MODEL_PROMPT} {TOGGLES_AND_MODIFIERS}'}</span>
           </p>
         </label>
       </section>
+
+      {/* Mobile: Sticky Save Button */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 p-4 pb-safe">
+          <div className="max-w-6xl mx-auto flex gap-3">
+            <button
+              onClick={clearOverrides}
+              className="flex-1 touch-target-large rounded-xl bg-white/5 text-zinc-200 hover:bg-white/10 border border-white/10 font-semibold flex items-center justify-center gap-2 text-base"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Reset
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saved}
+              className={cn(
+                "flex-1 touch-target-large rounded-xl font-semibold flex items-center justify-center gap-2 border transition-all text-base",
+                saved
+                  ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"
+                  : "bg-indigo-500 text-white border-indigo-500/30 hover:bg-indigo-600"
+              )}
+            >
+              <Save className="w-5 h-5" />
+              {saved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
