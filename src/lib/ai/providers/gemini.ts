@@ -17,8 +17,10 @@ export async function generateWithGemini(params: {
   inputImageUrls: string[];
   prompt: string;
   variants: number;
+  modelImageUrl?: string;
+  studioImageUrl?: string;
 }): Promise<GeneratedImage[]> {
-  const { apiKey, inputImageUrls, prompt, variants } = params;
+  const { apiKey, inputImageUrls, prompt, variants, modelImageUrl, studioImageUrl } = params;
   if (!apiKey) {
     return placeholderOutputs({ inputImageUrls, variants, provider: 'gemini' });
   }
@@ -36,29 +38,67 @@ export async function generateWithGemini(params: {
 
   const outputs: GeneratedImage[] = [];
 
-  for (const imageUrl of inputImageUrls) {
-    // Fetch the image bytes once per input.
-    const imgRes = await fetch(imageUrl);
-    if (!imgRes.ok) {
-      continue;
+  // Helper to fetch and convert image to base64
+  const fetchImageAsBase64 = async (url: string): Promise<{ mimeType: string; data: string } | null> => {
+    try {
+      const imgRes = await fetch(url);
+      if (!imgRes.ok) return null;
+      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      const base64 = buf.toString('base64');
+      return { mimeType: contentType, data: base64 };
+    } catch {
+      return null;
     }
-    const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
-    const buf = Buffer.from(await imgRes.arrayBuffer());
-    const base64 = buf.toString('base64');
+  };
+
+  for (const imageUrl of inputImageUrls) {
+    // Fetch product image
+    const productImage = await fetchImageAsBase64(imageUrl);
+    if (!productImage) continue;
+
+    // Build contents array: prompt + product image + optional model/studio images
+    const contents: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: productImage.mimeType,
+          data: productImage.data,
+        },
+      },
+    ];
+
+    // Add model image if provided
+    if (modelImageUrl) {
+      const modelImage = await fetchImageAsBase64(modelImageUrl);
+      if (modelImage) {
+        contents.push({
+          inlineData: {
+            mimeType: modelImage.mimeType,
+            data: modelImage.data,
+          },
+        });
+      }
+    }
+
+    // Add studio image if provided
+    if (studioImageUrl) {
+      const studioImage = await fetchImageAsBase64(studioImageUrl);
+      if (studioImage) {
+        contents.push({
+          inlineData: {
+            mimeType: studioImage.mimeType,
+            data: studioImage.data,
+          },
+        });
+      }
+    }
 
     for (let i = 0; i < variants; i++) {
       try {
         const response = (await ai.models.generateContent({
           model,
-          contents: [
-            { text: prompt },
-            {
-              inlineData: {
-                mimeType: contentType,
-                data: base64,
-              },
-            },
-          ],
+          contents,
         })) as unknown as {
           candidates?: Array<{
             content?: {
@@ -70,7 +110,7 @@ export async function generateWithGemini(params: {
         const parts = response?.candidates?.[0]?.content?.parts || [];
         for (const part of parts) {
           const data = part.inlineData?.data;
-          const mimeType = part.inlineData?.mimeType || contentType;
+          const mimeType = part.inlineData?.mimeType || productImage.mimeType;
           if (typeof data === 'string' && data.length > 0) {
             outputs.push({ kind: 'base64', dataBase64: data, mimeType });
           }

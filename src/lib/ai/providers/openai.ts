@@ -17,6 +17,8 @@ export async function generateWithOpenAI(params: {
   inputImageUrls: string[];
   prompt: string;
   variants: number;
+  modelImageUrl?: string;
+  studioImageUrl?: string;
 }): Promise<GeneratedImage[]> {
   const { apiKey, inputImageUrls, prompt, variants } = params;
 
@@ -26,6 +28,7 @@ export async function generateWithOpenAI(params: {
 
   // Placeholder for now (keeps the integration path stable).
   // We intentionally do NOT attempt to call an API with unknown requirements here.
+  // When implementing, modelImageUrl and studioImageUrl will be used to combine images.
   return placeholderOutputs({ inputImageUrls, prompt, variants, provider: 'openai' });
 }
 

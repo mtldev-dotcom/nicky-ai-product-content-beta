@@ -67,6 +67,10 @@ export const StudioGenerateRequestSchema = z.object({
   // Provider override (optional; server can fall back to org defaults)
   provider: z.enum(["openai", "fal", "gemini"]).optional(),
   providerModel: z.string().trim().min(1).max(200).optional(),
+
+  // Optional: uploaded model or studio image URLs (replaces text-based model prompt)
+  modelImageUrl: UrlSchema.optional(),
+  studioImageUrl: UrlSchema.optional(),
 });
 
 export type StudioGenerateRequest = z.infer<typeof StudioGenerateRequestSchema>;
@@ -159,5 +163,25 @@ export const IngestResponseSchema = z.object({
 });
 
 export type IngestResponse = z.infer<typeof IngestResponseSchema>;
+
+// --- Studio Assets (model/studio photo library) ---
+
+export const StudioAssetUploadSchema = z.object({
+  type: z.enum(['model', 'studio']),
+  name: z.string().min(1).max(100),
+  tags: z.array(z.string().max(50)).optional(),
+  description: z.string().max(500).optional(),
+});
+
+export type StudioAssetUpload = z.infer<typeof StudioAssetUploadSchema>;
+
+export const StudioAssetListQuerySchema = z.object({
+  type: z.enum(['model', 'studio']).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  search: z.string().max(200).optional(),
+});
+
+export type StudioAssetListQuery = z.infer<typeof StudioAssetListQuerySchema>;
 
 

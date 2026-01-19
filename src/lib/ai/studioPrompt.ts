@@ -86,6 +86,8 @@ export function buildStudioPrompt(params: {
   options: StudioPromptOptions;
   library?: unknown | null;
   togglePhrases?: StudioTogglePhrases | null;
+  modelImageUrl?: string | null;
+  studioImageUrl?: string | null;
 }): { promptText: string; setupTitle: string; modelTitle: string } {
   const lib = coerceLibrary(params.library);
   const phrases = params.togglePhrases ?? DEFAULT_STUDIO_TOGGLE_PHRASES;
@@ -99,10 +101,23 @@ export function buildStudioPrompt(params: {
   const togglesAndModifiers = buildTogglesAndModifiers(params.options, phrases);
 
   const template = lib.finalPromptTemplate.template;
+  
+  // If modelImageUrl is provided, use minimal model prompt (image will be provided separately)
+  // Otherwise, use the full text-based model prompt
+  const modelPrompt = params.modelImageUrl 
+    ? 'Use the provided model image as reference for the human model appearance and pose.'
+    : model.prompt;
+  
+  // If studioImageUrl is provided, use minimal setup prompt (image will be provided separately)
+  // Otherwise, use the full text-based setup prompt
+  const setupPrompt = params.studioImageUrl
+    ? 'Use the provided studio image as reference for the background and lighting setup.'
+    : setup.prompt;
+
   const promptText = template
     .replace('{GLOBAL_BASE}', lib.brand.globalBase)
-    .replace('{SETUP_PROMPT}', setup.prompt)
-    .replace('{MODEL_PROMPT}', model.prompt)
+    .replace('{SETUP_PROMPT}', setupPrompt)
+    .replace('{MODEL_PROMPT}', modelPrompt)
     .replace('{TOGGLES_AND_MODIFIERS}', togglesAndModifiers);
 
   return { promptText, setupTitle: setup.title, modelTitle: model.title };

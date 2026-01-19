@@ -53,8 +53,10 @@ export async function generateWithFal(params: {
   inputImageUrls: string[];
   prompt: string;
   variants: number;
+  modelImageUrl?: string;
+  studioImageUrl?: string;
 }): Promise<GeneratedImage[]> {
-  const { apiKey, inputImageUrls, prompt, variants } = params;
+  const { apiKey, inputImageUrls, prompt, variants, modelImageUrl, studioImageUrl } = params;
   if (!apiKey) {
     return placeholderOutputs({ inputImageUrls, variants, provider: 'fal' });
   }
@@ -64,32 +66,45 @@ export async function generateWithFal(params: {
 
   const model = params.model || 'fal-ai/flux/dev/image-to-image';
 
+  // Build combined image array: product images + optional model/studio images
+  const buildImageArray = (productImageUrl: string): string[] => {
+    const images: string[] = [productImageUrl];
+    // Add model image if provided (for human model reference)
+    if (modelImageUrl) images.push(modelImageUrl);
+    // Add studio image if provided (for background/lighting reference)
+    if (studioImageUrl) images.push(studioImageUrl);
+    return images;
+  };
+
   const outputs: GeneratedImage[] = [];
   for (const imageUrl of inputImageUrls) {
     for (let i = 0; i < variants; i++) {
       try {
+        const combinedImages = buildImageArray(imageUrl);
+        
         const result = (await fal.run(model, {
           input:
-            model === 'fal-ai/flux-2/edit'
+            model === 'fal-ai/flux-2/edit' || combinedImages.length > 1
               ? {
                   /**
                    * FLUX.2 edit schema (from fal docs):
                    * - required: prompt, image_urls (max 4)
                    * - optional: num_images (default 1)
                    *
-                   * We send exactly 1 input image per call to keep the app’s variant logic predictable.
+                   * For multi-image support, use image_urls array.
+                   * Limit to max 4 images as per fal API.
                    */
                   prompt,
-                  image_urls: [imageUrl],
+                  image_urls: combinedImages.slice(0, 4),
                   num_images: 1,
                 }
               : {
                   /**
                    * Common image-to-image schema used by many fal models.
+                   * Single image URL for models that don't support multiple images.
                    */
                   prompt,
                   image_url: imageUrl,
-                  // Some models accept `num_images`. We still request 1 per call for predictable IDs.
                   num_images: 1,
                 },
         })) as unknown as { images?: Array<{ url?: string }> };

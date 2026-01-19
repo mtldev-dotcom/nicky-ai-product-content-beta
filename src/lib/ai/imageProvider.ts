@@ -27,6 +27,13 @@ export type GenerateStudioImagesParams = {
   variants: number;
 
   /**
+   * Optional: Model or studio image URLs to use as additional input images.
+   * These will be combined with inputImageUrls (product images) for multi-image generation.
+   */
+  modelImageUrl?: string | null;
+  studioImageUrl?: string | null;
+
+  /**
    * Provider credentials (server-only).
    * - These should come from decrypted org settings or env vars.
    */
@@ -43,6 +50,10 @@ export async function generateStudioImages(params: GenerateStudioImagesParams): 
   const prompt = (params.prompt || '').trim();
   if (!prompt) throw new Error('Missing prompt');
 
+  // Combine product images with optional model/studio images
+  // For now, we'll pass model/studio URLs separately to providers
+  // Providers can decide how to combine them (some support multiple images, others may need different handling)
+
   switch (params.provider) {
     case 'fal':
       return generateWithFal({
@@ -51,6 +62,8 @@ export async function generateStudioImages(params: GenerateStudioImagesParams): 
         inputImageUrls,
         prompt,
         variants,
+        modelImageUrl: params.modelImageUrl || undefined,
+        studioImageUrl: params.studioImageUrl || undefined,
       });
     case 'gemini':
       return generateWithGemini({
@@ -59,6 +72,8 @@ export async function generateStudioImages(params: GenerateStudioImagesParams): 
         inputImageUrls,
         prompt,
         variants,
+        modelImageUrl: params.modelImageUrl || undefined,
+        studioImageUrl: params.studioImageUrl || undefined,
       });
     case 'openai':
     default:
@@ -68,6 +83,8 @@ export async function generateStudioImages(params: GenerateStudioImagesParams): 
         inputImageUrls,
         prompt,
         variants,
+        modelImageUrl: params.modelImageUrl || undefined,
+        studioImageUrl: params.studioImageUrl || undefined,
       });
   }
 }

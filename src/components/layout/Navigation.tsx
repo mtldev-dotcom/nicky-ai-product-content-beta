@@ -13,7 +13,8 @@ import {
   Eye,
   LogOut,
   BarChart3,
-  Sparkles
+  Sparkles,
+  UserCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from '@/app/login/actions';
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { icon: Languages, label: 'Details', href: '/product-details' },
   { icon: Eye, label: 'Preview', href: '/preview' },
   { icon: ImageIcon, label: 'Media', href: '/media' },
+  { icon: UserCircle, label: 'Assets', href: '/studio-assets' },
   { icon: Layers, label: 'Variants', href: '/variants' },
   { icon: Database, label: 'JSON', href: '/json' },
   { icon: BarChart3, label: 'Usage', href: '/usage' },
