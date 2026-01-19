@@ -267,6 +267,184 @@
 
 ---
 
+## How to Use Models or Studios with Selected Products
+
+### Overview
+
+The AI Studio Photo Generator allows you to combine **uploaded model/studio photos** with **selected product images** to create professional studio photography. This feature enables you to:
+
+1. Upload reusable model photos (human models wearing jewelry)
+2. Upload reusable studio setup photos (backgrounds, lighting setups)
+3. Select these assets when generating studio photos for your products
+4. Combine product images + model images + studio images in a single generation
+
+### Step-by-Step Workflow
+
+#### Step 1: Upload Model/Studio Assets to Library
+
+1. Navigate to **Studio Assets** page (or `/studio-assets` route)
+2. Click **"Upload New Asset"** button
+3. Choose asset type:
+   - **Model**: Photos of human models (hands, faces, full body) - used for wearable jewelry shots
+   - **Studio**: Background/lighting setup photos - used for product-only shots
+4. Upload image file (max 10MB, JPEG/PNG/WebP)
+5. Enter a name and optional tags/description
+6. Save the asset
+
+**Note**: Assets are organization-scoped and reusable across all products.
+
+#### Step 2: Select Product Images
+
+1. Go to **Media Management** page (`/media`)
+2. Enable **Selection Mode** (checkbox icon in toolbar)
+3. Click on product images to select them (checkboxes appear)
+4. Selected images will show a purple ring indicator
+
+#### Step 3: Open AI Studio Photo Generator
+
+1. With product images selected, click **"AI Studio Photo"** button in the toolbar
+2. The modal opens showing:
+   - Selected product images (left sidebar on desktop, horizontal scroll on mobile)
+   - Generation settings (jewelry type, model, setup, provider, etc.)
+
+#### Step 4: Enable Library Asset Mode
+
+1. In the **Model** section, check the **"Use Library"** checkbox
+2. This switches from text-based model selection to uploaded asset selection
+
+#### Step 5: Select Model Asset (Optional)
+
+1. When "Use Library" is enabled, a dropdown appears for **Model** selection
+2. Select an uploaded model asset from the dropdown
+3. A preview thumbnail appears below showing the selected model
+4. **Note**: Model assets are only used when generating wearable jewelry shots (rings on hands, necklaces on necks, etc.)
+
+#### Step 6: Select Studio Asset (Optional)
+
+1. When "Use Library" is enabled, a dropdown appears for **Studio** selection (in Setup section)
+2. Select an uploaded studio asset from the dropdown
+3. A preview thumbnail appears below showing the selected studio
+4. **Note**: Studio assets define the background and lighting setup
+
+#### Step 7: Configure Other Settings
+
+- **Jewelry Type**: ring, bracelet, chain, pendant, earring
+- **Setup**: Choose a setup (filtered based on jewelry type and model selection)
+- **Provider**: OpenAI, FAL, or Gemini
+- **Provider Model**: Specific model version
+- **Features**: Macro close-up, No fingerprints/dust, Extra rim light
+- **Background Darkness**: Slider (0-100)
+
+#### Step 8: Generate Studio Photos
+
+1. Click **"Generate"** (1 variant) or **"Generate Variants"** (3 variants)
+2. The system combines:
+   - **Product images** (your selected product photos)
+   - **Model image** (if selected from library)
+   - **Studio image** (if selected from library)
+3. Generated images appear in the **Results** section
+4. Generated images are automatically added to your product media gallery
+
+### How It Works Technically
+
+#### Image Combination Flow
+
+1. **Frontend** (`src/app/media/page.tsx`):
+   - User selects product images and library assets
+   - On "Generate", sends request with:
+     - `inputImages`: Array of product image URLs
+     - `modelImageUrl`: Selected model asset URL (if any)
+     - `studioImageUrl`: Selected studio asset URL (if any)
+
+2. **API Route** (`src/app/api/ai/studio-generate/route.ts`):
+   - Receives product images + optional model/studio URLs
+   - Builds prompt using `buildStudioPrompt()`:
+     - If `modelImageUrl` provided → uses minimal text prompt (image replaces text description)
+     - If `studioImageUrl` provided → uses minimal setup prompt (image replaces text description)
+   - Calls image provider with all images
+
+3. **Prompt Building** (`src/lib/ai/studioPrompt.ts`):
+   ```typescript
+   // When modelImageUrl is provided:
+   modelPrompt = 'Use the provided model image as reference for the human model appearance and pose.'
+   
+   // When studioImageUrl is provided:
+   setupPrompt = 'Use the provided studio image as reference for the background and lighting setup.'
+   ```
+
+4. **Image Providers** (`src/lib/ai/providers/*.ts`):
+   - **FAL**: Combines all images in `image_urls` array (supports up to 4 images)
+   - **Gemini**: Adds model/studio images as `inlineData` parts in `contents` array
+   - **OpenAI**: Accepts parameters (implementation may vary by model)
+
+#### Example Request Payload
+
+```json
+{
+  "productId": "uuid-here",
+  "inputImages": [
+    { "id": "url1", "url": "https://..." },
+    { "id": "url2", "url": "https://..." }
+  ],
+  "jewelryType": "ring",
+  "setupId": "ring_setup_01_concrete_pedestal",
+  "modelId": "none",  // Ignored when modelImageUrl provided
+  "options": {
+    "macro": false,
+    "noFingerprints": true,
+    "extraRimLight": false,
+    "darkness": 40
+  },
+  "variants": 1,
+  "provider": "gemini",
+  "providerModel": "gemini-3-pro-image-preview",
+  "modelImageUrl": "https://r2.dev/user-id/model-asset.jpg",  // Optional
+  "studioImageUrl": "https://r2.dev/user-id/studio-asset.jpg"  // Optional
+}
+```
+
+### Use Cases
+
+#### Use Case 1: Product + Model (Wearable Jewelry)
+- **Product**: Ring photo
+- **Model**: Hand model photo from library
+- **Result**: Ring composited onto the model's hand with consistent lighting
+
+#### Use Case 2: Product + Studio (Product-Only Shot)
+- **Product**: Necklace photo
+- **Studio**: Professional lighting setup photo from library
+- **Result**: Necklace composited into the studio background with matching lighting
+
+#### Use Case 3: Product + Model + Studio (Full Control)
+- **Product**: Bracelet photo
+- **Model**: Wrist model photo
+- **Studio**: Background setup photo
+- **Result**: Bracelet on model's wrist, composited into studio background
+
+#### Use Case 4: Product Only (Text-Based Prompts)
+- **Product**: Earring photo
+- **Model**: Text-based model description (e.g., "model_01_minimalist")
+- **Studio**: Text-based setup description (e.g., "Ring — Concrete Pedestal")
+- **Result**: AI generates model and studio based on text prompts
+
+### Tips & Best Practices
+
+1. **Model Assets**: Upload high-quality photos of hands, wrists, necks, or full body shots depending on jewelry type
+2. **Studio Assets**: Upload clean background/lighting setups that match your brand aesthetic
+3. **Naming**: Use descriptive names for assets (e.g., "Female Hand - Right", "Dark Studio - Industrial")
+4. **Reusability**: Upload once, use across multiple products
+5. **Testing**: Try different combinations of model + studio to find what works best for your products
+6. **Provider Selection**: Different providers (FAL, Gemini, OpenAI) may handle multi-image inputs differently
+
+### Troubleshooting
+
+- **No assets showing**: Ensure you've uploaded assets to `/studio-assets` page first
+- **Generation fails**: Check that provider API keys are configured in Settings
+- **Images not combining**: Verify that the selected provider supports multi-image inputs
+- **Preview not showing**: Check that asset thumbnails are loading correctly
+
+---
+
 ## Notes & Issues
 
 ### Issues Encountered

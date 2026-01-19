@@ -1005,10 +1005,9 @@ function AiStudioPhotoModalBody(props: {
   const [extraRimLight, setExtraRimLight] = useState(false);
   const [darkness, setDarkness] = useState<number>(40);
 
-  // Studio Assets: toggle between text model and uploaded asset
-  const [useLibraryAsset, setUseLibraryAsset] = useState(false);
-  const [selectedModelAssetId, setSelectedModelAssetId] = useState<string | null>(null);
-  const [selectedStudioAssetId, setSelectedStudioAssetId] = useState<string | null>(null);
+  // Studio Assets: combined models/studios selection
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [customPromptInstructions, setCustomPromptInstructions] = useState<string>('');
   const [availableAssets, setAvailableAssets] = useState<Array<{ id: string; type: 'model' | 'studio'; name: string; image_url: string; thumbnail_url?: string }>>([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
 
@@ -1114,23 +1113,21 @@ function AiStudioPhotoModalBody(props: {
     if (selectedImageUrls.length === 0) onClose();
   }, [selectedImageUrls.length, onClose]);
 
-  // Fetch available studio assets when library mode is enabled
+  // Fetch available studio assets on modal open
   useEffect(() => {
-    if (useLibraryAsset) {
-      setLoadingAssets(true);
-      fetch('/api/studio-assets?limit=100')
-        .then(res => res.json())
-        .then(data => {
-          setAvailableAssets(data.assets || []);
-        })
-        .catch(err => {
-          console.error('Failed to fetch assets:', err);
-        })
-        .finally(() => {
-          setLoadingAssets(false);
-        });
-    }
-  }, [useLibraryAsset]);
+    setLoadingAssets(true);
+    fetch('/api/studio-assets?limit=100')
+      .then(res => res.json())
+      .then(data => {
+        setAvailableAssets(data.assets || []);
+      })
+      .catch(err => {
+        console.error('Failed to fetch assets:', err);
+      })
+      .finally(() => {
+        setLoadingAssets(false);
+      });
+  }, []);
 
   const buildFingerprint = (variants: number) =>
     JSON.stringify({
@@ -1145,6 +1142,8 @@ function AiStudioPhotoModalBody(props: {
       provider,
       providerModel,
       variants,
+      selectedAssetId,
+      customPromptInstructions,
     });
 
   const runGenerate = async (variants: number) => {
@@ -1165,9 +1164,8 @@ function AiStudioPhotoModalBody(props: {
       const reqFingerprint = buildFingerprint(variants);
       setLastRequestFingerprint(reqFingerprint);
 
-      // Get selected asset URLs if using library assets
-      const selectedModelAsset = availableAssets.find(a => a.id === selectedModelAssetId);
-      const selectedStudioAsset = availableAssets.find(a => a.id === selectedStudioAssetId);
+      // Get selected asset if any
+      const selectedAsset = selectedAssetId ? availableAssets.find(a => a.id === selectedAssetId) : null;
 
       const res = await fetch('/api/ai/studio-generate', {
         method: 'POST',
@@ -1189,8 +1187,11 @@ function AiStudioPhotoModalBody(props: {
           provider,
           providerModel: providerModel || undefined,
           // Include uploaded asset URLs if selected
-          modelImageUrl: useLibraryAsset && selectedModelAsset ? selectedModelAsset.image_url : undefined,
-          studioImageUrl: useLibraryAsset && selectedStudioAsset ? selectedStudioAsset.image_url : undefined,
+          modelImageUrl: selectedAsset && selectedAsset.type === 'model' ? selectedAsset.image_url : undefined,
+          studioImageUrl: selectedAsset && selectedAsset.type === 'studio' ? selectedAsset.image_url : undefined,
+          // Custom prompt instructions and asset ID
+          customPromptInstructions: customPromptInstructions.trim() || undefined,
+          selectedAssetId: selectedAssetId || undefined,
         }),
       });
 
@@ -1222,7 +1223,8 @@ function AiStudioPhotoModalBody(props: {
 
   const canGenerate =
     selectedImageUrls.length > 0 &&
-    setupId.length > 0 &&
+    // If asset selected, setupId not required; if none selected, setupId required
+    (selectedAssetId ? true : setupId.length > 0) &&
     // If no providers have keys, block generation and push the user to Settings.
     availableProviders.length > 0;
 
@@ -1347,64 +1349,84 @@ function AiStudioPhotoModalBody(props: {
               </label>
 
               <label className="space-y-1">
-                <div className="flex items-center justify-between mb-1">
-                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Model</span>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      className={cn("rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent", isMobile ? "w-5 h-5" : "w-3 h-3")}
-                      checked={useLibraryAsset}
-                      onChange={(e) => {
-                        setUseLibraryAsset(e.target.checked);
-                        if (!e.target.checked) {
-                          setSelectedModelAssetId(null);
-                          setSelectedStudioAssetId(null);
-                        }
-                      }}
-                    />
-                    <span className={cn("text-zinc-500", isMobile ? "text-xs" : "text-[10px]")}>Use Library</span>
-                  </label>
-                </div>
-                {useLibraryAsset ? (
+                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Model / Studio</span>
+                <select
+                  className={cn(
+                    "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                    isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                  )}
+                  value={selectedAssetId || 'none'}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'none') {
+                      setSelectedAssetId(null);
+                      setCustomPromptInstructions('');
+                    } else {
+                      setSelectedAssetId(value);
+                    }
+                  }}
+                >
+                  <option value="none">None</option>
+                  {loadingAssets ? (
+                    <option disabled>Loading...</option>
+                  ) : (
+                    <>
+                      {availableAssets.filter(a => a.type === 'model').length > 0 && (
+                        <optgroup label="Models">
+                          {availableAssets
+                            .filter(a => a.type === 'model')
+                            .map((asset) => (
+                              <option key={asset.id} value={asset.id}>
+                                {asset.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
+                      {availableAssets.filter(a => a.type === 'studio').length > 0 && (
+                        <optgroup label="Studios">
+                          {availableAssets
+                            .filter(a => a.type === 'studio')
+                            .map((asset) => (
+                              <option key={asset.id} value={asset.id}>
+                                {asset.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
+                    </>
+                  )}
+                </select>
+                {selectedAssetId && (
                   <div className="space-y-2">
-                    <select
-                      className={cn(
-                        "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
-                        isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
-                      )}
-                      value={selectedModelAssetId || ''}
-                      onChange={(e) => setSelectedModelAssetId(e.target.value || null)}
-                    >
-                      <option value="">Select a model...</option>
-                      {loadingAssets ? (
-                        <option disabled>Loading...</option>
-                      ) : (
-                        availableAssets
-                          .filter(a => a.type === 'model')
-                          .map((asset) => (
-                            <option key={asset.id} value={asset.id}>
-                              {asset.name}
-                            </option>
-                          ))
-                      )}
-                    </select>
-                    {selectedModelAssetId && (
-                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
-                        <img
-                          src={availableAssets.find(a => a.id === selectedModelAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedModelAssetId)?.image_url}
-                          alt="Selected model"
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    )}
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                      <img
+                        src={availableAssets.find(a => a.id === selectedAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedAssetId)?.image_url}
+                        alt="Selected asset"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                    <label className="space-y-1">
+                      <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Custom Prompt Instructions</span>
+                      <textarea
+                        className={cn(
+                          "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target resize-none",
+                          isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                        )}
+                        rows={isMobile ? 4 : 3}
+                        placeholder="Enter custom prompt instructions for this asset..."
+                        value={customPromptInstructions}
+                        onChange={(e) => setCustomPromptInstructions(e.target.value)}
+                      />
+                    </label>
                   </div>
-                ) : (
+                )}
+                {(!selectedAssetId || selectedAssetId === 'none') && (
                   <select
                     className={cn(
                       "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
-                      isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                      isMobile ? "px-4 py-3 text-base mt-2" : "px-3 py-2 text-sm mt-2"
                     )}
                     value={modelId}
                     onChange={(e) => setModelId(e.target.value as ModelId)}
@@ -1418,58 +1440,9 @@ function AiStudioPhotoModalBody(props: {
                 )}
               </label>
 
-              <label className="space-y-1">
-                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Setup</span>
-                {useLibraryAsset ? (
-                  <div className="space-y-2">
-                    <select
-                      className={cn(
-                        "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
-                        isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
-                      )}
-                      value={selectedStudioAssetId || ''}
-                      onChange={(e) => setSelectedStudioAssetId(e.target.value || null)}
-                    >
-                      <option value="">Select a studio (optional)...</option>
-                      {loadingAssets ? (
-                        <option disabled>Loading...</option>
-                      ) : (
-                        availableAssets
-                          .filter(a => a.type === 'studio')
-                          .map((asset) => (
-                            <option key={asset.id} value={asset.id}>
-                              {asset.name}
-                            </option>
-                          ))
-                      )}
-                    </select>
-                    {selectedStudioAssetId && (
-                      <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
-                        <img
-                          src={availableAssets.find(a => a.id === selectedStudioAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedStudioAssetId)?.image_url}
-                          alt="Selected studio"
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      </div>
-                    )}
-                    <select
-                      className={cn(
-                        "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
-                        isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
-                      )}
-                      value={setupId}
-                      onChange={(e) => setSetupId(e.target.value)}
-                    >
-                      {filteredSetups.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : (
+              {(!selectedAssetId || selectedAssetId === 'none') && (
+                <label className="space-y-1">
+                  <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Setup</span>
                   <select
                     className={cn(
                       "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
@@ -1484,8 +1457,8 @@ function AiStudioPhotoModalBody(props: {
                       </option>
                     ))}
                   </select>
-                )}
-              </label>
+                </label>
+              )}
 
               <label className="space-y-1">
                 <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Provider</span>

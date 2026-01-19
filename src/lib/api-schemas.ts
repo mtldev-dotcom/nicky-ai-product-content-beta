@@ -71,6 +71,11 @@ export const StudioGenerateRequestSchema = z.object({
   // Optional: uploaded model or studio image URLs (replaces text-based model prompt)
   modelImageUrl: UrlSchema.optional(),
   studioImageUrl: UrlSchema.optional(),
+  
+  // Optional: custom prompt instructions when asset is selected
+  customPromptInstructions: z.string().trim().max(5000).optional(),
+  // Optional: ID of selected asset (for tracking/logging)
+  selectedAssetId: z.string().uuid().optional(),
 });
 
 export type StudioGenerateRequest = z.infer<typeof StudioGenerateRequestSchema>;

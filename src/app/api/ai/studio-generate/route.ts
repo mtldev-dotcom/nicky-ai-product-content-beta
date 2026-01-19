@@ -123,8 +123,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Organization settings not found' }, { status: 500 });
     }
 
+    // If selectedAssetId is provided, look up the asset to determine type and get image URL
+    let modelImageUrl = parsed.modelImageUrl || null;
+    let studioImageUrl = parsed.studioImageUrl || null;
+
+    if (parsed.selectedAssetId) {
+      const { data: asset, error: assetError } = await supabase
+        .from('studio_assets')
+        .select('id, type, image_url, organization_id')
+        .eq('id', parsed.selectedAssetId)
+        .eq('organization_id', orgId)
+        .single();
+
+      if (!assetError && asset) {
+        if (asset.type === 'model') {
+          modelImageUrl = asset.image_url;
+        } else if (asset.type === 'studio') {
+          studioImageUrl = asset.image_url;
+        }
+      }
+    }
+
     // Build prompt from the canonical library.
     // If modelImageUrl or studioImageUrl are provided, they will replace text-based prompts.
+    // If customPromptInstructions are provided, they will replace the entire prompt template.
     const { promptText } = buildStudioPrompt({
       setupId: parsed.setupId,
       modelId: parsed.modelId,
@@ -136,8 +158,9 @@ export async function POST(req: Request) {
       },
       library: settings.aiStudioPromptLibrary,
       togglePhrases: settings.aiStudioTogglePhrases,
-      modelImageUrl: parsed.modelImageUrl || null,
-      studioImageUrl: parsed.studioImageUrl || null,
+      modelImageUrl,
+      studioImageUrl,
+      customPromptInstructions: parsed.customPromptInstructions || null,
     });
 
     if (sessionId) {
@@ -182,8 +205,8 @@ export async function POST(req: Request) {
       inputImageUrls: parsed.inputImages.map((x) => x.url),
       prompt: promptText,
       variants: parsed.variants,
-      modelImageUrl: parsed.modelImageUrl || undefined,
-      studioImageUrl: parsed.studioImageUrl || undefined,
+      modelImageUrl: modelImageUrl || undefined,
+      studioImageUrl: studioImageUrl || undefined,
       openaiApiKey,
       falApiKey,
       geminiApiKey,

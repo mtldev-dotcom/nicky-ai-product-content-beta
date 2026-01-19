@@ -88,6 +88,7 @@ export function buildStudioPrompt(params: {
   togglePhrases?: StudioTogglePhrases | null;
   modelImageUrl?: string | null;
   studioImageUrl?: string | null;
+  customPromptInstructions?: string | null;
 }): { promptText: string; setupTitle: string; modelTitle: string } {
   const lib = coerceLibrary(params.library);
   const phrases = params.togglePhrases ?? DEFAULT_STUDIO_TOGGLE_PHRASES;
@@ -97,6 +98,15 @@ export function buildStudioPrompt(params: {
 
   const model = getModelById(params.modelId, lib);
   if (!model) throw new Error(`Unknown modelId: ${params.modelId}`);
+
+  // If custom prompt instructions are provided, use them as the complete prompt
+  if (params.customPromptInstructions && params.customPromptInstructions.trim().length > 0) {
+    return { 
+      promptText: params.customPromptInstructions.trim(), 
+      setupTitle: setup.title, 
+      modelTitle: model.title 
+    };
+  }
 
   const togglesAndModifiers = buildTogglesAndModifiers(params.options, phrases);
 
