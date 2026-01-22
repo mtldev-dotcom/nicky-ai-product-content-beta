@@ -1269,41 +1269,42 @@ function AiStudioPhotoModalBody(props: {
 
       {/* Selected images section - Different layout for mobile vs desktop */}
       {isMobile ? (
-        <div className="space-y-3">
-          <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Selected images</div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-            {selectedImageUrls.map((url) => (
-              <div
-                key={url}
-                className="flex-shrink-0 w-24 space-y-2"
-              >
-                <button
-                  type="button"
-                  className="w-24 h-24 rounded-lg overflow-hidden border border-white/10 bg-black/30 cursor-zoom-in"
-                  onClick={() => setLightboxUrl(url)}
-                  aria-label="Preview selected image"
+        <>
+          <div className="space-y-3">
+            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Selected images</div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+              {selectedImageUrls.map((url) => (
+                <div
+                  key={url}
+                  className="flex-shrink-0 w-24 space-y-2"
                 >
-                  <img
-                    src={url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </button>
-                <button
-                  onClick={() => onRemoveSelected(url)}
-                  className="w-full touch-target text-xs py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 transition-all"
-                  title="Remove from selection"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    className="w-24 h-24 rounded-lg overflow-hidden border border-white/10 bg-black/30 cursor-zoom-in"
+                    onClick={() => setLightboxUrl(url)}
+                    aria-label="Preview selected image"
+                  >
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                  <button
+                    onClick={() => onRemoveSelected(url)}
+                    className="w-full touch-target text-xs py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 transition-all"
+                    title="Remove from selection"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Controls section - Mobile (same as desktop but full width) */}
+          {/* Controls section - Mobile (same as desktop but full width) */}
         <div className="space-y-4 md:space-y-6 mt-4">
           <div className={cn("grid gap-4", "grid-cols-1 md:grid-cols-2")}>
             <label className="space-y-1">
@@ -1639,6 +1640,7 @@ function AiStudioPhotoModalBody(props: {
             )}
           </div>
         </div>
+        </>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left: selected preview strip */}
@@ -2028,3 +2030,6 @@ function AiStudioPhotoModalBody(props: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
