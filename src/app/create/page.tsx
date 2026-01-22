@@ -1056,8 +1056,8 @@ export default function CreateProductPage() {
       </div>
 
       {/* Sticky Bottom CTA (Mobile-First) */}
-      <div className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto pb-safe md:pb-0">
-        <div className="glass-dark border-t border-white/10 md:border-t-0 md:border border-white/10 rounded-t-2xl md:rounded-2xl p-4 md:p-6 space-y-4">
+      <div className="fixed bottom-[80px] md:bottom-auto left-0 right-0 md:relative md:left-auto md:right-auto z-[60] md:z-auto pb-safe md:pb-0">
+        <div className="glass-dark border-t border-white/10 md:border-t-0 md:border border-white/10 rounded-t-2xl md:rounded-2xl p-4 md:p-6 space-y-4 shadow-2xl md:shadow-none">
           {isGenerating && (
             <div className="flex items-center gap-4 text-sm text-zinc-400">
               {[
@@ -1095,7 +1095,8 @@ export default function CreateProductPage() {
             className={cn(
               'w-full bg-indigo-500 hover:bg-indigo-600 disabled:bg-zinc-800 disabled:text-zinc-500',
               'text-white px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-3',
-              'transition-all shadow-xl shadow-indigo-500/20 active:scale-95'
+              'transition-all shadow-xl shadow-indigo-500/20 active:scale-95',
+              'touch-target-large min-h-[56px]'
             )}
           >
             {isGenerating ? (
