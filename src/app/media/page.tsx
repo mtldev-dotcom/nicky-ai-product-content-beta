@@ -953,25 +953,42 @@ export default function MediaPage() {
               animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
               exit={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, scale: 0.98, y: 10 }}
               transition={isMobile ? { type: 'spring', damping: 25, stiffness: 200 } : {}}
+              style={isMobile ? { willChange: 'transform' } : undefined}
               className={cn(
                 "fixed z-[121] glass-dark bg-zinc-950/80 backdrop-blur-xl border border-white/10",
                 isMobile
-                  ? "inset-x-0 bottom-0 rounded-t-2xl p-4 pb-safe max-h-[90vh] overflow-y-auto"
+                  ? "inset-x-0 bottom-0 rounded-t-2xl h-[90vh] flex flex-col overflow-hidden"
                   : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl rounded-2xl p-6 md:p-8 space-y-6"
               )}
               onClick={(e) => e.stopPropagation()}
             >
-              <AiStudioPhotoModalBody
-                selectedImageUrls={selectedImageUrls}
-                onRemoveSelected={(url) => toggleSelected(url, false)}
-                onClose={() => setIsStudioModalOpen(false)}
-                onAddOutputs={(urls) => {
-                  // Best-effort immediate UI update; backend will also persist/attach.
-                  if (urls.length === 0) return;
-                  setImages([...new Set([...images, ...urls])]);
-                }}
-                isMobile={isMobile}
-              />
+              {isMobile ? (
+                <div className="flex-1 overflow-y-auto min-h-0 p-4 pb-safe">
+                  <AiStudioPhotoModalBody
+                    selectedImageUrls={selectedImageUrls}
+                    onRemoveSelected={(url) => toggleSelected(url, false)}
+                    onClose={() => setIsStudioModalOpen(false)}
+                    onAddOutputs={(urls) => {
+                      // Best-effort immediate UI update; backend will also persist/attach.
+                      if (urls.length === 0) return;
+                      setImages([...new Set([...images, ...urls])]);
+                    }}
+                    isMobile={isMobile}
+                  />
+                </div>
+              ) : (
+                <AiStudioPhotoModalBody
+                  selectedImageUrls={selectedImageUrls}
+                  onRemoveSelected={(url) => toggleSelected(url, false)}
+                  onClose={() => setIsStudioModalOpen(false)}
+                  onAddOutputs={(urls) => {
+                    // Best-effort immediate UI update; backend will also persist/attach.
+                    if (urls.length === 0) return;
+                    setImages([...new Set([...images, ...urls])]);
+                  }}
+                  isMobile={isMobile}
+                />
+              )}
             </motion.div>
           </>
         )}
@@ -1250,7 +1267,7 @@ function AiStudioPhotoModalBody(props: {
         </button>
       </div>
 
-      {/* Mobile: Horizontal scroll for selected images */}
+      {/* Selected images section - Different layout for mobile vs desktop */}
       {isMobile ? (
         <div className="space-y-3">
           <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Selected images</div>
@@ -1283,6 +1300,343 @@ function AiStudioPhotoModalBody(props: {
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Controls section - Mobile (same as desktop but full width) */}
+        <div className="space-y-4 md:space-y-6 mt-4">
+          <div className={cn("grid gap-4", "grid-cols-1 md:grid-cols-2")}>
+            <label className="space-y-1">
+              <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Jewelry Type</span>
+              <select
+                className={cn(
+                  "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
+                value={jewelryType}
+                onChange={(e) => setJewelryType(e.target.value as JewelryType)}
+              >
+                {(effectiveLibrary.jewelryTypes as readonly string[]).map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Model / Studio</span>
+              <select
+                className={cn(
+                  "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
+                value={selectedAssetId || 'none'}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'none') {
+                    setSelectedAssetId(null);
+                    setCustomPromptInstructions('');
+                  } else {
+                    setSelectedAssetId(value);
+                  }
+                }}
+              >
+                <option value="none">None</option>
+                {loadingAssets ? (
+                  <option disabled>Loading...</option>
+                ) : (
+                  <>
+                    {availableAssets.filter(a => a.type === 'model').length > 0 && (
+                      <optgroup label="Models">
+                        {availableAssets
+                          .filter(a => a.type === 'model')
+                          .map((asset) => (
+                            <option key={asset.id} value={asset.id}>
+                              {asset.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                    {availableAssets.filter(a => a.type === 'studio').length > 0 && (
+                      <optgroup label="Studios">
+                        {availableAssets
+                          .filter(a => a.type === 'studio')
+                          .map((asset) => (
+                            <option key={asset.id} value={asset.id}>
+                              {asset.name}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+                  </>
+                )}
+              </select>
+              {selectedAssetId && (
+                <div className="space-y-2">
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                    <img
+                      src={availableAssets.find(a => a.id === selectedAssetId)?.thumbnail_url || availableAssets.find(a => a.id === selectedAssetId)?.image_url}
+                      alt="Selected asset"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                  <label className="space-y-1">
+                    <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Custom Prompt Instructions</span>
+                    <textarea
+                      className={cn(
+                        "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target resize-none",
+                        isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                      )}
+                      rows={isMobile ? 4 : 3}
+                      placeholder="Enter custom prompt instructions for this asset..."
+                      value={customPromptInstructions}
+                      onChange={(e) => setCustomPromptInstructions(e.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
+              {(!selectedAssetId || selectedAssetId === 'none') && (
+                <select
+                  className={cn(
+                    "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                    isMobile ? "px-4 py-3 text-base mt-2" : "px-3 py-2 text-sm mt-2"
+                  )}
+                  value={modelId}
+                  onChange={(e) => setModelId(e.target.value as ModelId)}
+                >
+                  {models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.id}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+
+            {(!selectedAssetId || selectedAssetId === 'none') && (
+              <label className="space-y-1">
+                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Setup</span>
+                <select
+                  className={cn(
+                    "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                    isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                  )}
+                  value={setupId}
+                  onChange={(e) => setSetupId(e.target.value)}
+                >
+                  {filteredSetups.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="space-y-1">
+              <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Provider</span>
+              <select
+                className={cn(
+                  "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
+                value={provider}
+                onChange={(e) => setProvider(e.target.value as ProviderId)}
+                disabled={availableProviders.length === 0}
+              >
+                {availableProviders.length === 0 ? (
+                  <option value={provider}>No providers configured</option>
+                ) : (
+                  availableProviders.map((p) => (
+                    <option key={p} value={p}>
+                      {providerLabel(p as AiImageProviderId)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+
+            <label className={cn("space-y-1", isMobile ? "" : "md:col-span-2")}>
+              <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Provider Model</span>
+              <select
+                className={cn(
+                  "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono touch-target",
+                  isMobile ? "px-4 py-3 text-base" : "px-3 py-2 text-sm"
+                )}
+                value={providerModel}
+                onChange={(e) => setProviderModel(e.target.value)}
+                disabled={availableProviders.length === 0}
+              >
+                {topImageModelsForProvider(provider).map((modelId) => (
+                  <option key={modelId} value={modelId}>
+                    {modelId}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "md:col-span-2 grid-cols-1 md:grid-cols-3")}>
+              <label className={cn("flex items-center gap-3 rounded-xl bg-zinc-900/40 border border-white/10 touch-target", isMobile ? "px-4 py-3" : "px-3 py-2")}>
+                <input
+                  type="checkbox"
+                  className={cn("rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent", isMobile ? "w-5 h-5" : "w-4 h-4")}
+                  checked={macro}
+                  onChange={(e) => setMacro(e.target.checked)}
+                />
+                <span className={cn("text-zinc-300 font-semibold", isMobile ? "text-sm" : "text-xs")}>Macro close-up</span>
+              </label>
+              <label className={cn("flex items-center gap-3 rounded-xl bg-zinc-900/40 border border-white/10 touch-target", isMobile ? "px-4 py-3" : "px-3 py-2")}>
+                <input
+                  type="checkbox"
+                  className={cn("rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent", isMobile ? "w-5 h-5" : "w-4 h-4")}
+                  checked={noFingerprints}
+                  onChange={(e) => setNoFingerprints(e.target.checked)}
+                />
+                <span className={cn("text-zinc-300 font-semibold", isMobile ? "text-sm" : "text-xs")}>No fingerprints / dust</span>
+              </label>
+              <label className={cn("flex items-center gap-3 rounded-xl bg-zinc-900/40 border border-white/10 touch-target", isMobile ? "px-4 py-3" : "px-3 py-2")}>
+                <input
+                  type="checkbox"
+                  className={cn("rounded border-zinc-500 text-indigo-500 focus:ring-indigo-500 bg-transparent", isMobile ? "w-5 h-5" : "w-4 h-4")}
+                  checked={extraRimLight}
+                  onChange={(e) => setExtraRimLight(e.target.checked)}
+                />
+                <span className={cn("text-zinc-300 font-semibold", isMobile ? "text-sm" : "text-xs")}>Extra rim light</span>
+              </label>
+            </div>
+
+            <label className={cn("space-y-1", isMobile ? "" : "md:col-span-2")}>
+              <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>
+                Background darkness <span className="text-zinc-600">({darkness})</span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={darkness}
+                onChange={(e) => setDarkness(parseInt(e.target.value, 10) || 0)}
+                className={cn("w-full", isMobile && "h-2")}
+              />
+              <p className={cn("text-zinc-600", isMobile ? "text-xs" : "text-[10px]")}>
+                Subtle control only—keeps the industrial mood consistent.
+              </p>
+            </label>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+              {error}
+            </div>
+          )}
+
+          {availableProviders.length === 0 && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
+              No image providers are configured. Add an API key in Settings to enable generation.
+            </div>
+          )}
+
+          {/* Action buttons - Mobile */}
+          <div className={cn(
+            "flex items-center gap-3",
+            isMobile ? "flex-col pt-4 pb-safe" : "justify-between flex-wrap"
+          )}>
+            <div className={cn("flex items-center gap-2", isMobile && "w-full flex-col")}>
+              <button
+                onClick={() => runGenerate(1)}
+                disabled={!canGenerate || isGenerating}
+                className={cn(
+                  "touch-target-large rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-all font-semibold flex items-center justify-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-500",
+                  isMobile ? "w-full px-5 py-4 text-base" : "px-5 py-3 text-sm"
+                )}
+              >
+                {isGenerating ? <Loader2 className={cn("animate-spin", isMobile ? "w-5 h-5" : "w-4 h-4")} /> : <Sparkles className={isMobile ? "w-5 h-5" : "w-4 h-4"} />}
+                Generate
+              </button>
+              <button
+                onClick={() => runGenerate(3)}
+                disabled={!canGenerate || isGenerating}
+                className={cn(
+                  "touch-target-large rounded-xl bg-white/5 text-white hover:bg-white/10 transition-all font-semibold border border-white/10 disabled:text-zinc-500",
+                  isMobile ? "w-full px-5 py-4 text-base" : "px-5 py-3 text-sm"
+                )}
+              >
+                Generate Variants
+              </button>
+            </div>
+          </div>
+
+          {/* Results - Mobile */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Results</div>
+              <button
+                onClick={() => {
+                  if (!lastRequestFingerprint) return;
+                  try {
+                    const parsed = JSON.parse(lastRequestFingerprint) as { variants?: number };
+                    const v = typeof parsed.variants === 'number' ? parsed.variants : 1;
+                    runGenerate(v);
+                  } catch {
+                    runGenerate(1);
+                  }
+                }}
+                disabled={isGenerating || !lastRequestFingerprint}
+                className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 disabled:text-zinc-600"
+              >
+                Regenerate with same settings
+              </button>
+            </div>
+
+            {generations.length === 0 ? (
+              <div className="p-6 rounded-2xl bg-zinc-900/30 border border-white/10 text-zinc-500 text-sm">
+                No outputs yet. Click Generate to create studio photos.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {generations.map((g) => {
+                  const downloadable = safeDownloadUrl(g.outputImageUrl);
+                  return (
+                    <div key={g.id} className="rounded-2xl overflow-hidden border border-white/10 bg-zinc-900/30">
+                      <button
+                        type="button"
+                        className="aspect-square bg-black/30 w-full cursor-zoom-in"
+                        onClick={() => setLightboxUrl(g.outputImageUrl)}
+                        aria-label="Preview generated image"
+                        title="Preview image"
+                      >
+                        <img
+                          src={g.outputImageUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </button>
+                      <div className="p-3 space-y-2">
+                        <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                          Added to product media
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (!downloadable) return;
+                              window.open(downloadable, '_blank', 'noopener,noreferrer');
+                            }}
+                            disabled={!downloadable}
+                            className="flex-1 px-3 py-2 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-all text-xs font-semibold border border-white/10 disabled:text-zinc-600"
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -1329,9 +1683,9 @@ function AiStudioPhotoModalBody(props: {
 
           {/* Controls - Right side on desktop */}
           <div className="lg:col-span-8 space-y-4 md:space-y-6">
-            <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2")}>
-              <label className="space-y-1">
-                <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Jewelry Type</span>
+        <div className={cn("grid gap-4", "grid-cols-1 md:grid-cols-2")}>
+          <label className="space-y-1">
+            <span className={cn("font-bold text-zinc-500 uppercase tracking-widest", isMobile ? "text-xs" : "text-[10px]")}>Jewelry Type</span>
                 <select
                   className={cn(
                     "w-full rounded-xl bg-zinc-900/50 border border-white/10 text-white outline-none focus:ring-2 focus:ring-indigo-500/30 touch-target",
@@ -1562,10 +1916,10 @@ function AiStudioPhotoModalBody(props: {
               </div>
             )}
 
-            {/* Action buttons - Sticky on mobile */}
+            {/* Action buttons - At bottom of scrollable content on mobile */}
             <div className={cn(
               "flex items-center gap-3",
-              isMobile ? "flex-col sticky bottom-0 bg-zinc-950/95 backdrop-blur-xl pt-4 pb-safe -mx-4 px-4 border-t border-white/10" : "justify-between flex-wrap"
+              isMobile ? "flex-col pt-4 pb-safe" : "justify-between flex-wrap"
             )}>
               <div className={cn("flex items-center gap-2", isMobile && "w-full flex-col")}>
                 <button
@@ -1674,6 +2028,3 @@ function AiStudioPhotoModalBody(props: {
           </div>
         </div>
       )}
-    </div>
-  );
-}
