@@ -194,6 +194,11 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
     default_shipping_profile_id: parsed.defaultShippingProfileId ?? existing?.default_shipping_profile_id ?? null,
     default_collection_id: parsed.defaultCollectionId ?? existing?.default_collection_id ?? null,
     default_category_ids: parsed.defaultCategoryIds ?? existing?.default_category_ids ?? [],
+
+    // Variant option presets (non-secrets)
+    variant_option_presets:
+      parsed.variantOptionPresets ??
+      (((existing as unknown as Record<string, unknown> | null)?.variant_option_presets as unknown) ?? null),
     updated_at: new Date().toISOString(),
   };
 
@@ -270,12 +275,13 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
         msg.includes('gemini_api_key') ||
         msg.includes('ai_studio_prompt_library') ||
         msg.includes('ai_studio_toggle_phrases') ||
-        msg.includes('preview_layout'));
+        msg.includes('preview_layout') ||
+        msg.includes('variant_option_presets'));
 
     if (looksLikeMissingColumnSchemaCache) {
       console.warn('[Settings Save] Schema cache error detected for:', {
         message: msg,
-        affectedFields: ['ai_image_model', 'ai_image_provider', 'fal_api_key', 'gemini_api_key', 'ai_studio_prompt_library', 'ai_studio_toggle_phrases', 'preview_layout'].filter(field => msg.includes(field)),
+        affectedFields: ['ai_image_model', 'ai_image_provider', 'fal_api_key', 'gemini_api_key', 'ai_studio_prompt_library', 'ai_studio_toggle_phrases', 'preview_layout', 'variant_option_presets'].filter(field => msg.includes(field)),
       });
       
       // Only strip fields that are actually causing the error
@@ -287,6 +293,7 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
       if (msg.includes('ai_studio_prompt_library')) fieldsToStrip.push('ai_studio_prompt_library');
       if (msg.includes('ai_studio_toggle_phrases')) fieldsToStrip.push('ai_studio_toggle_phrases');
       if (msg.includes('preview_layout')) fieldsToStrip.push('preview_layout');
+      if (msg.includes('variant_option_presets')) fieldsToStrip.push('variant_option_presets');
 
       if (fieldsToStrip.length > 0) {
         const fallbackPayload = { ...payload };
@@ -375,6 +382,19 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
     defaultShippingProfileId: data.default_shipping_profile_id ?? null,
     defaultCollectionId: data.default_collection_id ?? null,
     defaultCategoryIds: data.default_category_ids || [],
+
+    // Variant option presets
+    variantOptionPresets: ((data as unknown as Record<string, unknown>).variant_option_presets as
+      | Array<{
+          id: string;
+          name: string;
+          options: Array<{
+            name: string;
+            values: string[];
+          }>;
+        }>
+      | null
+      | undefined) ?? null,
   };
 
   return SettingsForClientSchema.parse(safe);

@@ -62,6 +62,20 @@ export const SettingsForClientSchema = z.object({
   defaultShippingProfileId: z.string().nullable(),
   defaultCollectionId: z.string().nullable(),
   defaultCategoryIds: z.array(z.string()),
+
+  // Variant option presets (non-secrets)
+  variantOptionPresets: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      options: z.array(
+        z.object({
+          name: z.string(),
+          values: z.array(z.string()),
+        })
+      ),
+    })
+  ).nullable(),
 });
 
 export type SettingsForClient = z.infer<typeof SettingsForClientSchema>;
@@ -117,6 +131,20 @@ export const SettingsUpdateSchema = z.object({
   defaultShippingProfileId: z.string().nullable().optional(),
   defaultCollectionId: z.string().nullable().optional(),
   defaultCategoryIds: z.array(z.string()).optional(),
+
+  // Variant option presets (non-secrets)
+  variantOptionPresets: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      options: z.array(
+        z.object({
+          name: z.string(),
+          values: z.array(z.string()),
+        })
+      ),
+    })
+  ).nullable().optional(),
 });
 
 export type SettingsUpdate = z.infer<typeof SettingsUpdateSchema>;

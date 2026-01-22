@@ -22,7 +22,9 @@ import {
   Zap,
   Globe,
   Loader2,
-  Check
+  Check,
+  Bookmark,
+  BookmarkPlus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -83,6 +85,14 @@ export default function VariantsPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [selectedLang, setSelectedLang] = useState('en');
   const settings = useSettingsStore();
+
+  // Load settings on mount
+  useEffect(() => {
+    if (organizationId) {
+      settings.loadFromDb(organizationId);
+    }
+  }, [organizationId, settings]);
+
   type MedusaStockLocation = { id: string; name: string };
   const [taxonomy, setTaxonomy] = useState<{
     currencies: string[]; // currency codes from Medusa (e.g., "usd", "cad")
@@ -171,18 +181,114 @@ export default function VariantsPage() {
     setNewOptionName('');
   };
 
-  const handleQuickAddDefault = () => {
-    bulkUpdate({
-      options: [...options, {
-        id: crypto.randomUUID(),
-        name: 'Default',
-        translations: { en: 'Default' },
-        values: [{
-          value: 'Default',
-          translations: { en: 'Default' }
-        }]
-      }]
+  const [showPresetMenu, setShowPresetMenu] = useState(false);
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [presetName, setPresetName] = useState('');
+
+  // Close preset menu when clicking outside
+  useEffect(() => {
+    if (!showPresetMenu) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-preset-menu]')) {
+        setShowPresetMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showPresetMenu]);
+
+  // Default presets (used if no custom presets exist)
+  const defaultPresets = [
+    {
+      id: 'default-color',
+      name: 'Color',
+      options: [
+        {
+          name: 'Color',
+          values: ['Black', 'White', 'Gold', 'Silver', 'Rose Gold']
+        }
+      ]
+    },
+    {
+      id: 'default-size',
+      name: 'Size',
+      options: [
+        {
+          name: 'Size',
+          values: ['XS', 'S', 'M', 'L', 'XL']
+        }
+      ]
+    }
+  ];
+
+  // Get presets from settings, with defaults if none exist
+  const presets = settings.variantOptionPresets && settings.variantOptionPresets.length > 0
+    ? settings.variantOptionPresets
+    : defaultPresets;
+
+  const handleLoadPreset = (preset: typeof presets[0]) => {
+    const newOptions = preset.options.map(opt => ({
+      id: crypto.randomUUID(),
+      name: opt.name,
+      translations: { en: opt.name },
+      values: opt.values.map(val => ({
+        value: val,
+        translations: { en: val }
+      }))
+    }));
+    bulkUpdate({ options: [...options, ...newOptions] });
+    setShowPresetMenu(false);
+  };
+
+  const handleSavePreset = async () => {
+    if (!presetName.trim() || options.length === 0) return;
+
+    const preset = {
+      id: crypto.randomUUID(),
+      name: presetName.trim(),
+      options: options.map(opt => ({
+        name: opt.name,
+        values: opt.values.map(v => v.value)
+      }))
+    };
+
+    const updatedPresets = [...(settings.variantOptionPresets || []), preset];
+    settings.setStoreSettings({ 
+      variantOptionPresets: updatedPresets
     });
+
+    // Save to database
+    const { organizationId } = useProductStore.getState();
+    if (organizationId) {
+      await settings.saveToDb(organizationId);
+    }
+
+    setPresetName('');
+    setShowSavePresetModal(false);
+    setShowPresetMenu(false);
+  };
+
+  const handleDeletePreset = async (presetId: string) => {
+    if (!confirm('Are you sure you want to delete this preset?')) {
+      return;
+    }
+
+    const updatedPresets = (settings.variantOptionPresets || []).filter(p => p.id !== presetId);
+    settings.setStoreSettings({ 
+      variantOptionPresets: updatedPresets.length > 0 ? updatedPresets : null
+    });
+
+    // Save to database
+    const { organizationId } = useProductStore.getState();
+    if (organizationId) {
+      await settings.saveToDb(organizationId);
+    }
+
+    // Close menu to refresh the list
+    setShowPresetMenu(false);
   };
 
   const generateVariants = () => {
@@ -578,13 +684,127 @@ export default function VariantsPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleQuickAddDefault}
-                className="w-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 border border-indigo-500/20 group"
-              >
-                <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                Quick Add Default
-              </button>
+              <div className="relative" data-preset-menu>
+                <button
+                  onClick={() => setShowPresetMenu(!showPresetMenu)}
+                  className="w-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 border border-indigo-500/20 group"
+                >
+                  <Zap className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  Quick Add Preset
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", showPresetMenu && "rotate-180")} />
+                </button>
+
+                {showPresetMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-zinc-950 rounded-xl border border-white/10 overflow-hidden shadow-2xl">
+                    <div className="max-h-64 overflow-y-auto">
+                        {presets.map((preset) => (
+                          <div
+                            key={preset.id}
+                            className="p-3 hover:bg-white/5 border-b border-white/5 last:border-b-0 flex items-center justify-between group"
+                          >
+                            <button
+                              onClick={() => handleLoadPreset(preset)}
+                              className="flex-1 text-left"
+                            >
+                              <div className="font-semibold text-white text-sm">{preset.name}</div>
+                              <div className="text-xs text-zinc-400 mt-0.5">
+                                {preset.options.map(o => o.name).join(', ')}
+                              </div>
+                            </button>
+                            {preset.id !== 'default-color' && preset.id !== 'default-size' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePreset(preset.id);
+                                }}
+                                className="p-1.5 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-white/5 p-2">
+                        <button
+                          onClick={() => {
+                            setShowSavePresetModal(true);
+                            setShowPresetMenu(false);
+                          }}
+                          disabled={options.length === 0}
+                          className="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <BookmarkPlus className="w-4 h-4" />
+                          Save Current as Preset
+                        </button>
+                      </div>
+                    </div>
+                )}
+              </div>
+
+              {/* Save Preset Modal */}
+              <AnimatePresence>
+                {showSavePresetModal && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-30 bg-black/70"
+                      onClick={() => setShowSavePresetModal(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 glass-dark rounded-2xl p-6 border border-white/10 w-full max-w-md"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <h3 className="text-lg font-bold text-white mb-4">Save Preset</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2 block">
+                            Preset Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g., Jewelry Sizes, Common Colors..."
+                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                            value={presetName}
+                            onChange={(e) => setPresetName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSavePreset();
+                              if (e.key === 'Escape') setShowSavePresetModal(false);
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          This will save {options.length} option{options.length !== 1 ? 's' : ''} with all their values as a reusable preset.
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleSavePreset}
+                            disabled={!presetName.trim()}
+                            className="flex-1 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-xl font-semibold transition-all"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowSavePresetModal(false);
+                              setPresetName('');
+                            }}
+                            className="px-4 bg-white/5 hover:bg-white/10 text-white py-2.5 rounded-xl font-semibold transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           </section>
 

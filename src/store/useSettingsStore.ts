@@ -43,6 +43,16 @@ interface SettingsState {
   defaultCollectionId: string | null;
   defaultCategoryIds: string[];
 
+  // Variant option presets
+  variantOptionPresets: Array<{
+    id: string;
+    name: string;
+    options: Array<{
+      name: string;
+      values: string[];
+    }>;
+  }> | null;
+
   isSaving: boolean;
   setOpenaiApiKey: (key: string) => void;
   setFalApiKey: (key: string) => void;
@@ -65,6 +75,7 @@ interface SettingsState {
         | 'defaultShippingProfileId'
         | 'defaultCollectionId'
         | 'defaultCategoryIds'
+        | 'variantOptionPresets'
       >
     >
   ) => void;
@@ -104,6 +115,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   defaultShippingProfileId: null,
   defaultCollectionId: null,
   defaultCategoryIds: [],
+  variantOptionPresets: null,
   isSaving: false,
   setOpenaiApiKey: (openaiApiKey) => set({ openaiApiKey }),
   setFalApiKey: (falApiKey) => set({ falApiKey }),
@@ -168,6 +180,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         defaultShippingProfileId: state.defaultShippingProfileId,
         defaultCollectionId: state.defaultCollectionId,
         defaultCategoryIds: state.defaultCategoryIds,
+        variantOptionPresets: state.variantOptionPresets,
       };
 
       // Debug logging
