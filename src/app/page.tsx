@@ -868,6 +868,9 @@ export default function Dashboard() {
   const filteredProducts = useMemo(() => {
     let filtered = products;
 
+    // EXCLUDE products already pushed to Medusa (they appear in the MedusaJS Catalog section)
+    filtered = filtered.filter(p => !p.medusa_product_id);
+
     // Filter by status
     if (filterStatus === 'draft') {
       filtered = filtered.filter(p => p.status === 'draft' && !p.is_template);
