@@ -337,7 +337,10 @@ export function ProductMediaModule() {
 
                                         {/* Actions Overlay */}
                                         {!selectionMode && (
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2 gap-2">
+                                            <div className={cn(
+                                                "absolute inset-0 flex flex-col justify-end p-2 gap-2 transition-opacity",
+                                                isMobile ? "opacity-100 bg-gradient-to-t from-black/90 via-black/40 to-transparent" : "bg-black/60 opacity-0 group-hover:opacity-100"
+                                            )}>
                                                 <div className="flex items-center justify-between gap-2">
                                                     <button
                                                         onClick={(e) => {
@@ -384,7 +387,7 @@ export function ProductMediaModule() {
 
                                                 {/* Mobile Reorder */}
                                                 {isMobile && (
-                                                    <div className="absolute top-1/2 left-2 -translate-y-1/2 flex flex-col gap-1 pointer-events-auto">
+                                                    <div className="absolute top-1/2 left-2 -translate-y-1/2 flex flex-col gap-1 pointer-events-auto z-20">
                                                         {index > 0 && (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); moveImageUp(url); }}

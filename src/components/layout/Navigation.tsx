@@ -102,7 +102,7 @@ export const Navigation = () => {
                 )}
               >
                 <item.icon className={cn("w-5 h-5", isActive && "scale-110")} />
-                <span className="text-[10px] font-medium uppercase tracking-tighter leading-tight whitespace-nowrap">
+                <span className="text-xs font-medium uppercase tracking-tighter leading-tight whitespace-nowrap">
                   {item.label}
                 </span>
               </Link>
