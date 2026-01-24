@@ -16,7 +16,7 @@ export async function getMedusaTaxonomy(orgId: string) {
   if (baseUrl.endsWith('/admin')) {
     baseUrl = baseUrl.replace(/\/admin$/, '');
   }
-  
+
   const apiKey = settings.medusaApiKey;
 
   /**
@@ -46,16 +46,16 @@ export async function getMedusaTaxonomy(orgId: string) {
       endpoints.map(async (endpoint) => {
         const url = `${baseUrl}/admin/${endpoint}`;
         try {
-          const res = await fetch(url, { 
+          const res = await fetch(url, {
             headers,
-            cache: 'no-store' 
+            cache: 'no-store'
           });
-          
+
           if (!res.ok) {
             console.error(`Medusa API Error [${endpoint}]:`, res.status, res.statusText);
             return null;
           }
-          
+
           return res.json();
         } catch (e) {
           console.error(`Fetch failed for [${endpoint}]:`, e);
@@ -73,7 +73,10 @@ export async function getMedusaTaxonomy(orgId: string) {
       }>;
     };
     const storesData = stores as StoresResponse | null;
-    const activeCurrencies = storesData?.stores?.[0]?.supported_currencies?.map((sc) => sc.currency) || [];
+    const activeCurrencies = storesData?.stores?.[0]?.supported_currencies?.map((sc: any) => {
+      // Handle various Medusa versions/structures
+      return (sc.currency_code || sc.code || sc.currency || '').toString();
+    }).filter(Boolean) || [];
 
     return {
       success: true,
@@ -109,7 +112,7 @@ export async function getMedusaProducts(orgId: string) {
   if (baseUrl.endsWith('/admin')) {
     baseUrl = baseUrl.replace(/\/admin$/, '');
   }
-  
+
   const apiKey = settings.medusaApiKey;
   const headers = {
     'x-medusa-access-token': apiKey,
@@ -118,16 +121,16 @@ export async function getMedusaProducts(orgId: string) {
   };
 
   try {
-    const res = await fetch(`${baseUrl}/admin/products?limit=20`, { 
+    const res = await fetch(`${baseUrl}/admin/products?limit=20`, {
       headers,
-      cache: 'no-store' 
+      cache: 'no-store'
     });
-    
+
     if (!res.ok) {
       console.error(`Medusa API Error [products]:`, res.status, res.statusText);
       return { success: false, error: `Medusa API error: ${res.status}` };
     }
-    
+
     const data = await res.json();
     return {
       success: true,

@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Sparkles, 
-  ImagePlus, 
-  FileText, 
-  Link as LinkIcon, 
-  Upload, 
+import {
+  Sparkles,
+  ImagePlus,
+  FileText,
+  Link as LinkIcon,
+  Upload,
   FileJson,
   X,
   Loader2,
@@ -24,6 +24,7 @@ import { useProductStore } from '@/store/useProductStore';
 import { createClient } from '@/utils/supabase/client';
 import { mapExternalToProduct } from '@/lib/mapper';
 import { translateAllActiveLanguages } from '@/lib/translations';
+import { useToast } from '@/components/ui/ToastProvider';
 
 interface FileItem {
   id: string;
@@ -85,6 +86,7 @@ export default function CreateProductPage() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
   const supabase = createClient();
+  const { toast } = useToast();
   const prefersReducedMotion = useReducedMotion();
 
   // Input state
@@ -119,7 +121,7 @@ export default function CreateProductPage() {
           .select('organization_id')
           .eq('user_id', user.id)
           .single();
-        
+
         if (membership?.organization_id) {
           await loadSettingsFromDb(membership.organization_id);
         }
@@ -139,9 +141,9 @@ export default function CreateProductPage() {
 
       const items = e.clipboardData?.items;
       if (!items) return;
-      
+
       const imageFiles: File[] = [];
-      
+
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         if (item.type.startsWith('image/')) {
@@ -151,7 +153,7 @@ export default function CreateProductPage() {
           }
         }
       }
-      
+
       if (imageFiles.length > 0) {
         e.preventDefault();
         // Use the first image (for quick start, we only support one image)
@@ -200,40 +202,40 @@ export default function CreateProductPage() {
     }
 
     setImageFile(file);
-    
+
     // Optimize: Create preview URL for display (lighter than base64)
     const previewUrl = URL.createObjectURL(file);
     setSelectedImage(previewUrl);
-    
+
     // For API, we'll convert to base64 only when generating (not stored in state)
   };
 
   const handleFileSelect = useCallback(async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
-    
+
     setIsUploading(true);
     setUploadErrors([]);
     const newFiles: FileItem[] = [];
     const errors: string[] = [];
-    
+
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
-      
+
       const allowedTypes = [
         'image/png', 'image/jpeg', 'image/jpg',
         'text/csv', 'application/json', 'text/plain',
       ];
-      
+
       if (!allowedTypes.some(type => file.type.startsWith(type.split('/')[0]) || file.type === type)) {
         errors.push(`Unsupported file type: ${file.name}`);
         continue;
       }
-      
+
       let previewUrl: string | undefined;
       if (file.type.startsWith('image/')) {
         previewUrl = URL.createObjectURL(file);
       }
-      
+
       try {
         const res = await fetch('/api/media/presigned', {
           method: 'POST',
@@ -244,15 +246,15 @@ export default function CreateProductPage() {
             forIngest: true,
           }),
         });
-        
+
         const { presignedUrl, publicUrl } = await res.json();
-        
+
         await fetch(presignedUrl, {
           method: 'PUT',
           body: file,
           headers: { 'Content-Type': file.type },
         });
-        
+
         newFiles.push({
           id: `${Date.now()}-${i}`,
           file,
@@ -270,7 +272,7 @@ export default function CreateProductPage() {
         }
       }
     }
-    
+
     setFiles(prev => [...prev, ...newFiles]);
     setUploadErrors(errors);
     setIsUploading(false);
@@ -297,16 +299,16 @@ export default function CreateProductPage() {
         });
 
         await saveToDb();
-        
+
         const orgId = useProductStore.getState().organizationId;
         if (orgId) {
           await settings.loadFromDb(orgId);
         }
-        
+
         translateAllActiveLanguages().catch(err => {
           console.error('Background translation error:', err);
         });
-        
+
         router.push('/product-details');
       } catch (err) {
         console.error('Invalid JSON import:', err);
@@ -347,10 +349,10 @@ export default function CreateProductPage() {
   // Handle image URL submission - syncs image from URL to bucket
   const handleImageUrlAdd = async (url: string, index: number) => {
     if (!url.trim()) return;
-    
+
     setIsUploading(true);
     const errors: string[] = [];
-    
+
     try {
       // Use the existing media sync endpoint (SSRF-protected)
       const res = await fetch('/api/media/sync', {
@@ -358,20 +360,20 @@ export default function CreateProductPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim() }),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) {
         errors.push(`Failed to add image from URL: ${data.error || 'Unknown error'}`);
         setUploadErrors([...uploadErrors, ...errors]);
         setIsUploading(false);
         return;
       }
-      
+
       // Create a FileItem for the URL-sourced image
       const urlObj = new URL(url.trim());
       const filename = urlObj.pathname.split('/').pop() || 'image.jpg';
-      
+
       const newFileItem: FileItem = {
         id: `url-${Date.now()}-${index}`,
         type: 'file',
@@ -381,9 +383,9 @@ export default function CreateProductPage() {
         name: filename,
         mimeType: 'image/jpeg', // Default, could be improved by checking Content-Type
       };
-      
+
       setFiles([...files, newFileItem]);
-      
+
       // Clear the input
       const newImageUrls = [...imageUrls];
       newImageUrls[index] = '';
@@ -422,7 +424,7 @@ export default function CreateProductPage() {
   const handleGenerate = async () => {
     setError(null);
     const mode = determineGenerationMode(prompt, files.filter(f => f.mimeType?.startsWith('image/')), urls, textBlocks, files);
-    
+
     if (!mode) {
       setError('Please add at least one input (text, image, URL, or file)');
       return;
@@ -432,22 +434,22 @@ export default function CreateProductPage() {
     setGenerationStep('classifying');
 
     try {
-                  resetStore();
-                  applyMedusaDefaultsForNewProduct({
-                    defaultSalesChannelId: settings.defaultSalesChannelId,
-                    defaultShippingProfileId: settings.defaultShippingProfileId,
-                    defaultCollectionId: settings.defaultCollectionId,
-                    defaultCategoryIds: settings.defaultCategoryIds,
-                  });
+      resetStore();
+      applyMedusaDefaultsForNewProduct({
+        defaultSalesChannelId: settings.defaultSalesChannelId,
+        defaultShippingProfileId: settings.defaultShippingProfileId,
+        defaultCollectionId: settings.defaultCollectionId,
+        defaultCategoryIds: settings.defaultCategoryIds,
+      });
 
       if (mode === 'fast') {
         // Fast path: use /api/generate
         setGenerationStep('generating');
-        
+
         const body: { prompt?: string; image?: string } = {};
         const trimmedPrompt = prompt.trim();
         if (trimmedPrompt) body.prompt = trimmedPrompt;
-        
+
         // Convert image file to base64 only when needed (not stored in state)
         if (imageFile) {
           const reader = new FileReader();
@@ -467,16 +469,16 @@ export default function CreateProductPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        
+
         const data = await res.json();
-        
+
         if (res.ok) {
           const { updateRoot, updateLocalization } = useProductStore.getState();
           updateRoot({
             title: data.title,
             description: data.description,
           });
-          
+
           updateLocalization('en', {
             title: data.title,
             description: data.description,
@@ -486,25 +488,37 @@ export default function CreateProductPage() {
             metadata_description: data.metadata_description,
             keywords: data.keywords,
           });
-          
+
           await saveToDb();
-          
+
           const orgId = useProductStore.getState().organizationId;
           if (orgId) {
             await settings.loadFromDb(orgId);
           }
-          
+
           translateAllActiveLanguages().catch(err => {
             console.error('Background translation error:', err);
           });
-          
+
           setGenerationStep('finalizing');
           setIsGenerating(false);
-          
+
+          toast({
+            title: 'Draft ready',
+            description: 'Product content generated successfully.',
+            type: 'success'
+          });
+
           // Navigate to product details
           router.push('/product-details');
         } else {
-          setError(data.error || 'Generation failed');
+          const errMsg = data.error || 'Generation failed';
+          setError(errMsg);
+          toast({
+            title: 'Generation Failed',
+            description: errMsg,
+            type: 'error'
+          });
           setIsGenerating(false);
           setGenerationStep('idle');
         }
@@ -515,10 +529,10 @@ export default function CreateProductPage() {
         const activeFiles = files.map(f => {
           const mime = f.mimeType || f.file?.type || 'application/octet-stream';
           const type = mime.startsWith('image/') ? 'image' as const :
-                       mime === 'text/csv' ? 'csv' as const :
-                       mime === 'application/json' ? 'json' as const :
-                       'other' as const;
-          
+            mime === 'text/csv' ? 'csv' as const :
+              mime === 'application/json' ? 'json' as const :
+                'other' as const;
+
           return {
             id: f.id,
             type,
@@ -527,8 +541,8 @@ export default function CreateProductPage() {
           };
         });
 
-        const activeLanguages = settings.activeLanguages.length > 0 
-          ? settings.activeLanguages 
+        const activeLanguages = settings.activeLanguages.length > 0
+          ? settings.activeLanguages
           : ['en'];
 
         const res = await fetch('/api/products/ingest', {
@@ -550,9 +564,22 @@ export default function CreateProductPage() {
           await saveToDb();
           setIsGenerating(false);
           setGenerationStep('idle');
+
+          toast({
+            title: 'Ingestion complete',
+            description: 'Product draft created from sources.',
+            type: 'success'
+          });
+
           router.push('/product-details');
         } else {
-          setError(data.error || 'Generation failed');
+          const errMsg = data.error || 'Generation failed';
+          setError(errMsg);
+          toast({
+            title: 'Ingestion Failed',
+            description: errMsg,
+            type: 'error'
+          });
           setIsGenerating(false);
           setGenerationStep('idle');
         }
@@ -560,6 +587,11 @@ export default function CreateProductPage() {
     } catch (error) {
       console.error('Generation error:', error);
       setError('Network error during generation');
+      toast({
+        title: 'Network Error',
+        description: 'Failed to connect to the server.',
+        type: 'error'
+      });
       setIsGenerating(false);
       setGenerationStep('idle');
     }
@@ -591,7 +623,7 @@ export default function CreateProductPage() {
         {generationMode && (
           <div className={cn(
             "inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium",
-            generationMode === 'fast' 
+            generationMode === 'fast'
               ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
               : "bg-purple-500/10 text-purple-400 border border-purple-500/20"
           )}>
@@ -635,23 +667,23 @@ export default function CreateProductPage() {
             Quick Start
           </h2>
         </div>
-        
+
         <div className="space-y-3">
           <div className="flex gap-2">
-            <input 
-              type="file" 
-              className="hidden" 
-              ref={imageInputRef} 
+            <input
+              type="file"
+              className="hidden"
+              ref={imageInputRef}
               accept="image/*"
               onChange={handleImageSelect}
             />
-            <button 
+            <button
               onClick={() => imageInputRef.current?.click()}
               disabled={isGenerating || isUploading}
               className={cn(
                 "p-3 rounded-xl transition-all active:scale-90 flex-shrink-0",
-                selectedImage 
-                  ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30" 
+                selectedImage
+                  ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
                   : "bg-white/5 text-zinc-500 hover:bg-white/10 hover:text-zinc-300"
               )}
               title="Add reference image"
@@ -661,15 +693,15 @@ export default function CreateProductPage() {
 
             <AnimatePresence>
               {selectedImage && (
-                <motion.div 
+                <motion.div
                   initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.8 }}
                   className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/10 flex-shrink-0"
                 >
-                  <img 
-                    src={selectedImage} 
-                    alt="Preview" 
+                  <img
+                    src={selectedImage}
+                    alt="Preview"
                     className="w-full h-full object-cover"
                     onLoad={() => {
                       // Clean up object URL after image loads (if it's an object URL)
@@ -678,7 +710,7 @@ export default function CreateProductPage() {
                       }
                     }}
                   />
-                  <button 
+                  <button
                     onClick={() => {
                       if (selectedImage.startsWith('blob:')) {
                         URL.revokeObjectURL(selectedImage);
@@ -731,7 +763,7 @@ export default function CreateProductPage() {
               <ChevronDown className="w-5 h-5 text-zinc-400" />
             )}
           </button>
-          
+
           <AnimatePresence>
             {expandedSections.has('urls') && (
               <motion.div
@@ -794,7 +826,7 @@ export default function CreateProductPage() {
               <ChevronDown className="w-5 h-5 text-zinc-400" />
             )}
           </button>
-          
+
           <AnimatePresence>
             {expandedSections.has('imageUrls') && (
               <motion.div
@@ -876,7 +908,7 @@ export default function CreateProductPage() {
               <ChevronDown className="w-5 h-5 text-zinc-400" />
             )}
           </button>
-          
+
           <AnimatePresence>
             {expandedSections.has('text') && (
               <motion.div
@@ -938,7 +970,7 @@ export default function CreateProductPage() {
               <ChevronDown className="w-5 h-5 text-zinc-400" />
             )}
           </button>
-          
+
           <AnimatePresence>
             {expandedSections.has('files') && (
               <motion.div
@@ -1023,7 +1055,7 @@ export default function CreateProductPage() {
               <ChevronDown className="w-5 h-5 text-zinc-400" />
             )}
           </button>
-          
+
           <AnimatePresence>
             {expandedSections.has('json') && (
               <motion.div
@@ -1068,27 +1100,27 @@ export default function CreateProductPage() {
               ].map((step, idx) => {
                 const isActive = generationStep === step.id;
                 const isPast = ['classifying', 'extracting', 'generating', 'finalizing'].indexOf(generationStep) > idx;
-                
+
                 return (
                   <div key={step.id} className="flex items-center gap-2">
                     <div className={cn(
                       "w-2 h-2 rounded-full transition-all duration-500",
-                      isActive ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] scale-125" : 
-                      isPast ? "bg-green-500" : "bg-zinc-800"
+                      isActive ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] scale-125" :
+                        isPast ? "bg-green-500" : "bg-zinc-800"
                     )} />
                     <span className={cn(
                       "transition-colors duration-500 hidden md:inline",
-                      isActive ? "text-indigo-400 font-medium" : 
-                      isPast ? "text-zinc-500" : "text-zinc-700"
+                      isActive ? "text-indigo-400 font-medium" :
+                        isPast ? "text-zinc-500" : "text-zinc-700"
                     )}>
                       {step.label}
                     </span>
-              </div>
-          );
-        })}
+                  </div>
+                );
+              })}
             </div>
           )}
-          
+
           <button
             onClick={handleGenerate}
             disabled={!canGenerate || isGenerating}

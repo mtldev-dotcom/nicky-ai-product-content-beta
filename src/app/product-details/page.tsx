@@ -5,28 +5,27 @@ import { useProductStore, type Localization, type ProductOption } from '@/store/
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { createClient } from '@/utils/supabase/client';
 import { ALL_LANGUAGES } from '@/lib/languages';
-import { 
-  Globe, 
-  Check, 
-  Type, 
-  Search, 
+import {
+  Globe,
+  Check,
+  Type,
+  Search,
   Sparkles,
   ToggleLeft,
   ToggleRight,
   Loader2,
   AlertCircle,
   Layers,
-  Truck,
   RefreshCw,
   ExternalLink,
-  // Box,
-  // MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { getMedusaTaxonomy } from './actions';
 import { AISourceBadge } from '@/components/ui/AISourceBadge';
+import { ProductMediaModule } from '@/components/product-details/modules/ProductMediaModule';
+import { ProductVariantsModule } from '@/components/product-details/modules/ProductVariantsModule';
 
 const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').then(mod => mod.RichTextEditor), {
   ssr: false,
@@ -36,40 +35,36 @@ const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').th
 export default function ProductDetailsPage() {
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore(s => s.loadFromDb);
-  const { 
+  const {
     organizationId,
     setOrganizationId,
-    localization, 
-    activeLanguages: productActiveLanguages, 
-    toggleLanguage, 
+    localization,
+    activeLanguages: productActiveLanguages,
+    toggleLanguage,
     updateLocalization,
     options,
     bulkUpdate,
     collection_id,
     type_id,
-    tags,
     categories,
     sales_channels,
-    shipping_profile_id,
-    shipping_weight,
-    shipping_dimensions,
     updateRoot,
     translatingLanguages,
     aiMeta
   } = useProductStore();
-  
+
   const getFieldSource = (path: string): 'ai' | 'source' | 'mixed' => {
     if (!aiMeta) return 'source'; // Default
-    
+
     // Check if path is in filled by AI
     const isAI = aiMeta.fieldsFilledByAI?.some(p => p === path || p.startsWith(`${path}.`));
     const isSource = aiMeta.fieldsFromSource?.some(p => p === path || p.startsWith(`${path}.`));
-    
+
     if (isAI && isSource) return 'mixed';
     if (isAI) return 'ai';
     return 'source';
   };
-  
+
   const [selectedLang, setSelectedLang] = useState('en');
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSyncingTaxonomy, setIsSyncingTaxonomy] = useState(false);
@@ -86,17 +81,19 @@ export default function ProductDetailsPage() {
     sales_channels: MedusaSalesChannel[];
     product_types: MedusaProductType[];
     shipping_profiles: MedusaShippingProfile[];
+    currencies: string[];
+    stock_locations: { id: string; name: string }[];
   };
 
   const [taxonomyOptions, setTaxonomyOptions] = useState<MedusaTaxonomy | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-  
+
   const currentLoc = localization[selectedLang] ?? localization.en;
   const isActive = productActiveLanguages.includes(selectedLang);
   const supabase = createClient();
 
   // Filter available languages based on organization settings
-  const availableLanguages = ALL_LANGUAGES.filter(lang => 
+  const availableLanguages = ALL_LANGUAGES.filter(lang =>
     settings.activeLanguages.includes(lang.code)
   );
 
@@ -125,7 +122,7 @@ export default function ProductDetailsPage() {
   const enhanceField = async (field: keyof Localization, fieldType: string) => {
     const currentValue = currentLoc[field];
     setEnhancingField(`${field}-${selectedLang}`);
-    
+
     try {
       const res = await fetch('/api/enhance', {
         method: 'POST',
@@ -139,16 +136,16 @@ export default function ProductDetailsPage() {
       });
 
       const data = await res.json();
-      
+
       if (res.ok && data.enhanced) {
         // For features and keywords, handle array format
-          if (field === 'features' || field === 'keywords') {
-          const enhancedArray = Array.isArray(data.enhanced) 
-            ? data.enhanced 
+        if (field === 'features' || field === 'keywords') {
+          const enhancedArray = Array.isArray(data.enhanced)
+            ? data.enhanced
             : data.enhanced.split(',').map((item: string) => item.trim()).filter(Boolean);
-            handleUpdate(field, enhancedArray as Localization[typeof field]);
+          handleUpdate(field, enhancedArray as Localization[typeof field]);
         } else {
-            handleUpdate(field, data.enhanced as Localization[typeof field]);
+          handleUpdate(field, data.enhanced as Localization[typeof field]);
         }
       } else {
         alert(data.error || 'Failed to enhance content');
@@ -164,9 +161,9 @@ export default function ProductDetailsPage() {
   const enhanceFeature = async (index: number) => {
     const currentFeature = (currentLoc.features || [])[index];
     if (!currentFeature) return;
-    
+
     setEnhancingField(`feature-${index}-${selectedLang}`);
-    
+
     try {
       const res = await fetch('/api/enhance', {
         method: 'POST',
@@ -180,7 +177,7 @@ export default function ProductDetailsPage() {
       });
 
       const data = await res.json();
-      
+
       if (res.ok && data.enhanced) {
         const newFeatures = [...(currentLoc.features || [])];
         newFeatures[index] = data.enhanced;
@@ -198,7 +195,7 @@ export default function ProductDetailsPage() {
 
   const translateCurrentLang = useCallback(async () => {
     if (selectedLang === 'en' || !localization.en.title) return;
-    
+
     setIsTranslating(true);
     try {
       const res = await fetch('/api/translate', {
@@ -208,20 +205,20 @@ export default function ProductDetailsPage() {
           source: localization.en,
           targetLang: ALL_LANGUAGES.find(l => l.code === selectedLang)?.name,
           selectedLang: selectedLang,
-          options: options.map(o => ({ 
-            name: o.name, 
+          options: options.map(o => ({
+            name: o.name,
             translations: o.translations,
-            values: o.values 
+            values: o.values
           }))
         }),
       });
 
       const data = await res.json();
-      
+
       if (res.ok) {
         // Update Localization
         updateLocalization(selectedLang, data.localization);
-        
+
         // Update Options translations
         const updatedOptions = options.map((opt, idx) => {
           const translatedOpt = data.options?.[idx];
@@ -236,7 +233,7 @@ export default function ProductDetailsPage() {
             values: opt.values.map((v, vIdx) => {
               const translatedVal = translatedOpt.values?.[vIdx];
               const valTranslation = translatedVal?.translations?.[langKey] || translatedVal?.value || v.value;
-              
+
               return {
                 ...v,
                 translations: { ...v.translations, [langKey]: valTranslation }
@@ -244,7 +241,7 @@ export default function ProductDetailsPage() {
             })
           };
         });
-        
+
         bulkUpdate({ options: updatedOptions as ProductOption[] });
       }
     } catch (err) {
@@ -277,7 +274,7 @@ export default function ProductDetailsPage() {
       if (currentOrgId) {
         // Load settings to get active languages
         await loadSettingsFromDb(currentOrgId);
-        
+
         // Auto-activate languages from organization settings for this product session
         const orgLangs = useSettingsStore.getState().activeLanguages;
         const currentActive = useProductStore.getState().activeLanguages;
@@ -285,7 +282,7 @@ export default function ProductDetailsPage() {
         if (missing.length > 0) {
           bulkUpdate({ activeLanguages: [...currentActive, ...missing] });
         }
-        
+
         if (!taxonomyOptions) {
           fetchTaxonomy(currentOrgId);
         }
@@ -313,7 +310,8 @@ export default function ProductDetailsPage() {
   };
 
   return (
-    <div className="space-y-8 pb-20 md:pb-0">
+    <div className="space-y-8 pb-32 md:pb-8">
+      {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
@@ -324,7 +322,7 @@ export default function ProductDetailsPage() {
             Manage translations and SEO metadata across global markets.
           </p>
         </div>
-        
+
         <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
           {availableLanguages.map((lang) => {
             const isTranslatingLang = translatingLanguages.has(lang.code);
@@ -335,8 +333,8 @@ export default function ProductDetailsPage() {
                 disabled={isTranslatingLang}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
-                  selectedLang === lang.code 
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" 
+                  selectedLang === lang.code
+                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
                   isTranslatingLang && "opacity-75 cursor-wait"
                 )}
@@ -355,14 +353,14 @@ export default function ProductDetailsPage() {
       </header>
 
       {(isTranslating || translatingLanguages.size > 0) && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-3 text-indigo-400"
         >
           <Loader2 className="w-5 h-5 animate-spin" />
           <span className="text-sm font-medium">
-            {isTranslating 
+            {isTranslating
               ? `AI is generating product details for ${ALL_LANGUAGES.find(l => l.code === selectedLang)?.name}...`
               : `Translating ${Array.from(translatingLanguages).map(l => ALL_LANGUAGES.find(lang => lang.code === l)?.name).filter(Boolean).join(', ')}...`
             }
@@ -370,9 +368,12 @@ export default function ProductDetailsPage() {
         </motion.div>
       )}
 
+      {/* Main Grid: Content + Modules */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Main Content Area */}
-        <div className="lg:col-span-8 space-y-6">
+        {/* Left Column: Product Copy, Features, Media, Variants */}
+        <div className="lg:col-span-8 space-y-8">
+
+          {/* Product Copy Module */}
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
@@ -390,7 +391,7 @@ export default function ProductDetailsPage() {
                     Sync with AI
                   </button>
                 )}
-                <button 
+                <button
                   onClick={handleToggleLanguage}
                   disabled={isTranslating}
                   className="flex items-center gap-2 text-sm font-medium transition-colors"
@@ -424,7 +425,7 @@ export default function ProductDetailsPage() {
                     )}
                   </button>
                 </div>
-                <input 
+                <input
                   type="text"
                   className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all text-lg"
                   value={currentLoc.title || ''}
@@ -449,7 +450,7 @@ export default function ProductDetailsPage() {
                     )}
                   </button>
                 </div>
-                <input 
+                <input
                   type="text"
                   className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                   value={currentLoc.subtitle || ''}
@@ -477,16 +478,16 @@ export default function ProductDetailsPage() {
                     )}
                   </button>
                 </div>
-                <RichTextEditor 
+                <RichTextEditor
                   value={currentLoc.description || ''}
                   onChange={(val) => handleUpdate('description', val)}
                   placeholder="Professional product description..."
                 />
               </div>
-
             </div>
           </section>
 
+          {/* Features Module */}
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
             <h2 className="text-xl font-semibold text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -498,7 +499,7 @@ export default function ProductDetailsPage() {
             <div className="space-y-3">
               {(currentLoc.features || []).map((feature, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <input 
+                  <input
                     type="text"
                     className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                     value={feature}
@@ -520,7 +521,7 @@ export default function ProductDetailsPage() {
                       <Sparkles className="w-4 h-4" />
                     )}
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       const newFeatures = (currentLoc.features || []).filter((_, i) => i !== idx);
                       handleUpdate('features', newFeatures);
@@ -531,7 +532,7 @@ export default function ProductDetailsPage() {
                   </button>
                 </div>
               ))}
-              <button 
+              <button
                 onClick={() => handleUpdate('features', [...(currentLoc.features || []), ''])}
                 className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
               >
@@ -539,16 +540,23 @@ export default function ProductDetailsPage() {
               </button>
             </div>
           </section>
+
+          {/* New Integrated Modules */}
+          <ProductMediaModule />
+          <ProductVariantsModule taxonomy={taxonomyOptions ? {
+            currencies: taxonomyOptions.currencies,
+            stock_locations: taxonomyOptions.stock_locations
+          } : null} />
         </div>
 
-        {/* SEO Sidebar */}
+        {/* Right Column: SEO, Taxonomy */}
         <div className="lg:col-span-4 space-y-6">
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
             <h2 className="text-xl font-semibold text-white flex items-center gap-2">
               <Search className="w-5 h-5 text-indigo-400" />
               SEO Optimizer
             </h2>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -569,7 +577,7 @@ export default function ProductDetailsPage() {
                     )}
                   </button>
                 </div>
-                <input 
+                <input
                   type="text"
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
                   value={currentLoc.metadata_title || ''}
@@ -599,7 +607,7 @@ export default function ProductDetailsPage() {
                     )}
                   </button>
                 </div>
-                <textarea 
+                <textarea
                   rows={4}
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 resize-none"
                   value={currentLoc.metadata_description || ''}
@@ -639,7 +647,7 @@ export default function ProductDetailsPage() {
                       }}>×</button>
                     </span>
                   ))}
-                  <input 
+                  <input
                     type="text"
                     className="bg-transparent border-none text-[10px] text-white outline-none w-20"
                     placeholder="+ add tag"
@@ -658,14 +666,13 @@ export default function ProductDetailsPage() {
             </div>
           </section>
 
-          {/* Store Taxonomy */}
           <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Layers className="w-5 h-5 text-indigo-400" />
                 Store Taxonomy
               </h2>
-              <button 
+              <button
                 onClick={() => organizationId && fetchTaxonomy(organizationId)}
                 disabled={isSyncingTaxonomy || !organizationId}
                 className="p-2 text-zinc-500 hover:text-indigo-400 transition-colors disabled:opacity-50"
@@ -709,7 +716,7 @@ export default function ProductDetailsPage() {
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                   Collection
                 </label>
-                <select 
+                <select
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
                   value={collection_id || ''}
                   onChange={(e) => updateRoot({ collection_id: e.target.value })}
@@ -725,7 +732,7 @@ export default function ProductDetailsPage() {
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                   Product Type
                 </label>
-                <select 
+                <select
                   className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
                   value={type_id || ''}
                   onChange={(e) => updateRoot({ type_id: e.target.value })}
@@ -744,12 +751,12 @@ export default function ProductDetailsPage() {
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 no-scrollbar">
                   {taxonomyOptions?.categories.map(cat => (
                     <label key={cat.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/20 border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
-                      <input 
+                      <input
                         type="checkbox"
                         className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/50"
                         checked={categories.includes(cat.id)}
                         onChange={(e) => {
-                          const newCats = e.target.checked 
+                          const newCats = e.target.checked
                             ? [...categories, cat.id]
                             : categories.filter(id => id !== cat.id);
                           updateRoot({ categories: newCats });
@@ -771,12 +778,12 @@ export default function ProductDetailsPage() {
                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-2 no-scrollbar">
                   {taxonomyOptions?.sales_channels.map(sc => (
                     <label key={sc.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900/20 border border-white/5 cursor-pointer hover:bg-white/5 transition-colors">
-                      <input 
+                      <input
                         type="checkbox"
                         className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500/50"
                         checked={sales_channels.includes(sc.id)}
                         onChange={(e) => {
-                          const newChannels = e.target.checked 
+                          const newChannels = e.target.checked
                             ? [...sales_channels, sc.id]
                             : sales_channels.filter(id => id !== sc.id);
                           updateRoot({ sales_channels: newChannels });
@@ -793,134 +800,8 @@ export default function ProductDetailsPage() {
                   )}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Shipping Profile
-                </label>
-                <select 
-                  className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 appearance-none cursor-pointer"
-                  value={shipping_profile_id || ''}
-                  onChange={(e) => updateRoot({ shipping_profile_id: e.target.value })}
-                >
-                  <option value="">None</option>
-                  {taxonomyOptions?.shipping_profiles.map(sp => (
-                    <option key={sp.id} value={sp.id}>{sp.name}</option>
-                  ))}
-                </select>
-                {(!taxonomyOptions || taxonomyOptions.shipping_profiles.length === 0) && (
-                  <div className="text-[10px] text-zinc-600 italic">No shipping profiles found.</div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Product Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag, idx) => (
-                    <span key={idx} className="px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] flex items-center gap-1">
-                      {tag}
-                      <button onClick={() => {
-                        updateRoot({ tags: tags.filter((_, i) => i !== idx) });
-                      }}>×</button>
-                    </span>
-                  ))}
-                  <input 
-                    type="text"
-                    className="bg-transparent border-none text-[10px] text-white outline-none w-20"
-                    placeholder="+ add tag"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = e.currentTarget.value.trim();
-                        if (val && !tags.includes(val)) {
-                          updateRoot({ tags: [...tags, val] });
-                          e.currentTarget.value = '';
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
             </div>
           </section>
-
-          {/* Logistics */}
-          <section className="glass rounded-2xl p-6 border border-white/10 space-y-6">
-            <h2 className="text-xl font-semibold text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Truck className="w-5 h-5 text-indigo-400" />
-                Logistics
-              </div>
-              <AISourceBadge source={getFieldSource('logistics')} />
-            </h2>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Weight (grams)</label>
-                <input 
-                  type="number"
-                  className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
-                  value={shipping_weight || 0}
-                  onChange={(e) => updateRoot({ shipping_weight: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                  Dimensions (cm)
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-zinc-500 ml-1">L</span>
-                    <input 
-                      type="number"
-                      className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-indigo-500/50"
-                      value={shipping_dimensions?.length || 0}
-                      onChange={(e) => updateRoot({ 
-                        shipping_dimensions: { ...shipping_dimensions, length: parseFloat(e.target.value) || 0 } 
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-zinc-500 ml-1">W</span>
-                    <input 
-                      type="number"
-                      className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-indigo-500/50"
-                      value={shipping_dimensions?.width || 0}
-                      onChange={(e) => updateRoot({ 
-                        shipping_dimensions: { ...shipping_dimensions, width: parseFloat(e.target.value) || 0 } 
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-zinc-500 ml-1">H</span>
-                    <input 
-                      type="number"
-                      className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-indigo-500/50"
-                      value={shipping_dimensions?.height || 0}
-                      onChange={(e) => updateRoot({ 
-                        shipping_dimensions: { ...shipping_dimensions, height: parseFloat(e.target.value) || 0 } 
-                      })}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Translation Status Info */}
-          {!isActive && selectedLang !== 'en' && localization.en.title && (
-            <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-2">
-              <div className="flex items-center gap-2 text-indigo-400">
-                <Sparkles className="w-4 h-4" />
-                <h3 className="text-xs font-bold uppercase">Ready to Auto-Translate</h3>
-              </div>
-              <p className="text-[10px] text-zinc-500 leading-relaxed">
-                Activating this language will automatically translate your English content using AI.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
