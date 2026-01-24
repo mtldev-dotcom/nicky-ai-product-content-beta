@@ -26,6 +26,7 @@ import { getMedusaTaxonomy } from './actions';
 import { AISourceBadge } from '@/components/ui/AISourceBadge';
 import { ProductMediaModule } from '@/components/product-details/modules/ProductMediaModule';
 import { ProductVariantsModule } from '@/components/product-details/modules/ProductVariantsModule';
+import { ProductJsonModule } from '@/components/product-details/modules/ProductJsonModule';
 
 const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').then(mod => mod.RichTextEditor), {
   ssr: false,
@@ -547,6 +548,7 @@ export default function ProductDetailsPage() {
             currencies: taxonomyOptions.currencies,
             stock_locations: taxonomyOptions.stock_locations
           } : null} />
+          <ProductJsonModule />
         </div>
 
         {/* Right Column: SEO, Taxonomy */}

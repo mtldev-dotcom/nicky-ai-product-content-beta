@@ -9,7 +9,6 @@ import {
   Image as ImageIcon,
   Layers,
   Settings,
-  Database,
   Eye,
   LogOut,
   BarChart3,
@@ -25,7 +24,6 @@ const NAV_ITEMS = [
   { icon: Languages, label: 'Details', href: '/product-details' },
   { icon: Eye, label: 'Preview', href: '/preview' },
   { icon: UserCircle, label: 'Assets', href: '/studio-assets' },
-  { icon: Database, label: 'JSON', href: '/json' },
   { icon: BarChart3, label: 'Usage', href: '/usage' },
   { icon: Settings, label: 'Settings', href: '/settings' },
 ];
