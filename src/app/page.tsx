@@ -507,6 +507,41 @@ export default function Dashboard() {
     }
   };
 
+  const handleEditMedusaProduct = async (id: string) => {
+    try {
+      const res = await fetch(`/api/medusa/products/${id}`, { cache: 'no-store' });
+      const json = (await res.json()) as { product?: MedusaProductDetails; error?: string };
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch Medusa product');
+
+      const prod = json.product || (json as unknown as MedusaProductDetails);
+
+      // Map to internal state
+      const mappedData = mapExternalToProduct(prod);
+
+      // Reset store and load mapped data
+      resetStore();
+      bulkUpdate({
+        ...mappedData,
+        medusaProductId: id, // Track that we are editing this existing product
+      });
+
+      // Apply org defaults if needed (though mapping should handle most)
+      applyMedusaDefaultsForNewProduct({
+        defaultSalesChannelId: settings.defaultSalesChannelId,
+        defaultShippingProfileId: settings.defaultShippingProfileId,
+        defaultCollectionId: settings.defaultCollectionId,
+        defaultCategoryIds: settings.defaultCategoryIds,
+      });
+
+      await saveToDb(); // Save as a draft locally so we don't lose work
+
+      router.push('/product-details');
+    } catch (err) {
+      console.error('Failed to load Medusa product for editing:', err);
+      alert('Failed to load product for editing');
+    }
+  };
+
   const exportMedusaToLocal = async (mode: 'copy' | 'move') => {
     if (!activeMedusaProductId) return;
 
@@ -1433,10 +1468,18 @@ export default function Dashboard() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
+                              onClick={() => handleEditMedusaProduct(product.id)}
+                              className="p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 transition-all"
+                              aria-label="Edit in Architect"
+                              title="Edit full details in Architect"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => openMedusaModal(product.id)}
                               className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
-                              aria-label="View / edit"
-                              title="View / edit"
+                              aria-label="Quick View"
+                              title="Quick View"
                             >
                               <Eye className="w-4 h-4" />
                             </button>

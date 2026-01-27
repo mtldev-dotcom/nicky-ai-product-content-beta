@@ -100,6 +100,46 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
             options: [
                 { name: 'Size', values: ['XS', 'S', 'M', 'L', 'XL'] }
             ]
+        },
+        {
+            id: 'uncut-colors-en-fr',
+            name: 'Uncut Colors (EN/FR)',
+            options: [
+                {
+                    name: 'Color',
+                    translations: { en: 'Color', fr: 'Couleur' },
+                    values: [], // Fallback for simple mapper
+                    valuesWithTranslations: [
+                        { value: 'Purple', translations: { en: 'Purple', fr: 'Violet' } },
+                        { value: 'Blue', translations: { en: 'Blue', fr: 'Bleu' } },
+                        { value: 'Black', translations: { en: 'Black', fr: 'Noir' } },
+                        { value: 'Green', translations: { en: 'Green', fr: 'Vert' } },
+                        { value: 'Red', translations: { en: 'Red', fr: 'Rouge' } },
+                        { value: 'Copper', translations: { en: 'Copper', fr: 'Cuivre' } },
+                        { value: 'Gold', translations: { en: 'Gold', fr: 'Or' } },
+                        { value: 'Silver', translations: { en: 'Silver', fr: 'Argent' } },
+
+                        // Combinations - Silver Base
+                        { value: 'Silver/Purple', translations: { en: 'Silver/Purple', fr: 'Argent/Violet' } },
+                        { value: 'Silver/Blue', translations: { en: 'Silver/Blue', fr: 'Argent/Bleu' } },
+                        { value: 'Silver/Black', translations: { en: 'Silver/Black', fr: 'Argent/Noir' } },
+                        { value: 'Silver/Green', translations: { en: 'Silver/Green', fr: 'Argent/Vert' } },
+                        { value: 'Silver/Red', translations: { en: 'Silver/Red', fr: 'Argent/Rouge' } },
+                        { value: 'Silver/Copper', translations: { en: 'Silver/Copper', fr: 'Argent/Cuivre' } },
+                        { value: 'Silver/Gold', translations: { en: 'Silver/Gold', fr: 'Argent/Or' } },
+
+                        // Combinations - Black Base
+                        { value: 'Black/Purple', translations: { en: 'Black/Purple', fr: 'Noir/Violet' } },
+                        { value: 'Black/Blue', translations: { en: 'Black/Blue', fr: 'Noir/Bleu' } },
+                        { value: 'Black/Black', translations: { en: 'Black/Black', fr: 'Noir/Noir' } },
+                        { value: 'Black/Green', translations: { en: 'Black/Green', fr: 'Noir/Vert' } },
+                        { value: 'Black/Red', translations: { en: 'Black/Red', fr: 'Noir/Rouge' } },
+                        { value: 'Black/Copper', translations: { en: 'Black/Copper', fr: 'Noir/Cuivre' } },
+                        { value: 'Black/Gold', translations: { en: 'Black/Gold', fr: 'Noir/Or' } },
+                        { value: 'Black/Silver', translations: { en: 'Black/Silver', fr: 'Noir/Argent' } }
+                    ]
+                }
+            ]
         }
     ];
 
@@ -108,15 +148,32 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
         : defaultPresets;
 
     const handleLoadPreset = (preset: typeof presets[0]) => {
-        const newOptions = preset.options.map(opt => ({
-            id: crypto.randomUUID(),
-            name: opt.name,
-            translations: { en: opt.name },
-            values: opt.values.map(val => ({
-                value: val,
-                translations: { en: val }
-            }))
-        }));
+        const newOptions = preset.options.map(opt => {
+            // Check if we have extended values with translations
+            // @ts-ignore - dynamic property check
+            const extendedValues = opt.valuesWithTranslations as Array<{ value: string; translations: Record<string, string> }>;
+
+            if (extendedValues && extendedValues.length > 0) {
+                return {
+                    id: crypto.randomUUID(),
+                    // @ts-ignore
+                    name: opt.name,
+                    // @ts-ignore
+                    translations: opt.translations || { en: opt.name },
+                    values: extendedValues
+                };
+            }
+
+            return {
+                id: crypto.randomUUID(),
+                name: opt.name,
+                translations: { en: opt.name },
+                values: opt.values.map(val => ({
+                    value: val,
+                    translations: { en: val }
+                }))
+            };
+        });
         bulkUpdate({ options: [...options, ...newOptions] });
         setShowPresetMenu(false);
     };

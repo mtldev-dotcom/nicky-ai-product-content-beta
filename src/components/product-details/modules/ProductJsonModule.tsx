@@ -100,7 +100,11 @@ export function ProductJsonModule() {
 
         try {
             const payload = JSON.parse(fullJson) as unknown;
-            const res = await fetch('/api/medusa/push-product', {
+            const endpoint = product.medusaProductId
+                ? `/api/medusa/products/${product.medusaProductId}`
+                : '/api/medusa/push-product';
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ payload }),
@@ -113,7 +117,15 @@ export function ProductJsonModule() {
                 return;
             }
 
-            setPushResult({ productId: data.productId ?? null });
+            // If it was an update, we might not get a new ID, but we know the current one.
+            const finalId = data.productId || product.medusaProductId;
+
+            // If it was a create, update the store with the new ID
+            if (!product.medusaProductId && finalId) {
+                product.updateRoot({ medusaProductId: finalId });
+            }
+
+            setPushResult({ productId: finalId || null });
         } catch (e) {
             console.error('Push to Medusa failed:', e);
             setPushError('Failed to push product to Medusa (invalid JSON or network error)');
@@ -194,8 +206,11 @@ export function ProductJsonModule() {
                         )}
                         title={(!settings.medusaUrl || !settings.hasMedusaApiKey) ? "Configure Medusa in Settings" : "Push to Medusa"}
                     >
-                        {isPushing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Box className="w-4 h-4" />}
-                        {isPushing ? 'Pushing...' : 'Push to Medusa'}
+                        {isPushing ? <Loader2 className="w-4 h-4 animate-spin" /> : product.medusaProductId ? <RefreshCw className="w-4 h-4" /> : <Box className="w-4 h-4" />}
+                        {isPushing
+                            ? (product.medusaProductId ? 'Updating...' : 'Pushing...')
+                            : (product.medusaProductId ? 'Update Medusa' : 'Push to Medusa')
+                        }
                     </button>
                 </div>
 

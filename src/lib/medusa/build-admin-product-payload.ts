@@ -52,6 +52,7 @@ export type ProductOptionValueLike = {
 };
 
 export type ProductOptionLike = {
+  id?: string;
   name?: string;
   translations?: Record<string, string>;
   values?: ProductOptionValueLike[];
@@ -63,6 +64,7 @@ export type ProductVariantPriceLike = {
 };
 
 export type ProductVariantLike = {
+  id?: string;
   title?: string;
   sku?: string;
   options?: Record<string, string>;
@@ -156,37 +158,57 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
   // - Fallback to combinations from options.
   // - As last resort, generate a single default variant.
   const getVariants = (): unknown[] => {
+    // 1. Map Explicit Variants (if any)
     if (Array.isArray(input.variants) && input.variants.length > 0) {
-      return input.variants.map((v) => ({
-        title: asString(v.title),
-        sku: asString(v.sku),
-        options: isRecord(v.options) ? v.options : {},
-        prices: Array.isArray(v.prices)
-          ? v.prices.map((p) => ({
+      return input.variants.map((v) => {
+        const explicitOpts = isRecord(v.options) ? v.options : {};
+
+        // Map dictionary { "Color": "Black" } -> [{ option_id: "...", value: "Black" }]
+        // We MUST map against the defined root `options` to get IDs and ensure order.
+        const mappedOptions = options.map((rootOpt) => {
+          const rootName = asString(rootOpt.name);
+          const val = explicitOpts[rootName];
+
+          // If value is missing for this option, Medusa might fail strict creation, but we send what we have.
+          // For updates, we need `option_id`.
+          const item: { value: string; option_id?: string } = { value: asString(val) };
+          if (rootOpt.id) item.option_id = rootOpt.id;
+          return item;
+        });
+
+        return {
+          id: asString(v.id) || undefined,
+          title: asString(v.title),
+          sku: asString(v.sku),
+          // Send as array of objects
+          options: mappedOptions,
+          prices: Array.isArray(v.prices)
+            ? v.prices.map((p) => ({
               amount: asNumber(p.amount, 0),
               currency_code: p.currency_code,
             }))
-          : [],
-        manage_inventory: !!v.manage_inventory,
-        allow_backorder: !!v.allow_backorder,
-      }));
+            : [],
+          manage_inventory: !!v.manage_inventory,
+          allow_backorder: !!v.allow_backorder,
+        };
+      });
     }
 
-    // No options => simplest single variant.
+    // 2. Fallback: No variants => simplest single default variant.
     if (options.length === 0) {
       return [
         {
           title: `${title || 'Draft Product'} - Default Variant`,
           sku: `${handle || 'product'}-default`,
-          options: {},
+          options: [],
           prices: [{ amount: asNumber(input.price, 0), currency_code: 'usd' }],
           manage_inventory: true,
         },
       ];
     }
 
-    // Build combinations from options values.
-    type ComboItem = { name: string; value: string };
+    // 3. Fallback: Build combinations from options values (no IDs yet usually, or we don't have explicit variant IDs).
+    type ComboItem = { name: string; value: string; rootOptId?: string };
     const combinations: ComboItem[][] = [[]];
 
     for (const opt of options) {
@@ -199,7 +221,7 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
         for (const v of values) {
           const vv = asString(v.value);
           if (!vv) continue;
-          nextCombinations.push([...combo, { name: optName, value: vv }]);
+          nextCombinations.push([...combo, { name: optName, value: vv, rootOptId: opt.id }]);
         }
       }
 
@@ -211,17 +233,20 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
 
     return combinations.map((combo) => {
       const variantValuesTitle = combo.map((c) => c.value).join(' / ');
-      const variantOptions = combo.reduce<Record<string, string>>((acc, curr) => {
-        acc[curr.name] = curr.value;
-        return acc;
-      }, {});
+
+      // Map to array format
+      const variantOptionsPayload = combo.map(c => {
+        const item: { value: string; option_id?: string } = { value: c.value };
+        if (c.rootOptId) item.option_id = c.rootOptId;
+        return item;
+      });
 
       const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
 
       return {
         title: `${title || 'Draft Product'} - ${variantValuesTitle}`,
         sku: `${handle || 'product'}-${slugifiedOptions}`,
-        options: variantOptions,
+        options: variantOptionsPayload,
         prices: [{ amount: asNumber(input.price, 0), currency_code: 'usd' }],
         manage_inventory: true,
       };
@@ -271,73 +296,74 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
       options_i18n:
         options.length > 0
           ? options.map((opt) => {
-              const name = asString(opt.name);
-              const translations = isRecord(opt.translations) ? (opt.translations as Record<string, string>) : {};
-              const values = Array.isArray(opt.values) ? opt.values : [];
+            const name = asString(opt.name);
+            const translations = isRecord(opt.translations) ? (opt.translations as Record<string, string>) : {};
+            const values = Array.isArray(opt.values) ? opt.values : [];
 
-              return {
-                title_i18n: {
-                  en: name,
-                  ...Object.fromEntries(
-                    Object.entries(translations).map(([lang, trans]) => [
-                      lang,
-                      name.toLowerCase() === 'default' ? 'Default' : trans,
-                    ])
-                  ),
-                },
-                values: values.map((v) => {
-                  const vv = asString(v.value);
-                  const vTranslations = isRecord(v.translations)
-                    ? (v.translations as Record<string, string>)
-                    : {};
-
-                  return {
-                    value: vv,
-                    value_i18n: {
-                      en: vv,
-                      ...Object.fromEntries(
-                        Object.entries(vTranslations).map(([lang, trans]) => [
-                          lang,
-                          vv.toLowerCase() === 'default' ? 'Default' : trans,
-                        ])
-                      ),
-                    },
-                  };
-                }),
-              };
-            })
-          : [
-              {
-                title_i18n: { en: 'Default option' },
-                values: [
-                  {
-                    value: 'Default option value',
-                    value_i18n: { en: 'Default option value' },
-                  },
-                ],
+            return {
+              title_i18n: {
+                en: name,
+                ...Object.fromEntries(
+                  Object.entries(translations).map(([lang, trans]) => [
+                    lang,
+                    name.toLowerCase() === 'default' ? 'Default' : trans,
+                  ])
+                ),
               },
-            ],
+              values: values.map((v) => {
+                const vv = asString(v.value);
+                const vTranslations = isRecord(v.translations)
+                  ? (v.translations as Record<string, string>)
+                  : {};
+
+                return {
+                  value: vv,
+                  value_i18n: {
+                    en: vv,
+                    ...Object.fromEntries(
+                      Object.entries(vTranslations).map(([lang, trans]) => [
+                        lang,
+                        vv.toLowerCase() === 'default' ? 'Default' : trans,
+                      ])
+                    ),
+                  },
+                };
+              }),
+            };
+          })
+          : [
+            {
+              title_i18n: { en: 'Default option' },
+              values: [
+                {
+                  value: 'Default option value',
+                  value_i18n: { en: 'Default option value' },
+                },
+              ],
+            },
+          ],
     },
     options:
       options.length > 0
         ? options.map((opt) => ({
-            title: asString(opt.name),
-            values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
-          }))
+          id: asString(opt.id) || undefined,
+          title: asString(opt.name),
+          values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
+        }))
         : [
-            {
-              title: 'Default option',
-              values: ['Default option value'],
-            },
-          ],
+          {
+            title: 'Default option',
+            values: ['Default option value'],
+          },
+        ],
     variants,
     tags: Array.isArray(input.tags) ? input.tags.map((t) => ({ value: t })) : [],
     images: Array.isArray(input.images)
       ? input.images.map((url, index) => ({
-          url,
-          metadata: null,
-          rank: index,
-        }))
+        url,
+        metadata: null,
+        rank: index,
+      }))
       : [],
     categories: Array.isArray(input.categories) ? input.categories.map((c) => ({ id: c })) : [],
     sales_channels: Array.isArray(input.sales_channels) ? input.sales_channels.map((sc) => ({ id: sc })) : [],
@@ -408,10 +434,10 @@ export function buildMedusaAdminProductPayloadFromSavedProduct(row: SavedProduct
     shipping_weight: typeof dataObj.shipping_weight === 'number' ? dataObj.shipping_weight : null,
     shipping_dimensions: shippingDimensions
       ? {
-          length: asNumber((shippingDimensions as UnknownRecord).length, 0),
-          width: asNumber((shippingDimensions as UnknownRecord).width, 0),
-          height: asNumber((shippingDimensions as UnknownRecord).height, 0),
-        }
+        length: asNumber((shippingDimensions as UnknownRecord).length, 0),
+        width: asNumber((shippingDimensions as UnknownRecord).width, 0),
+        height: asNumber((shippingDimensions as UnknownRecord).height, 0),
+      }
       : null,
   });
 }

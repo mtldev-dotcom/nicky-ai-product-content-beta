@@ -29,7 +29,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   const description = asString(findValue(root, ['description', 'body_html', 'content'])) || '';
   const sku = asString(findValue(root, ['sku', 'handle', 'id'])) || '';
   const price = asNumber(findValue(root, ['price', 'amount', 'unit_price'])) || 0;
-  
+
   // Extract images
   let images: string[] = [];
   const rawImages = findValue(root, ['images', 'gallery', 'media']);
@@ -59,22 +59,22 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
     const valuesRaw = optRecord.values;
     const values = Array.isArray(valuesRaw)
       ? valuesRaw
-          .map((v) => {
-            if (typeof v === 'string') return v;
-            if (isRecord(v)) {
-              const vv = v.value;
-              const label = v.label;
-              if (typeof vv === 'string') return vv;
-              if (typeof label === 'string') return label;
-            }
-            return '';
-          })
-          .filter((s): s is string => typeof s === 'string' && s.length > 0)
-          .map((val) => ({ value: val, translations: { en: val } }))
+        .map((v) => {
+          if (typeof v === 'string') return v;
+          if (isRecord(v)) {
+            const vv = v.value;
+            const label = v.label;
+            if (typeof vv === 'string') return vv;
+            if (typeof label === 'string') return label;
+          }
+          return '';
+        })
+        .filter((s): s is string => typeof s === 'string' && s.length > 0)
+        .map((val) => ({ value: val, translations: { en: val } }))
       : [];
 
     return {
-      id: crypto.randomUUID(),
+      id: asString(optRecord.id) || crypto.randomUUID(),
       name: optName,
       translations: { en: optName },
       values,
@@ -107,22 +107,187 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
       : []
   };
 
+  // Extract Metadata for i18n
+  const metadata = isRecord(root['metadata']) ? root['metadata'] : {};
+
+  // Helper to extract i18n fields from metadata
+  // e.g., title_i18n: { en: "...", fr: "..." }
+  const getI18n = (field: string): Record<string, string> => {
+    const val = metadata[`${field}_i18n`];
+    return isRecord(val) ? (val as Record<string, string>) : {};
+  };
+
+  const getI18nArray = (field: string): Record<string, string[]> => {
+    const val = metadata[`${field}_i18n`];
+    return isRecord(val) ? (val as Record<string, string[]>) : {};
+  };
+
+  // 1. Identify all active languages from metadata
+  const foundLanguages = new Set<string>(['en']);
+  const checkLangs = (obj: Record<string, unknown>) => {
+    Object.keys(obj).forEach(lang => foundLanguages.add(lang));
+  };
+
+  checkLangs(getI18n('title'));
+  checkLangs(getI18n('subtitle'));
+  checkLangs(getI18n('description'));
+  checkLangs(getI18n('seo_title'));
+  checkLangs(getI18n('seo_description'));
+  // features_i18n and keywords_i18n are Record<string, string[]>
+
+  const activeLanguages = Array.from(foundLanguages);
+
+  // 2. Build Localization for all languages
+  const localization: Record<string, Localization> = {};
+
+  // Initialize all found languages with empty structure or EN defaults
+  activeLanguages.forEach(lang => {
+    localization[lang] = {
+      title: getI18n('title')[lang] || (lang === 'en' ? enLoc.title : ''),
+      subtitle: getI18n('subtitle')[lang] || (lang === 'en' ? enLoc.subtitle : ''),
+      description: getI18n('description')[lang] || (lang === 'en' ? enLoc.description : ''),
+      metadata_title: getI18n('seo_title')[lang] || (lang === 'en' ? enLoc.metadata_title : ''),
+      metadata_description: getI18n('seo_description')[lang] || (lang === 'en' ? enLoc.metadata_description : ''),
+      features: getI18nArray('features')[lang] || (lang === 'en' ? enLoc.features : []),
+      keywords: getI18nArray('keywords')[lang] || (lang === 'en' ? enLoc.keywords : []),
+    };
+  });
+
+  // 3. Enhance Options with i18n
+  // metadata.options_i18n is array of objects, corresponding to options order? 
+  // Or match by title?
+  // The user JSON example shows `options_i18n` as an array matching the `options` array order.
+  const optionsI18n = Array.isArray(metadata['options_i18n']) ? metadata['options_i18n'] : [];
+
+  const enhancedOptions = options.map((opt, idx) => {
+    const i18nData = optionsI18n[idx];
+    if (!isRecord(i18nData)) return opt;
+
+    // Option Name Translations
+    const titleI18n = isRecord(i18nData.title_i18n) ? (i18nData.title_i18n as Record<string, string>) : {};
+
+    // Value Translations
+    const valuesI18nRaw = Array.isArray(i18nData.values) ? i18nData.values : [];
+
+    const enhancedValues = opt.values.map((val, vIdx) => {
+      const valI18nData = valuesI18nRaw[vIdx];
+      const valTranslations: Record<string, string> = { en: val.value };
+
+      if (isRecord(valI18nData) && isRecord(valI18nData.value_i18n)) {
+        Object.entries(valI18nData.value_i18n).forEach(([lang, trans]) => {
+          if (typeof trans === 'string') valTranslations[lang] = trans;
+        });
+      }
+      return { ...val, translations: valTranslations };
+    });
+
+    return {
+      ...opt,
+      translations: { en: opt.name, ...titleI18n },
+      values: enhancedValues
+    };
+  });
+
+  // Extract Categories
+  const categoriesRaw = findValue(root, ['categories', 'product_categories']);
+  const categories = Array.isArray(categoriesRaw)
+    ? categoriesRaw
+      .map((c) => {
+        if (isRecord(c)) return asString(c.id);
+        return '';
+      })
+      .filter((id) => id.length > 0)
+    : [];
+
+  // Extract Variants
+  const variantsRaw = findValue(root, ['variants']);
+  const variants = Array.isArray(variantsRaw)
+    ? variantsRaw.map((v) => {
+      if (!isRecord(v)) return null;
+
+      const variantTitle = asString(v.title);
+      const variantSku = asString(v.sku);
+      const variantId = asString(v.id);
+
+      // Map prices
+      const pricesRaw = v.prices;
+      const prices = Array.isArray(pricesRaw)
+        ? pricesRaw.map((p) => {
+          if (!isRecord(p)) return null;
+          return {
+            amount: asNumber(p.amount),
+            currency_code: asString(p.currency_code)
+          };
+        }).filter((p): p is { amount: number; currency_code: string } => p !== null)
+        : [];
+
+      // Map options -> { OptionName: OptionValue }
+      // Medusa variants have `options` array: [{ option_id: "...", value: "..." }]
+      // BUT we need to map them back to Option Names.
+      // We can do this by matching option_id to the generic options array we parsed earlier, 
+      // OR rely on the fact that mapped options should be in same order?
+      // Medusa `options` on variant usually contains `option_id`.
+      // The root `options` array contains `id` and `title`.
+
+      const variantOptions: Record<string, string> = {};
+      const vOptionsRaw = v.options;
+      if (Array.isArray(vOptionsRaw)) {
+        vOptionsRaw.forEach(vo => {
+          if (!isRecord(vo)) return;
+          const val = asString(vo.value);
+
+          // Try to find the option name from root options
+          const optId = asString(vo.option_id);
+          if (optId) {
+            // Check mapping from root options
+            // The root options we parsed above MIGHT not have their original IDs if we didn't extract them.
+            // We need to ensure we extracted root option IDs.
+            const foundOpt = (Array.isArray(optionsRaw) ? optionsRaw : []).find(o => isRecord(o) && o.id === optId);
+            if (isRecord(foundOpt)) {
+              const optName = asString(foundOpt.title) || asString(foundOpt.name) || 'Option';
+              variantOptions[optName] = val;
+              return;
+            }
+          }
+          // If we can't map by ID, we might have trouble.
+          // Fallback: If no option_id, maybe it has name? No, Medusa strict.
+        });
+      }
+
+      return {
+        id: variantId || crypto.randomUUID(),
+        title: variantTitle,
+        sku: variantSku,
+        manage_inventory: v.manage_inventory !== false, // Default true
+        allow_backorder: !!v.allow_backorder,
+        prices,
+        options: variantOptions,
+        inventory: [] // We don't map inventory levels deeply yet, complicated structure
+      };
+    }).filter((v): v is any => v !== null)
+    : [];
+
+
   return {
     title,
     description,
     sku,
     price,
     images,
-    options,
+    options: enhancedOptions,
+    variants,
+    categories,
     ignoredUrls: [],
     localization: {
-      en: enLoc,
-      es: { ...emptyLoc },
-      fr: { ...emptyLoc },
-      de: { ...emptyLoc },
-      ja: { ...emptyLoc },
+      ...localization,
+      // Ensure we have at least these defaults if not found above
+      en: localization['en'] || enLoc,
+      es: localization['es'] || { ...emptyLoc },
+      fr: localization['fr'] || { ...emptyLoc },
+      de: localization['de'] || { ...emptyLoc },
+      ja: localization['ja'] || { ...emptyLoc },
     },
-    activeLanguages: ['en'],
+    activeLanguages,
     thumbnail: images[0] || ''
   };
 }

@@ -51,7 +51,8 @@ export default function ProductDetailsPage() {
     sales_channels,
     updateRoot,
     translatingLanguages,
-    aiMeta
+    aiMeta,
+    medusaProductId
   } = useProductStore();
 
   const getFieldSource = (path: string): 'ai' | 'source' | 'mixed' => {
@@ -310,6 +311,43 @@ export default function ProductDetailsPage() {
     }
   };
 
+  const [isUpdatingMedusa, setIsUpdatingMedusa] = useState(false);
+
+  const handleMedusaUpdate = async () => {
+    const { medusaProductId } = useProductStore.getState();
+    if (!medusaProductId) return;
+
+    setIsUpdatingMedusa(true);
+    try {
+      // 1. Save local draft first
+      await useProductStore.getState().saveToDb();
+
+      // 2. Build Medusa payload
+      const { buildMedusaAdminProductPayload } = await import('@/lib/medusa/build-admin-product-payload');
+      const payload = buildMedusaAdminProductPayload(useProductStore.getState());
+
+      // 3. Send update
+      const res = await fetch(`/api/medusa/products/${medusaProductId}`, {
+        method: 'POST',
+        body: JSON.stringify({ payload }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to update Medusa product');
+      }
+
+      alert('Successfully updated Medusa product!');
+    } catch (err) {
+      console.error('Update failed:', err);
+      alert(err instanceof Error ? err.message : 'Failed to update Medusa product');
+    } finally {
+      setIsUpdatingMedusa(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-32 md:pb-8">
       {/* Header */}
@@ -324,32 +362,50 @@ export default function ProductDetailsPage() {
           </p>
         </div>
 
-        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
-          {availableLanguages.map((lang) => {
-            const isTranslatingLang = translatingLanguages.has(lang.code);
-            return (
-              <button
-                key={lang.code}
-                onClick={() => setSelectedLang(lang.code)}
-                disabled={isTranslatingLang}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
-                  selectedLang === lang.code
-                    ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
-                  isTranslatingLang && "opacity-75 cursor-wait"
-                )}
-              >
-                <span>{lang.flag}</span>
-                {lang.name}
-                {isTranslatingLang ? (
-                  <Loader2 className="w-3 h-3 animate-spin text-indigo-300" />
-                ) : productActiveLanguages.includes(lang.code) ? (
-                  <Check className="w-3 h-3 text-indigo-200" />
-                ) : null}
-              </button>
-            );
-          })}
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Edit / Update Actions */}
+          {useProductStore.getState().medusaProductId && (
+            <button
+              onClick={handleMedusaUpdate}
+              disabled={isUpdatingMedusa}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+            >
+              {isUpdatingMedusa ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isUpdatingMedusa ? 'Updating...' : 'Update Medusa'}
+            </button>
+          )}
+
+          <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
+            {availableLanguages.map((lang) => {
+              const isTranslatingLang = translatingLanguages.has(lang.code);
+              return (
+                <button
+                  key={lang.code}
+                  onClick={() => setSelectedLang(lang.code)}
+                  disabled={isTranslatingLang}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap",
+                    selectedLang === lang.code
+                      ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                    isTranslatingLang && "opacity-75 cursor-wait"
+                  )}
+                >
+                  <span>{lang.flag}</span>
+                  {lang.name}
+                  {isTranslatingLang ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-indigo-300" />
+                  ) : productActiveLanguages.includes(lang.code) ? (
+                    <Check className="w-3 h-3 text-indigo-200" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </header>
 

@@ -46,7 +46,7 @@ export interface ProductState {
   organizationId?: string;
   isSaving: boolean;
   translatingLanguages: Set<string>; // Track which languages are currently being translated
-  
+
   // Medusa Top-level
   title: string;
   subtitle: string;
@@ -56,20 +56,21 @@ export interface ProductState {
   thumbnail: string;
   sku: string;
   price: number;
-  
+  medusaProductId?: string;
+
   // Metadata localization
   activeLanguages: string[];
   localization: Record<string, Localization>;
-  
+
   // Media
   images: string[];
   vault: string[];
   ignoredUrls: string[];
-  
+
   // Variants/Options
   options: ProductOption[];
   variants: ProductVariant[];
-  
+
   // Taxonomy/Store Integration
   collection_id: string;
   type_id: string;
@@ -79,14 +80,14 @@ export interface ProductState {
   shipping_profile_id: string;
   shipping_weight: number;
   shipping_dimensions: { length: number; width: number; height: number };
-  
+
   // AI Metadata
   aiMeta?: {
     fieldsFilledByAI: string[];
     fieldsFromSource: string[];
     languageSource: Record<string, 'original' | 'mixed' | 'translated'>;
   };
-  
+
   // Actions
   updateRoot: (data: Partial<Omit<ProductState, 'localization' | 'images' | 'vault' | 'options' | 'variants' | 'ignoredUrls'>>) => void;
   updateLocalization: (lang: string, data: Partial<Localization>) => void;
@@ -95,7 +96,7 @@ export interface ProductState {
   reorderImages: (images: string[]) => void;
   setThumbnail: (url: string) => void;
   toggleIgnoreSync: (url: string) => void;
-  
+
   // Enhanced Option Actions
   addOption: (name: string) => void;
   updateOption: (id: string, name: string, translations: Record<string, string>) => void;
@@ -103,11 +104,11 @@ export interface ProductState {
   updateOptionValue: (optionId: string, valueIndex: number, translations: Record<string, string>) => void;
   removeOptionValue: (optionId: string, valueIndex: number) => void;
   removeOption: (id: string) => void;
-  
+
   // Variant Actions
   setVariants: (variants: ProductVariant[]) => void;
   updateVariant: (id: string, data: Partial<ProductVariant>) => void;
-  
+
   resetStore: () => void;
   bulkUpdate: (data: Partial<ProductState>) => void;
   setOrganizationId: (id: string) => void;
@@ -185,7 +186,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
   updateRoot: (data) => set((state) => {
     const newState = { ...state, ...data };
-    
+
     // Auto-slugify handle if title changes and no handle provided
     if (data.title && !data.handle && typeof data.title === 'string') {
       newState.handle = data.title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
@@ -200,7 +201,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         description: data.description ?? enLoc.description,
       };
     }
-    
+
     return newState;
   }),
 
@@ -256,11 +257,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
   })),
 
   addOption: (name) => set((state) => ({
-    options: [...state.options, { 
-      id: crypto.randomUUID(), 
-      name, 
+    options: [...state.options, {
+      id: crypto.randomUUID(),
+      name,
       translations: { en: name },
-      values: [] 
+      values: []
     }],
   })),
 
@@ -269,28 +270,28 @@ export const useProductStore = create<ProductState>((set, get) => ({
   })),
 
   addOptionValue: (optionId, value) => set((state) => ({
-    options: state.options.map((opt) => 
-      opt.id === optionId 
-        ? { ...opt, values: [...opt.values, { value, translations: { en: value } }] } 
+    options: state.options.map((opt) =>
+      opt.id === optionId
+        ? { ...opt, values: [...opt.values, { value, translations: { en: value } }] }
         : opt
     ),
   })),
 
   updateOptionValue: (optionId, valueIndex, translations) => set((state) => ({
-    options: state.options.map((opt) => 
-      opt.id === optionId 
-        ? { 
-            ...opt, 
-            values: opt.values.map((v, i) => i === valueIndex ? { ...v, translations } : v) 
-          } 
+    options: state.options.map((opt) =>
+      opt.id === optionId
+        ? {
+          ...opt,
+          values: opt.values.map((v, i) => i === valueIndex ? { ...v, translations } : v)
+        }
         : opt
     ),
   })),
 
   removeOptionValue: (optionId, valueIndex) => set((state) => ({
-    options: state.options.map((opt) => 
-      opt.id === optionId 
-        ? { ...opt, values: opt.values.filter((_, i) => i !== valueIndex) } 
+    options: state.options.map((opt) =>
+      opt.id === optionId
+        ? { ...opt, values: opt.values.filter((_, i) => i !== valueIndex) }
         : opt
     ),
     variants: [], // Clear variants when options change
@@ -318,6 +319,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     thumbnail: '',
     sku: '',
     price: 0,
+    medusaProductId: undefined,
     activeLanguages: ['en'],
     translatingLanguages: new Set<string>(),
     localization: {
@@ -400,7 +402,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
   },
 
   bulkUpdate: (data) => set((state) => ({ ...state, ...data })),
-  
+
   setTranslatingLanguage: (lang, isTranslating) => set((state) => {
     const newSet = new Set(state.translatingLanguages);
     if (isTranslating) {
@@ -423,11 +425,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
      */
     const product = blueprint.product;
     const aiMeta = blueprint.aiMeta;
-    
+
     // Build localization from descriptions
     const localization: Record<string, Localization> = {};
     const activeLanguages: string[] = [];
-    
+
     type BlueprintDescription = ProductBlueprint['product']['descriptions'][string];
     const descriptionEntries = Object.entries(product.descriptions) as Array<[string, BlueprintDescription]>;
 
@@ -443,7 +445,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         keywords: desc.seo?.keywords || [],
       };
     }
-    
+
     // Convert variants
     type BlueprintVariant = ProductBlueprint['product']['variants'][number];
     const variants = (product.variants || []).map((v: BlueprintVariant, idx: number) => ({
@@ -462,12 +464,12 @@ export const useProductStore = create<ProductState>((set, get) => ({
         stocked_quantity: v.inventory.quantity || 0,
       }] : [],
     }));
-    
+
     // Convert images
     const images = (product.media?.images || [])
       .map((img) => img.syncedUrl || img.sourceUrl)
       .filter((u): u is string => typeof u === 'string' && u.length > 0);
-    
+
     // Extract unique options and values from variants
     const optionMap: Record<string, Set<string>> = {};
     (product.variants || []).forEach((v) => {
@@ -488,7 +490,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         translations: { en: v }
       }))
     }));
-    
+
     set({
       title: product.identity.title,
       subtitle: product.identity.subtitle,
@@ -573,10 +575,10 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const shipping_weight = typeof dataObj.shipping_weight === 'number' ? dataObj.shipping_weight : 0;
     const shipping_dimensions = isRecord(dataObj.shipping_dimensions)
       ? {
-          length: typeof dataObj.shipping_dimensions.length === 'number' ? dataObj.shipping_dimensions.length : 0,
-          width: typeof dataObj.shipping_dimensions.width === 'number' ? dataObj.shipping_dimensions.width : 0,
-          height: typeof dataObj.shipping_dimensions.height === 'number' ? dataObj.shipping_dimensions.height : 0,
-        }
+        length: typeof dataObj.shipping_dimensions.length === 'number' ? dataObj.shipping_dimensions.length : 0,
+        width: typeof dataObj.shipping_dimensions.width === 'number' ? dataObj.shipping_dimensions.width : 0,
+        height: typeof dataObj.shipping_dimensions.height === 'number' ? dataObj.shipping_dimensions.height : 0,
+      }
       : { length: 0, width: 0, height: 0 };
 
     const aiMeta = isRecord(dataObj.aiMeta) ? (dataObj.aiMeta as ProductState['aiMeta']) : undefined;
