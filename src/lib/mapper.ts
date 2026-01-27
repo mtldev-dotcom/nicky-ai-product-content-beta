@@ -268,15 +268,75 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
     : [];
 
 
+  // Extract additional Medusa fields
+  const subtitle = asString(root.subtitle) || asString(findValue(root, ['subtitle', 'teaser'])) || '';
+  const handle = asString(root.handle) || '';
+  const status = (root.status === 'published' ? 'published' : 'draft') as 'draft' | 'published';
+  const thumbnail = asString(root.thumbnail) || images[0] || '';
+  
+  // Extract taxonomy fields
+  const collection_id = asString(root.collection_id) || '';
+  const type_id = asString(root.type_id) || '';
+  const shipping_profile_id = asString(root.shipping_profile_id) || '';
+  
+  // Extract tags (Medusa format: [{ value: "tag" }])
+  const tagsRaw = root.tags;
+  const tags = Array.isArray(tagsRaw)
+    ? tagsRaw
+        .map((t) => {
+          if (typeof t === 'string') return t;
+          if (isRecord(t)) return asString(t.value);
+          return '';
+        })
+        .filter((t): t is string => t.length > 0)
+    : [];
+  
+  // Extract sales_channels (Medusa format: [{ id: "sc_..." }])
+  const salesChannelsRaw = root.sales_channels;
+  const sales_channels = Array.isArray(salesChannelsRaw)
+    ? salesChannelsRaw
+        .map((sc) => {
+          if (isRecord(sc)) return asString(sc.id);
+          return '';
+        })
+        .filter((id): id is string => id.length > 0)
+    : [];
+  
+  // Extract shipping dimensions
+  const shipping_weight = asNumber(root.weight) || 0;
+  const shipping_dimensions = {
+    length: asNumber(root.length) || 0,
+    width: asNumber(root.width) || 0,
+    height: asNumber(root.height) || 0,
+  };
+
+  // Extract vault from metadata
+  const vaultMetadata = isRecord(metadata.vault) ? metadata.vault : {};
+  const vaultImages = Array.isArray(vaultMetadata.images) 
+    ? vaultMetadata.images.filter((img): img is string => typeof img === 'string' && img.length > 0)
+    : [];
+
   return {
     title,
+    subtitle,
     description,
+    handle,
+    status,
     sku,
     price,
     images,
+    thumbnail,
     options: enhancedOptions,
     variants,
     categories,
+    tags,
+    sales_channels,
+    collection_id,
+    type_id,
+    shipping_profile_id,
+    shipping_weight,
+    shipping_dimensions,
+    vault: vaultImages,
     ignoredUrls: [],
     localization: {
       ...localization,
@@ -288,7 +348,6 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
       ja: localization['ja'] || { ...emptyLoc },
     },
     activeLanguages,
-    thumbnail: images[0] || ''
   };
 }
 

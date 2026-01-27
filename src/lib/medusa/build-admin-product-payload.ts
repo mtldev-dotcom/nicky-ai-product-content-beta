@@ -119,8 +119,11 @@ export type ProductLikeForMedusaPayload = {
  * Postconditions:
  * - Returns an object that is safe to send to Medusa Admin create/update endpoints.
  * - Never throws; returns a best-effort payload.
+ *
+ * @param input Product data to build payload from
+ * @param isUpdate If true, variant IDs will be included (for updates). If false, variant IDs are omitted (for creates).
  */
-export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayload): unknown {
+export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayload, isUpdate: boolean = false): unknown {
   const title = asString(input.title);
   const status = (input.status === 'published' ? 'published' : 'draft') as 'draft' | 'published';
 
@@ -163,25 +166,63 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
       return input.variants.map((v) => {
         const explicitOpts = isRecord(v.options) ? v.options : {};
 
-        // Map dictionary { "Color": "Black" } -> [{ option_id: "...", value: "Black" }]
-        // We MUST map against the defined root `options` to get IDs and ensure order.
-        const mappedOptions = options.map((rootOpt) => {
+        // Map dictionary { "Color": "Black" } -> object format for Medusa
+        // Medusa v2 expects variant options as an object: { "option_id": "value" }
+        // The value MUST exactly match one of the values defined in the product-level options array
+        const mappedOptionsObj: Record<string, string> = {};
+        
+        for (const rootOpt of options) {
           const rootName = asString(rootOpt.name);
           const val = explicitOpts[rootName];
+          const valueStr = asString(val);
 
-          // If value is missing for this option, Medusa might fail strict creation, but we send what we have.
-          // For updates, we need `option_id`.
-          const item: { value: string; option_id?: string } = { value: asString(val) };
-          if (rootOpt.id) item.option_id = rootOpt.id;
-          return item;
-        });
+          // Skip if value is empty
+          if (!valueStr.trim().length) {
+            continue;
+          }
 
-        return {
-          id: asString(v.id) || undefined,
+          // Verify the value exists in the option's values array
+          // This ensures we're sending a valid value that Medusa will accept
+          const optionValues = Array.isArray(rootOpt.values) 
+            ? rootOpt.values.map(v => asString(v.value)).filter(Boolean)
+            : [];
+          
+          // Check if the value exists in the option's values (case-sensitive exact match)
+          let finalValue = valueStr;
+          const valueExists = optionValues.some(optVal => optVal === valueStr);
+          
+          if (!valueExists && optionValues.length > 0) {
+            // Value doesn't match - this will cause Medusa to reject it
+            // Try to find a case-insensitive match as fallback
+            const caseInsensitiveMatch = optionValues.find(optVal => 
+              optVal.toLowerCase() === valueStr.toLowerCase()
+            );
+            if (caseInsensitiveMatch) {
+              // Use the exact value from options array (preserves case)
+              finalValue = caseInsensitiveMatch;
+            } else {
+              // No match found - skip this option to avoid error
+              continue;
+            }
+          }
+
+          // Medusa requires variant options as an object: { "option_id": "value" }
+          // This format is required for BOTH creates and updates
+          // For creates: We include option IDs in product-level options, so we can reference them here
+          // For updates: Options already exist in Medusa, so we use their IDs
+          const optId = asString(rootOpt.id);
+          if (optId && optId.trim().length > 0) {
+            // Object format: key is option_id, value is the option value string
+            mappedOptionsObj[optId] = finalValue;
+          }
+        }
+
+        // Build variant payload
+        // For creates: omit id field (Medusa doesn't accept it for new variants)
+        // For updates: include id if it exists
+        const variantPayload: Record<string, unknown> = {
           title: asString(v.title),
           sku: asString(v.sku),
-          // Send as array of objects
-          options: mappedOptions,
           prices: Array.isArray(v.prices)
             ? v.prices.map((p) => ({
               amount: asNumber(p.amount, 0),
@@ -191,6 +232,34 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
           manage_inventory: !!v.manage_inventory,
           allow_backorder: !!v.allow_backorder,
         };
+
+        // Medusa requires variant options as an object format: { "option_id": "value" }
+        // This applies to BOTH creates and updates
+        // Option IDs are included in product-level options for creates, so we can reference them
+        if (Object.keys(mappedOptionsObj).length > 0) {
+          variantPayload.options = mappedOptionsObj;
+        }
+
+        // Only include variant id for updates (Medusa rejects id for new variants)
+        // Validate that the variant ID looks like a Medusa ID (not a client-generated UUID)
+        // Medusa IDs are typically UUIDs, but we should only include them if this is an update
+        // and the ID appears to be from Medusa (not a random client UUID)
+        if (isUpdate && v.id) {
+          const variantId = asString(v.id);
+          // Basic validation: Medusa IDs are UUIDs, but we can't definitively distinguish
+          // between client-generated and Medusa-generated UUIDs without additional context.
+          // For now, we trust that if isUpdate is true and an ID exists, it's a valid Medusa ID.
+          // TODO: Add more robust validation by checking against known Medusa variant IDs
+          if (variantId && variantId.trim().length > 0) {
+            // Additional safety: only include if it looks like a UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (uuidRegex.test(variantId)) {
+              variantPayload.id = variantId;
+            }
+          }
+        }
+
+        return variantPayload;
       });
     }
 
@@ -200,7 +269,7 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
         {
           title: `${title || 'Draft Product'} - Default Variant`,
           sku: `${handle || 'product'}-default`,
-          options: [],
+          // Omit options field when empty (Medusa doesn't require it)
           prices: [{ amount: asNumber(input.price, 0), currency_code: 'usd' }],
           manage_inventory: true,
         },
@@ -233,23 +302,29 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
 
     return combinations.map((combo) => {
       const variantValuesTitle = combo.map((c) => c.value).join(' / ');
-
-      // Map to array format
-      const variantOptionsPayload = combo.map(c => {
-        const item: { value: string; option_id?: string } = { value: c.value };
-        if (c.rootOptId) item.option_id = c.rootOptId;
-        return item;
-      });
-
       const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
 
-      return {
+      const fallbackVariant: Record<string, unknown> = {
         title: `${title || 'Draft Product'} - ${variantValuesTitle}`,
         sku: `${handle || 'product'}-${slugifiedOptions}`,
-        options: variantOptionsPayload,
         prices: [{ amount: asNumber(input.price, 0), currency_code: 'usd' }],
         manage_inventory: true,
       };
+
+      // Medusa requires variant options as an object format: { "option_id": "value" }
+      // This applies to BOTH creates and updates
+      // Option IDs are included in product-level options for creates, so we can reference them
+      const variantOptionsObj: Record<string, string> = {};
+      for (const c of combo) {
+        if (c.rootOptId && c.rootOptId.trim().length > 0 && c.value.trim().length > 0) {
+          variantOptionsObj[c.rootOptId] = c.value;
+        }
+      }
+      if (Object.keys(variantOptionsObj).length > 0) {
+        fallbackVariant.options = variantOptionsObj;
+      }
+
+      return fallbackVariant;
     });
   };
 
@@ -345,11 +420,25 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     },
     options:
       options.length > 0
-        ? options.map((opt) => ({
-          id: asString(opt.id) || undefined,
-          title: asString(opt.name),
-          values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
-        }))
+        ? options.map((opt) => {
+          // Include option IDs for BOTH creates and updates
+          // For creates: Medusa will accept client-generated UUIDs or assign its own IDs
+          // These IDs are needed for variant options to reference them in object format
+          // For updates: Use existing Medusa option IDs
+          const optionPayload: { id?: string; title: string; values: string[] } = {
+            title: asString(opt.name),
+            values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
+          };
+          
+          // Include id for both creates and updates
+          // For creates, this allows variant options to reference option IDs in object format
+          const optId = asString(opt.id);
+          if (optId && optId.trim().length > 0) {
+            optionPayload.id = optId;
+          }
+          
+          return optionPayload;
+        })
         : [
           {
             title: 'Default option',

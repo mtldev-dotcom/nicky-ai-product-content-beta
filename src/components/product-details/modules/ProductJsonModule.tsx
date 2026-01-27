@@ -31,6 +31,9 @@ export function ProductJsonModule() {
     const [isJsonModalOpen, setIsJsonModalOpen] = useState(false);
 
     const medusaPayload = useMemo(() => {
+        // Determine if this is an update (has medusaProductId) or create
+        const isUpdate = !!product.medusaProductId;
+        
         return buildMedusaAdminProductPayload({
             title: product.title,
             subtitle: product.subtitle,
@@ -54,7 +57,7 @@ export function ProductJsonModule() {
             localization: product.localization as unknown as Record<string, Localization>,
             options: product.options,
             variants: product.variants,
-        });
+        }, isUpdate);
     }, [product]);
 
     const fullJson = useMemo(() => JSON.stringify(medusaPayload, null, 4), [medusaPayload]);
@@ -113,7 +116,39 @@ export function ProductJsonModule() {
             const data = (await res.json()) as { productId?: string | null; error?: string; details?: unknown };
 
             if (!res.ok) {
-                setPushError(data.error || 'Failed to push product to Medusa');
+                // Build detailed error message from Medusa's response
+                let errorMessage = data.error || 'Failed to push product to Medusa';
+                
+                // Extract Medusa error details if available
+                if (data.details) {
+                    const details = data.details as Record<string, unknown>;
+                    
+                    // Medusa often returns error messages in different formats
+                    if (details.message) {
+                        errorMessage += `\n\nDetails: ${String(details.message)}`;
+                    } else if (details.error) {
+                        errorMessage += `\n\nError: ${String(details.error)}`;
+                    } else if (details.errors) {
+                        // Medusa validation errors are often in an errors array
+                        const errors = Array.isArray(details.errors) 
+                            ? details.errors.map((e: unknown) => {
+                                if (typeof e === 'string') return e;
+                                if (typeof e === 'object' && e !== null) {
+                                    const err = e as Record<string, unknown>;
+                                    return err.message || err.error || JSON.stringify(e);
+                                }
+                                return String(e);
+                            }).join('\n')
+                            : String(details.errors);
+                        errorMessage += `\n\nValidation Errors:\n${errors}`;
+                    } else {
+                        // Fallback: show the full details object (truncated)
+                        const detailsStr = JSON.stringify(details, null, 2);
+                        errorMessage += `\n\nDetails:\n${detailsStr.substring(0, 500)}${detailsStr.length > 500 ? '...' : ''}`;
+                    }
+                }
+                
+                setPushError(errorMessage);
                 return;
             }
 

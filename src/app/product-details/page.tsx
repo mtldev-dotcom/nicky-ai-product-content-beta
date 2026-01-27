@@ -322,9 +322,10 @@ export default function ProductDetailsPage() {
       // 1. Save local draft first
       await useProductStore.getState().saveToDb();
 
-      // 2. Build Medusa payload
+      // 2. Build Medusa payload (this is an update, so pass isUpdate=true)
       const { buildMedusaAdminProductPayload } = await import('@/lib/medusa/build-admin-product-payload');
-      const payload = buildMedusaAdminProductPayload(useProductStore.getState());
+      const productState = useProductStore.getState();
+      const payload = buildMedusaAdminProductPayload(productState, true);
 
       // 3. Send update
       const res = await fetch(`/api/medusa/products/${medusaProductId}`, {

@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { createClient } from '@/utils/supabase/server';
-import { loadDecryptedSettingsForServer } from '@/app/settings/actions';
+import { getMedusaAuth } from '@/lib/medusa/client';
+import { parseMedusaResponse, extractProductId } from '@/lib/medusa/response-parser';
+import { parseMedusaError } from '@/lib/medusa/error-handler';
+import { withRetry } from '@/lib/medusa/retry';
+import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
 
 export const runtime = 'nodejs';
 
@@ -24,50 +27,11 @@ const CreateProductSchema = z.object({
   payload: z.unknown(),
 });
 
-async function getOrgAndMedusaAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { ok: false as const, status: 401, error: 'Unauthorized' };
-  }
-
-  const { data: membership } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!membership?.organization_id) {
-    return { ok: false as const, status: 403, error: 'No organization found' };
-  }
-
-  const settings = await loadDecryptedSettingsForServer(membership.organization_id);
-  if (!settings || !settings.medusaUrl || !settings.medusaApiKey || settings.storePlatform !== 'medusa') {
-    return { ok: false as const, status: 400, error: 'MedusaJS integration not configured' };
-  }
-
-  // Normalize URL: remove trailing slash and any existing /admin prefix to avoid duplication.
-  let baseUrl = settings.medusaUrl.trim().replace(/\/$/, '');
-  if (baseUrl.endsWith('/admin')) {
-    baseUrl = baseUrl.replace(/\/admin$/, '');
-  }
-
-  const apiKey = settings.medusaApiKey;
-  const headers = {
-    'x-medusa-access-token': apiKey,
-    Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
-
-  return { ok: true as const, baseUrl, headers };
-}
+// Use centralized Medusa client
 
 export async function GET(req: Request) {
   try {
-    const auth = await getOrgAndMedusaAuth();
+    const auth = await getMedusaAuth();
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
@@ -88,24 +52,21 @@ export async function GET(req: Request) {
     // Default pagination to keep payloads bounded.
     if (!search.has('limit')) search.set('limit', '20');
 
-    const res = await fetch(`${auth.baseUrl}/admin/products?${search.toString()}`, {
-      method: 'GET',
-      headers: auth.headers,
-      cache: 'no-store',
+    const res = await withRetry(async () => {
+      return fetch(`${auth.baseUrl}/admin/products?${search.toString()}`, {
+        method: 'GET',
+        headers: auth.headers,
+        cache: 'no-store',
+      });
     });
 
     const text = await res.text();
-    const json = (() => {
-      try {
-        return JSON.parse(text) as unknown;
-      } catch {
-        return { raw: text };
-      }
-    })();
+    const json = parseMedusaResponse(text);
 
     if (!res.ok) {
+      const error = parseMedusaError(res.status, res.statusText, json);
       return NextResponse.json(
-        { error: `Medusa API error: ${res.status} ${res.statusText}`, details: json },
+        { error: error.message, details: json },
         { status: 502 }
       );
     }
@@ -119,32 +80,36 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const auth = await getOrgAndMedusaAuth();
+    const auth = await getMedusaAuth();
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const { payload } = CreateProductSchema.parse(await req.json());
+    const sanitizedPayload = sanitizeMedusaProductPayload(payload);
 
-    const res = await fetch(`${auth.baseUrl}/admin/products`, {
-      method: 'POST',
-      headers: auth.headers,
-      cache: 'no-store',
-      body: JSON.stringify(payload),
+    const res = await withRetry(async () => {
+      return fetch(`${auth.baseUrl}/admin/products`, {
+        method: 'POST',
+        headers: auth.headers,
+        cache: 'no-store',
+        body: JSON.stringify(sanitizedPayload),
+      });
     });
 
     const text = await res.text();
-    const json = (() => {
-      try {
-        return JSON.parse(text) as unknown;
-      } catch {
-        return { raw: text };
-      }
-    })();
+    const json = parseMedusaResponse(text);
 
     if (!res.ok) {
+      const error = parseMedusaError(res.status, res.statusText, json);
+      console.error('Medusa API error (create product):', {
+        status: res.status,
+        statusText: res.statusText,
+        url: `${auth.baseUrl}/admin/products`,
+        response: json,
+      });
       return NextResponse.json(
-        { error: `Medusa API error: ${res.status} ${res.statusText}`, details: json },
+        { error: error.message, details: json },
         { status: 502 }
       );
     }

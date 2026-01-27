@@ -35,41 +35,74 @@ export function normalizeCurrencyCode(input: unknown, fallback: string = 'usd'):
 }
 
 /**
- * Sanitize a Medusa product create payload.
+ * Sanitize a Medusa product create/update payload.
  *
- * Currently we only normalize `variants[].prices[].currency_code` to a string,
- * because this is a strict Medusa validation requirement and the source of 400s.
+ * Normalizes fields that cause 400 errors:
+ * - `variants[].prices[].currency_code` -> string code
+ * - Removes `inventory` fields from variants (Medusa v2 doesn't accept them)
+ * - Normalizes `shipping_profile_id` (null -> undefined)
+ * - Removes undefined/null fields that Medusa rejects
  */
 export function sanitizeMedusaProductPayload<T>(payload: T): T {
     if (!isRecord(payload)) return payload;
 
-    const variants = payload.variants;
-    if (!Array.isArray(variants)) return payload;
+    // Sanitize shipping_profile_id: null -> undefined (Medusa rejects null)
+    const sanitizedPayload: Record<string, unknown> = { ...payload };
+    if ('shipping_profile_id' in sanitizedPayload && sanitizedPayload.shipping_profile_id === null) {
+        delete sanitizedPayload.shipping_profile_id;
+    }
 
-    const sanitizedVariants = variants.map((variant) => {
-        if (!isRecord(variant)) return variant;
+    // Sanitize variants
+    const variants = sanitizedPayload.variants;
+    if (Array.isArray(variants)) {
+        const sanitizedVariants = variants.map((variant) => {
+            if (!isRecord(variant)) return variant;
 
-        const prices = variant.prices;
-        if (!Array.isArray(prices)) return variant;
+            const sanitizedVariant: Record<string, unknown> = { ...variant };
 
-        const sanitizedPrices = prices.map((p) => {
-            if (!isRecord(p)) return p;
-            return {
-                ...p,
-                currency_code: normalizeCurrencyCode(p.currency_code),
-            };
+            // Remove inventory field (Medusa v2 doesn't accept it in product payloads)
+            if ('inventory' in sanitizedVariant) {
+                delete sanitizedVariant.inventory;
+            }
+
+            // Sanitize prices
+            const prices = sanitizedVariant.prices;
+            if (Array.isArray(prices)) {
+                const sanitizedPrices = prices.map((p) => {
+                    if (!isRecord(p)) return p;
+                    return {
+                        ...p,
+                        currency_code: normalizeCurrencyCode(p.currency_code),
+                    };
+                });
+                sanitizedVariant.prices = sanitizedPrices;
+            }
+
+            // Remove undefined/null fields that might cause issues
+            Object.keys(sanitizedVariant).forEach((key) => {
+                if (sanitizedVariant[key] === undefined || sanitizedVariant[key] === null) {
+                    // Keep null for some fields that Medusa accepts as null
+                    const nullableFields = ['collection_id', 'type_id', 'weight', 'length', 'height', 'width', 'hs_code', 'origin_country', 'mid_code', 'material'];
+                    if (!nullableFields.includes(key)) {
+                        delete sanitizedVariant[key];
+                    }
+                }
+            });
+
+            return sanitizedVariant;
         });
+        sanitizedPayload.variants = sanitizedVariants;
+    }
 
-        return {
-            ...variant,
-            prices: sanitizedPrices,
-        };
+    // Remove undefined/null fields from root level (except those that Medusa accepts as null)
+    const nullableRootFields = ['collection_id', 'type_id', 'external_id', 'weight', 'length', 'height', 'width', 'hs_code', 'origin_country', 'mid_code', 'material'];
+    Object.keys(sanitizedPayload).forEach((key) => {
+        if (sanitizedPayload[key] === undefined || (sanitizedPayload[key] === null && !nullableRootFields.includes(key))) {
+            delete sanitizedPayload[key];
+        }
     });
 
-    return {
-        ...payload,
-        variants: sanitizedVariants,
-    } as T;
+    return sanitizedPayload as T;
 }
 
 

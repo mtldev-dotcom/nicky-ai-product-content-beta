@@ -15,7 +15,8 @@ import {
   Zap,
   Layers,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  TestTube
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -599,6 +600,260 @@ export default function CreateProductPage() {
 
   const canGenerate = generationMode !== null && !isUploading;
 
+  // Dev widget state
+  const [showDevWidget, setShowDevWidget] = useState(false);
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Load fake product for testing
+  const loadFakeProduct = useCallback(() => {
+    // Generate unique handle to avoid "already exists" errors when testing
+    const timestamp = Date.now();
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const uniqueHandle = `dual-tone-bold-band-${timestamp}-${randomSuffix}`;
+    
+    const fakeProduct = {
+      "title": "Dual-Tone Bold Band",
+      "subtitle": "Elevate your style with bold sophistication.",
+      "status": "draft",
+      "external_id": null,
+      "description": "Where luxury meets attitude. This black and gold ring redefines modern elegance with its striking contrast and sleek design. Wear it unapologetically.",
+      "handle": uniqueHandle,
+      "is_giftcard": false,
+      "discountable": true,
+      "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1769473268610-87fe5250-de5f-4ebd-90b3-06b19f1fa596.jpg",
+      "collection_id": "pcol_01KD1YXSM6QSKQHBVKH73WBKTJ",
+      "type_id": null,
+      "weight": null,
+      "length": 0,
+      "height": 0,
+      "width": 0,
+      "hs_code": null,
+      "origin_country": null,
+      "mid_code": null,
+      "material": null,
+      "metadata": {
+        "brand": "THE UNCUT BRAND",
+        "vault": {
+          "video": null,
+          "images": []
+        },
+        "title_i18n": {
+          "en": "Dual-Tone Bold Band",
+          "fr": "Bague Audacieuse Bi-Ton"
+        },
+        "subtitle_i18n": {
+          "en": "Elevate your style with bold sophistication.",
+          "fr": "Élevez votre style avec une sophistication audacieuse."
+        },
+        "description_i18n": {
+          "en": "Where luxury meets attitude. This black and gold ring redefines modern elegance with its striking contrast and sleek design. Wear it unapologetically.",
+          "fr": "Là où le luxe rencontre l'attitude. Cette bague noire et dorée redéfinit l'élégance moderne avec son contraste saisissant et son design épuré. Portez-la sans excuses."
+        },
+        "features_i18n": {
+          "en": [
+            "Striking black and gold dual-tone design",
+            "Crafted for a confident, modern look",
+            "Perfect for any occasion, day or night",
+            "Durable finish for lasting wear",
+            "Unisex appeal—style knows no gender"
+          ],
+          "fr": [
+            "Design bi-ton noir et doré saisissant",
+            "Conçue pour un look moderne et confiant",
+            "Parfaite pour toutes les occasions, jour ou nuit",
+            "Finition durable pour une longévité assurée",
+            "Attrait unisexe—le style n'a pas de genre"
+          ]
+        },
+        "keywords_i18n": {
+          "en": [
+            "black and gold ring",
+            "modern men's jewelry",
+            "luxury ring",
+            "bold jewelry",
+            "unisex ring"
+          ],
+          "fr": [
+            "bague noire et dorée",
+            "bijoux modernes pour hommes",
+            "bague de luxe",
+            "bijoux audacieux",
+            "bague unisexe"
+          ]
+        },
+        "seo_title_i18n": {
+          "en": "Luxury Black and Gold Ring | The Uncut Brand",
+          "fr": "Bague Noire et Dorée de Luxe | The Uncut Brand"
+        },
+        "seo_description_i18n": {
+          "en": "Discover the bold elegance of our dual-tone black and gold ring. A modern statement piece for the confident individual.",
+          "fr": "Découvrez l'élégance audacieuse de notre bague bi-ton noire et dorée. Une pièce moderne pour l'individu confiant."
+        },
+        "options_i18n": [
+          {
+            "title_i18n": {
+              "en": "Color",
+              "fr": "Couleur"
+            },
+            "values": [
+              {
+                "value": "Black",
+                "value_i18n": {
+                  "en": "Black",
+                  "fr": "Noir"
+                }
+              },
+              {
+                "value": "Gold",
+                "value_i18n": {
+                  "en": "Gold",
+                  "fr": "Or"
+                }
+              },
+              {
+                "value": "red",
+                "value_i18n": {
+                  "en": "red",
+                  "fr": "Rouge"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": [
+        {
+          "id": "8ae78caf-5f11-436f-92d8-261161afedeb",
+          "title": "Color",
+          "values": [
+            "Black",
+            "Gold",
+            "red"
+          ]
+        }
+      ],
+      "variants": [
+        {
+          "id": "d73b5887-b45c-48db-879d-a86d4987d801",
+          "title": "Dual-Tone Bold Band - Black",
+          "sku": `${uniqueHandle}-black`,
+          "options": [
+            {
+              "value": "Black",
+              "option_id": "8ae78caf-5f11-436f-92d8-261161afedeb"
+            }
+          ],
+          "prices": [
+            {
+              "amount": 20,
+              "currency_code": "usd"
+            },
+            {
+              "amount": 22,
+              "currency_code": "cad"
+            }
+          ],
+          "manage_inventory": false,
+          "allow_backorder": false
+        },
+        {
+          "id": "3a6e1ab8-612b-4c9f-aa06-55c64c1ebf7c",
+          "title": "Dual-Tone Bold Band - Gold",
+          "sku": `${uniqueHandle}-gold`,
+          "options": [
+            {
+              "value": "Gold",
+              "option_id": "8ae78caf-5f11-436f-92d8-261161afedeb"
+            }
+          ],
+          "prices": [
+            {
+              "amount": 20,
+              "currency_code": "usd"
+            },
+            {
+              "amount": 22,
+              "currency_code": "cad"
+            }
+          ],
+          "manage_inventory": false,
+          "allow_backorder": false
+        },
+        {
+          "id": "5402bf4b-b850-45e9-96aa-5931c07a68e8",
+          "title": "Dual-Tone Bold Band - red",
+          "sku": `${uniqueHandle}-red`,
+          "options": [
+            {
+              "value": "red",
+              "option_id": "8ae78caf-5f11-436f-92d8-261161afedeb"
+            }
+          ],
+          "prices": [
+            {
+              "amount": 20,
+              "currency_code": "usd"
+            },
+            {
+              "amount": 22,
+              "currency_code": "cad"
+            }
+          ],
+          "manage_inventory": false,
+          "allow_backorder": false
+        }
+      ],
+      "tags": [],
+      "images": [
+        {
+          "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1769473268610-87fe5250-de5f-4ebd-90b3-06b19f1fa596.jpg",
+          "metadata": null,
+          "rank": 0
+        },
+        {
+          "url": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1769473327161-9a0418ff-4603-4c13-a6ba-dd94a390f5c8.jpg",
+          "metadata": null,
+          "rank": 1
+        }
+      ],
+      "categories": [],
+      "sales_channels": [
+        {
+          "id": "sc_01KCZATV7WR5QX2G5S5NGM32E0"
+        }
+      ],
+      "shipping_profile_id": "sp_01KCZAPGHDP30PNK0DS7R3V706"
+    };
+
+    try {
+      const mappedData = mapExternalToProduct(fakeProduct);
+      resetStore();
+      bulkUpdate(mappedData);
+
+      applyMedusaDefaultsForNewProduct({
+        defaultSalesChannelId: settings.defaultSalesChannelId,
+        defaultShippingProfileId: settings.defaultShippingProfileId,
+        defaultCollectionId: settings.defaultCollectionId,
+        defaultCategoryIds: settings.defaultCategoryIds,
+      });
+
+      toast({
+        title: 'Fake product loaded',
+        description: 'Test product loaded successfully. Navigate to product details to continue.',
+        type: 'success'
+      });
+
+      router.push('/product-details');
+    } catch (error) {
+      console.error('Failed to load fake product:', error);
+      toast({
+        title: 'Failed to load fake product',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        type: 'error'
+      });
+    }
+  }, [resetStore, bulkUpdate, applyMedusaDefaultsForNewProduct, settings, router, toast]);
+
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
@@ -641,6 +896,58 @@ export default function CreateProductPage() {
           </div>
         )}
       </header>
+
+      {/* Dev Widget - Only visible in development */}
+      {isDev && (
+        <section className="glass rounded-2xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
+          <button
+            onClick={() => setShowDevWidget(!showDevWidget)}
+            className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <TestTube className="w-5 h-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-white">Dev Tools</h2>
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
+                TEST
+              </span>
+            </div>
+            {showDevWidget ? (
+              <ChevronUp className="w-5 h-5 text-zinc-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-zinc-400" />
+            )}
+          </button>
+
+          <AnimatePresence>
+            {showDevWidget && (
+              <motion.div
+                initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 md:p-6 pt-0 space-y-4">
+                  <p className="text-xs text-zinc-400">
+                    Load a fake product for testing without using AI tokens.
+                  </p>
+                  <button
+                    onClick={loadFakeProduct}
+                    disabled={isGenerating}
+                    className={cn(
+                      "w-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30",
+                      "text-amber-300 px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2",
+                      "transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                  >
+                    <TestTube className="w-4 h-4" />
+                    Load Fake Product (Dual-Tone Bold Band)
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      )}
 
       {error && (
         <div className="glass rounded-xl p-4 border border-red-500/20 bg-red-500/5">
