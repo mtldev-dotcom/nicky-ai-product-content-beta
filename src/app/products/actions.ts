@@ -62,10 +62,49 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
   const medusaProductId = typeof dataObj.medusa_product_id === 'string' ? dataObj.medusa_product_id : null;
 
   if (payload.id) {
-    // Update existing product
+    // Update existing product.
+    // IMPORTANT: For products that were previously pushed to Medusa we may only send
+    // partial UI fields from the client (title/handle/status). Overwriting the entire
+    // `data` blob with that partial object will wipe options, variants, and other fields.
+    // To avoid that, load the existing `data` blob and deep-merge the incoming payload.data
+    // into it so unspecified fields are preserved.
+
+    // Helper: deep merge two plain objects (returns a new object).
+    const deepMerge = (target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> => {
+      const out: Record<string, unknown> = { ...target };
+      for (const [k, v] of Object.entries(source)) {
+        const existingVal = out[k];
+        if (
+          typeof existingVal === 'object' && existingVal !== null && !Array.isArray(existingVal) &&
+          typeof v === 'object' && v !== null && !Array.isArray(v)
+        ) {
+          out[k] = deepMerge(existingVal as Record<string, unknown>, v as Record<string, unknown>);
+        } else {
+          out[k] = v;
+        }
+      }
+      return out;
+    };
+
+    // Read existing row data
+    const { data: existingRow, error: readErr } = await supabase
+      .from('products')
+      .select('data')
+      .eq('id', payload.id)
+      .eq('organization_id', membership.organization_id)
+      .single();
+
+    if (readErr) throw new Error(readErr.message);
+
+    const existingData = existingRow && typeof existingRow.data === 'object' && existingRow.data !== null ? (existingRow.data as Record<string, unknown>) : {};
+    const incomingData = typeof payload.data === 'object' && payload.data !== null ? (payload.data as Record<string, unknown>) : {};
+    const mergedData = deepMerge(existingData, incomingData);
+
+    const recordToUpdate = { ...record, data: mergedData };
+
     const { data, error } = await supabase
       .from('products')
-      .update(record)
+      .update(recordToUpdate)
       .eq('id', payload.id)
       .eq('organization_id', membership.organization_id)
       .select('id')
