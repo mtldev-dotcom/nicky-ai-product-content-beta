@@ -1228,20 +1228,21 @@ export default function Dashboard() {
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                openMedusaModal(product.medusaId!);
+                                // Open the full editor for this Medusa product (import into local store and navigate to editor)
+                                handleEditMedusaProduct(product.medusaId!);
                             }}
                             className="flex-1 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition-colors border border-white/10"
                         >
-                            View Remote
+                            Edit Remote
                         </button>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                // Trigger import via modal logic (requires opening modal first currently, or refactoring)
+                                // Also allow viewing the remote quickly in the modal
                                 openMedusaModal(product.medusaId!);
                             }}
                             className="p-1.5 rounded-lg bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-400 text-zinc-400 transition-all"
-                            title="Import/Pull"
+                            title="View Remote"
                         >
                             <FileDown className="w-3.5 h-3.5" />
                         </button>

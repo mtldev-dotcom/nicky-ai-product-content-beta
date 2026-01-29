@@ -68,9 +68,29 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const { payload } = UpdateProductSchema.parse(await req.json());
 
     // Use update strategy with ID reconciliation and validation
-    const result = await updateProductInMedusa(id, payload);
+    try {
+      const result = await updateProductInMedusa(id, payload);
+      return NextResponse.json(result);
+    } catch (err) {
+      // Defensive retry: if Medusa reported a missing option value, try one reconciliation pass and retry once.
+      const msg = err instanceof Error ? err.message : String(err);
+      const missingOptionValuePattern = /Option value .* does not exist for option/i;
+      if (missingOptionValuePattern.test(msg)) {
+        console.warn('Medusa reported missing option value. Retrying update once after reconciliation...', { productId: id, error: msg });
+        try {
+          // A second attempt may succeed because updateProductInMedusa already tries to add missing values.
+          const retryResult = await updateProductInMedusa(id, payload);
+          return NextResponse.json(retryResult);
+        } catch (retryErr) {
+          const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+          console.error('Retry failed for Medusa product update:', { productId: id, error: retryMsg });
+          return NextResponse.json({ error: retryMsg }, { status: 400 });
+        }
+      }
 
-    return NextResponse.json(result);
+      throw err;
+    }
+
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update Medusa product';
     

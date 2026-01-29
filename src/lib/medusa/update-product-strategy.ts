@@ -77,6 +77,7 @@ export async function updateProductInMedusa(
   productId: string,
   localState: unknown
 ): Promise<unknown> {
+  const createdOptionValues: Array<{ optionId: string; optionTitle: string; value: string }> = [];
   if (!isRecord(localState)) {
     throw new Error('Local state must be an object');
   }
@@ -236,114 +237,161 @@ export async function updateProductInMedusa(
           })
       : [];
   
-  // Check payload options and add missing values to Medusa options
+  // Check payload options AND variant option usage, and add missing values to Medusa options.
+  // Important: Some flows may update a variant's option value without updating the option.values list.
+  // Medusa will reject the variant update unless the option value exists on the option.
   const payloadObj = isRecord(payload) ? payload : {};
   const payloadOptions = Array.isArray(payloadObj.options) ? payloadObj.options : [];
-  
+
+  // Build required option values from variant usage: { option_id -> Set(values) }
+  const requiredFromVariants = new Map<string, Set<string>>();
+  const payloadVariants = Array.isArray(payloadObj.variants) ? payloadObj.variants : [];
+  for (const v of payloadVariants) {
+    if (!isRecord(v)) continue;
+    const opts = (v as UnknownRecord).options;
+    // buildMedusaAdminProductPayload outputs object format: { "option_id": "value" }
+    if (!isRecord(opts)) continue;
+    for (const [k, val] of Object.entries(opts)) {
+      if (typeof k !== 'string' || !k) continue;
+      if (typeof val !== 'string' || !val.trim()) continue;
+      const set = requiredFromVariants.get(k) ?? new Set<string>();
+      set.add(val.trim());
+      requiredFromVariants.set(k, set);
+    }
+  }
+
   for (const payloadOpt of payloadOptions) {
     if (!isRecord(payloadOpt)) continue;
-    
+
     const optId = typeof payloadOpt.id === 'string' ? payloadOpt.id : '';
     const optTitle = typeof payloadOpt.title === 'string' ? payloadOpt.title : '';
-    const payloadValues = Array.isArray(payloadOpt.values) 
-      ? payloadOpt.values.map((v) => typeof v === 'string' ? v : '')
+    const payloadValues = Array.isArray(payloadOpt.values)
+      ? payloadOpt.values.map((v) => (typeof v === 'string' ? v : '')).filter(Boolean)
       : [];
-    
+
+    // Also include values required by variants for this option
+    const requiredVals = optId ? Array.from(requiredFromVariants.get(optId) ?? []) : [];
+    const desiredValues = Array.from(new Set<string>([...payloadValues, ...requiredVals]));
+
     // Find matching Medusa option
     const medusaOpt = medusaOptions.find((m) => m.id === optId || m.title === optTitle);
     if (!medusaOpt) continue;
-    
+
     // Extract existing Medusa values as strings
     const existingValues = new Set<string>();
-    medusaOpt.values.forEach((v) => {
-      const val = typeof v === 'string' ? v : (isRecord(v) && typeof v.value === 'string' ? v.value : '');
+    medusaOpt.values.forEach((vv) => {
+      const val = typeof vv === 'string' ? vv : (isRecord(vv) && typeof vv.value === 'string' ? vv.value : '');
       if (val) {
         existingValues.add(val);
-        // Also add case-insensitive version for matching
         existingValues.add(val.toLowerCase());
       }
     });
-    
+
     // Find missing values (case-insensitive check)
     const missingValues: string[] = [];
-    for (const payloadVal of payloadValues) {
-      if (!payloadVal) continue;
-      const payloadValLower = payloadVal.toLowerCase();
-      const exists = Array.from(existingValues).some((ev) => ev.toLowerCase() === payloadValLower);
+    for (const desired of desiredValues) {
+      if (!desired) continue;
+      const desiredLower = desired.toLowerCase();
+      const exists = Array.from(existingValues).some((ev) => ev.toLowerCase() === desiredLower);
       if (!exists) {
-        // Check if we can find a case-insensitive match
-        const caseMatch = Array.from(medusaOpt.values).find((v) => {
-          const val = typeof v === 'string' ? v : (isRecord(v) && typeof v.value === 'string' ? v.value : '');
-          return val && val.toLowerCase() === payloadValLower;
-        });
-        if (!caseMatch) {
-          missingValues.push(payloadVal);
-        }
+        missingValues.push(desired);
       }
     }
     
     // Add missing values to the option in Medusa
     if (missingValues.length > 0) {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Update] Adding missing option values to option "${medusaOpt.title}" (${medusaOpt.id}):`, missingValues);
+        console.log(`[Update] Creating missing option values for option "${medusaOpt.title}" (${medusaOpt.id}):`, missingValues);
       }
-      
-      // Get current values (preserve existing ones)
-      const currentValues = medusaOpt.values.map((v) => {
-        if (typeof v === 'string') return v;
-        if (isRecord(v) && typeof v.value === 'string') return v.value;
-        return '';
-      }).filter(Boolean);
-      
-      // Combine existing and new values
-      const allValues = [...new Set([...currentValues, ...missingValues])];
-      
-      // Update the option with all values
+
       const auth = await getMedusaAuth();
       if (!auth.ok) {
         throw new Error(`Medusa auth failed: ${auth.error}`);
       }
-      
+
       try {
-        const updateRes = await withRetry(async () => {
-          const res = await fetch(
-            `${auth.baseUrl}/admin/products/${encodeURIComponent(productId)}/options/${encodeURIComponent(medusaOpt.id)}`,
-            {
-              method: 'POST',
-              headers: auth.headers,
-              cache: 'no-store',
-              body: JSON.stringify({
-                title: medusaOpt.title,
-                values: allValues,
-              }),
+        // Create each missing value explicitly via the product-options values endpoint
+        for (const val of missingValues) {
+          // Some Medusa instances expect body { value: 'x' } and create a new option value
+          await withRetry(async () => {
+            const res = await fetch(
+              `${auth.baseUrl}/admin/product-options/${encodeURIComponent(medusaOpt.id)}/values`,
+              {
+                method: 'POST',
+                headers: {
+                  ...auth.headers,
+                  'Content-Type': 'application/json',
+                },
+                cache: 'no-store',
+                body: JSON.stringify({ value: val }),
+              }
+            );
+
+            const text = await res.text();
+            const json = parseMedusaResponse(text);
+
+            if (!res.ok) {
+              // If creation fails because value already exists, ignore; otherwise throw
+              const parsed = parseMedusaError(res.status, res.statusText, json);
+              // Some Medusa instances return 400 if the value already exists; tolerate that
+              const msg = parsed?.message || '';
+              if (res.status === 400 && /already exists|duplicate|exists/i.test(msg)) {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`[Update] Option value '${val}' already exists for option ${medusaOpt.id}`);
+                }
+                return json;
+              }
+
+              throw parsed;
             }
-          );
-          
-          const text = await res.text();
-          const json = parseMedusaResponse(text);
-          
-          if (!res.ok) {
-            throw parseMedusaError(res.status, res.statusText, json);
-          }
-          
-          return json;
-        });
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[Update] Successfully added option values:`, missingValues);
+
+            // Record created value for UI feedback
+            createdOptionValues.push({ optionId: medusaOpt.id, optionTitle: medusaOpt.title, value: val });
+
+            return json;
+          });
         }
-        
-        // Update medusaOptions with new values for subsequent validation
-        const updatedOpt = medusaOptions.findIndex((m) => m.id === medusaOpt.id);
-        if (updatedOpt >= 0) {
-          medusaOptions[updatedOpt] = {
-            ...medusaOptions[updatedOpt],
-            values: allValues,
-          };
+
+        // Refresh medusaOptions values in memory for subsequent validation
+        // Fetch the option back from Medusa (best-effort)
+        try {
+          const optRes = await withRetry(async () => {
+            const res = await fetch(
+              `${auth.baseUrl}/admin/products/${encodeURIComponent(productId)}/options/${encodeURIComponent(medusaOpt.id)}`,
+              {
+                method: 'GET',
+                headers: auth.headers,
+                cache: 'no-store',
+              }
+            );
+            const text = await res.text();
+            const json = parseMedusaResponse(text);
+            if (!res.ok) throw parseMedusaError(res.status, res.statusText, json);
+            return json;
+          });
+
+          if (isRecord(optRes) && Array.isArray(optRes.values)) {
+            const newValues = optRes.values.map((v) => (typeof v === 'string' ? v : (isRecord(v) && typeof v.value === 'string' ? v.value : ''))).filter(Boolean);
+            const updatedOptIndex = medusaOptions.findIndex((m) => m.id === medusaOpt.id);
+            if (updatedOptIndex >= 0) {
+              medusaOptions[updatedOptIndex] = { ...medusaOptions[updatedOptIndex], values: newValues };
+            }
+          }
+        } catch (reFetchErr) {
+          // Non-fatal: if we can't fetch the updated option, just merge optimistic values
+          const updatedOptIndex = medusaOptions.findIndex((m) => m.id === medusaOpt.id);
+          if (updatedOptIndex >= 0) {
+            const existingVals = medusaOptions[updatedOptIndex].values.map((v) => typeof v === 'string' ? v : (isRecord(v) && typeof v.value === 'string' ? v.value : '')).filter(Boolean);
+            medusaOptions[updatedOptIndex] = { ...medusaOptions[updatedOptIndex], values: [...new Set([...existingVals, ...missingValues])] };
+          }
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Update] Created missing option values for option "${medusaOpt.title}"`);
         }
       } catch (optionUpdateError) {
-        const message = optionUpdateError instanceof Error ? optionUpdateError.message : 'Failed to add option values';
-        throw new Error(`Failed to add missing option values to option "${medusaOpt.title}": ${message}`);
+        const message = optionUpdateError instanceof Error ? optionUpdateError.message : 'Failed to create option values';
+        throw new Error(`Failed to create missing option values for option "${medusaOpt.title}": ${message}`);
       }
     }
   }
@@ -465,6 +513,16 @@ export async function updateProductInMedusa(
         ? responseProduct.variants.length
         : 0,
     });
+  }
+
+  // Attach created option values for UI feedback (non-breaking)
+  if (createdOptionValues.length > 0 && isRecord(response)) {
+    return {
+      ...(response as Record<string, unknown>),
+      _clawd: {
+        createdOptionValues,
+      },
+    };
   }
 
   return response;

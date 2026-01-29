@@ -27,6 +27,7 @@ import { AISourceBadge } from '@/components/ui/AISourceBadge';
 import { ProductMediaModule } from '@/components/product-details/modules/ProductMediaModule';
 import { ProductVariantsModule } from '@/components/product-details/modules/ProductVariantsModule';
 import { ProductJsonModule } from '@/components/product-details/modules/ProductJsonModule';
+import { useToast } from '@/components/ui/ToastProvider';
 
 const RichTextEditor = dynamic(() => import('@/components/ui/RichTextEditor').then(mod => mod.RichTextEditor), {
   ssr: false,
@@ -312,6 +313,7 @@ export default function ProductDetailsPage() {
   };
 
   const [isUpdatingMedusa, setIsUpdatingMedusa] = useState(false);
+  const { toast } = useToast();
 
   const handleMedusaUpdate = async () => {
     const productState = useProductStore.getState();
@@ -340,6 +342,27 @@ export default function ProductDetailsPage() {
       // 2. After successful Medusa update, ensure medusaProductId is set in local state
       // The Medusa response confirms the update was successful
       // We'll sync the local state on next save
+
+      // Notify if we auto-created option values during the update
+      const created = (json as unknown as { _clawd?: { createdOptionValues?: unknown } })?._clawd?.createdOptionValues;
+      if (Array.isArray(created) && created.length > 0) {
+        const preview = created
+          .slice(0, 6)
+          .map((x) => {
+            const rec = (x && typeof x === 'object') ? (x as Record<string, unknown>) : {};
+            const optionTitle = typeof rec.optionTitle === 'string' ? rec.optionTitle : '';
+            const optionId = typeof rec.optionId === 'string' ? rec.optionId : '';
+            const value = typeof rec.value === 'string' ? rec.value : '';
+            return `${optionTitle || optionId}: ${value}`;
+          })
+          .join(', ');
+        toast({
+          type: 'success',
+          title: 'Medusa option values added',
+          description: created.length > 6 ? `${preview}…` : preview,
+          duration: 6000,
+        });
+      }
 
       // 3. Save updated state to local DB (now with Medusa data synced)
       await productState.saveToDb();
