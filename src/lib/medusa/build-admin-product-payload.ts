@@ -54,6 +54,7 @@ export type ProductOptionValueLike = {
 export type ProductOptionLike = {
   id?: string;
   name?: string;
+  title?: string; // Some sources use 'title' instead of 'name'
   translations?: Record<string, string>;
   values?: ProductOptionValueLike[];
 };
@@ -154,7 +155,25 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     return obj;
   };
 
-  const options: ProductOptionLike[] = Array.isArray(input.options) ? input.options : [];
+  const options: ProductOptionLike[] = Array.isArray(input.options) 
+    ? input.options.map((opt) => {
+        // Ensure option has a name or title (required for payload)
+        // This is a defensive check - reconciliation should have set this, but be safe
+        if (!opt.name && !opt.title) {
+          // If neither exists, this is a data integrity issue
+          // But we'll provide a fallback to prevent validation errors
+          return { ...opt, name: 'Option', title: 'Option' };
+        }
+        // Ensure both name and title are set for compatibility
+        if (!opt.name && opt.title) {
+          return { ...opt, name: opt.title };
+        }
+        if (opt.name && !opt.title) {
+          return { ...opt, title: opt.name };
+        }
+        return opt;
+      })
+    : [];
 
   // Variant generation:
   // - Prefer explicit variants (the store/editor manages these).
@@ -166,54 +185,98 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
       return input.variants.map((v) => {
         const explicitOpts = isRecord(v.options) ? v.options : {};
 
-        // Map dictionary { "Color": "Black" } -> object format for Medusa
-        // Medusa v2 expects variant options as an object: { "option_id": "value" }
-        // The value MUST exactly match one of the values defined in the product-level options array
+        // Map variant options to Medusa format: { "option_id": "value" }
+        // The variant.options can be in two formats:
+        // 1. UI format: { "Color": "Black" } (option name as key)
+        // 2. Medusa format: { "opt_123": "Black" } (option ID as key) - after reconciliation
+        // We need to handle both and convert to Medusa format
         const mappedOptionsObj: Record<string, string> = {};
-        
-        for (const rootOpt of options) {
-          const rootName = asString(rootOpt.name);
-          const val = explicitOpts[rootName];
-          const valueStr = asString(val);
 
-          // Skip if value is empty
-          if (!valueStr.trim().length) {
-            continue;
-          }
+        // Check if options are already in Medusa format (keys look like Medusa IDs)
+        const hasMedusaFormat = Object.keys(explicitOpts).some((key) =>
+          key.startsWith('opt_') || key.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+        );
 
-          // Verify the value exists in the option's values array
-          // This ensures we're sending a valid value that Medusa will accept
-          const optionValues = Array.isArray(rootOpt.values) 
-            ? rootOpt.values.map(v => asString(v.value)).filter(Boolean)
-            : [];
-          
-          // Check if the value exists in the option's values (case-sensitive exact match)
-          let finalValue = valueStr;
-          const valueExists = optionValues.some(optVal => optVal === valueStr);
-          
-          if (!valueExists && optionValues.length > 0) {
-            // Value doesn't match - this will cause Medusa to reject it
-            // Try to find a case-insensitive match as fallback
-            const caseInsensitiveMatch = optionValues.find(optVal => 
-              optVal.toLowerCase() === valueStr.toLowerCase()
-            );
-            if (caseInsensitiveMatch) {
-              // Use the exact value from options array (preserves case)
-              finalValue = caseInsensitiveMatch;
+        if (hasMedusaFormat) {
+          // Options are already in Medusa format (after reconciliation)
+          // Use them directly, but validate values exist in options
+          for (const [optId, valueStr] of Object.entries(explicitOpts)) {
+            if (typeof valueStr !== 'string' || !valueStr.trim().length) continue;
+
+            // Find the option by ID to validate the value
+            const rootOpt = options.find((o) => asString(o.id) === optId);
+            if (rootOpt) {
+              const optionValues = Array.isArray(rootOpt.values)
+                ? rootOpt.values.map((v) => asString(v.value)).filter(Boolean)
+                : [];
+
+              // Validate value exists (case-sensitive, then case-insensitive)
+              let finalValue = valueStr;
+              const valueExists = optionValues.some((optVal) => optVal === valueStr);
+
+              if (!valueExists && optionValues.length > 0) {
+                const caseInsensitiveMatch = optionValues.find(
+                  (optVal) => optVal.toLowerCase() === valueStr.toLowerCase()
+                );
+                if (caseInsensitiveMatch) {
+                  finalValue = caseInsensitiveMatch;
+                } else {
+                  // Value doesn't exist - skip to avoid error
+                  continue;
+                }
+              }
+
+              mappedOptionsObj[optId] = finalValue;
             } else {
-              // No match found - skip this option to avoid error
-              continue;
+              // Option ID not found - might be invalid, but include it anyway
+              // (reconciliation should have handled this, but be defensive)
+              mappedOptionsObj[optId] = valueStr;
             }
           }
+        } else {
+          // Options are in UI format: { "Color": "Black" }
+          // Map by option name to option ID
+          for (const rootOpt of options) {
+            const rootName = asString(rootOpt.name);
+            const val = explicitOpts[rootName];
+            const valueStr = asString(val);
 
-          // Medusa requires variant options as an object: { "option_id": "value" }
-          // This format is required for BOTH creates and updates
-          // For creates: We include option IDs in product-level options, so we can reference them here
-          // For updates: Options already exist in Medusa, so we use their IDs
-          const optId = asString(rootOpt.id);
-          if (optId && optId.trim().length > 0) {
-            // Object format: key is option_id, value is the option value string
-            mappedOptionsObj[optId] = finalValue;
+            // Skip if value is empty
+            if (!valueStr.trim().length) {
+              continue;
+            }
+
+            // Verify the value exists in the option's values array
+            const optionValues = Array.isArray(rootOpt.values)
+              ? rootOpt.values.map((v) => asString(v.value)).filter(Boolean)
+              : [];
+
+            // Check if the value exists in the option's values (case-sensitive exact match)
+            let finalValue = valueStr;
+            const valueExists = optionValues.some((optVal) => optVal === valueStr);
+
+            if (!valueExists && optionValues.length > 0) {
+              // Value doesn't match - try case-insensitive match
+              const caseInsensitiveMatch = optionValues.find(
+                (optVal) => optVal.toLowerCase() === valueStr.toLowerCase()
+              );
+              if (caseInsensitiveMatch) {
+                finalValue = caseInsensitiveMatch;
+              } else {
+                // No match found - skip this option to avoid error
+                continue;
+              }
+            }
+
+            // Medusa requires variant options as an object: { "option_id": "value" }
+            // This format is required for BOTH creates and updates
+            // For creates: We include option IDs in product-level options, so we can reference them here
+            // For updates: Options already exist in Medusa, so we use their IDs (from reconciliation)
+            const optId = asString(rootOpt.id);
+            if (optId && optId.trim().length > 0) {
+              // Object format: key is option_id, value is the option value string
+              mappedOptionsObj[optId] = finalValue;
+            }
           }
         }
 
@@ -425,13 +488,19 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
           // For creates: Medusa will accept client-generated UUIDs or assign its own IDs
           // These IDs are needed for variant options to reference them in object format
           // For updates: Use existing Medusa option IDs
+          
+          // Get title from name, title, or fallback to 'Option'
+          // Product store uses 'name', but Medusa uses 'title', so handle both
+          const optionTitle = asString(opt.name) || asString(opt.title) || 'Option';
+          
           const optionPayload: { id?: string; title: string; values: string[] } = {
-            title: asString(opt.name),
+            title: optionTitle,
             values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
           };
           
           // Include id for both creates and updates
           // For creates, this allows variant options to reference option IDs in object format
+          // For updates, this is the Medusa-assigned ID from reconciliation
           const optId = asString(opt.id);
           if (optId && optId.trim().length > 0) {
             optionPayload.id = optId;
@@ -448,14 +517,56 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     variants,
     tags: Array.isArray(input.tags) ? input.tags.map((t) => ({ value: t })) : [],
     images: Array.isArray(input.images)
-      ? input.images.map((url, index) => ({
-        url,
-        metadata: null,
-        rank: index,
-      }))
+      ? input.images
+          .map((img, index) => {
+            // Handle both string URLs and object formats { url: string }
+            let url: string = '';
+            if (typeof img === 'string') {
+              url = img;
+            } else if (isRecord(img)) {
+              const imgRecord = img as UnknownRecord;
+              url = asString(imgRecord.url || imgRecord.src || '');
+            }
+            // Only include valid URLs
+            if (!url || url.trim().length === 0) return null;
+            return {
+              url: url.trim(),
+              metadata: null,
+              rank: index,
+            };
+          })
+          .filter((img): img is { url: string; metadata: null; rank: number } => img !== null)
       : [],
-    categories: Array.isArray(input.categories) ? input.categories.map((c) => ({ id: c })) : [],
-    sales_channels: Array.isArray(input.sales_channels) ? input.sales_channels.map((sc) => ({ id: sc })) : [],
+    categories: Array.isArray(input.categories)
+      ? input.categories
+          .map((c) => {
+            // Handle both string IDs and object formats { id: string }
+            let id = '';
+            if (typeof c === 'string') {
+              id = c;
+            } else if (isRecord(c)) {
+              const cRecord = c as UnknownRecord;
+              id = asString(cRecord.id);
+            }
+            return id ? { id } : null;
+          })
+          .filter((c): c is { id: string } => c !== null)
+      : [],
+    sales_channels: Array.isArray(input.sales_channels)
+      ? input.sales_channels
+          .map((sc) => {
+            // Handle both string IDs and object formats { id: string }
+            let id = '';
+            if (typeof sc === 'string') {
+              id = sc;
+            } else if (isRecord(sc)) {
+              const scRecord = sc as UnknownRecord;
+              id = asString(scRecord.id);
+            }
+            return id ? { id } : null;
+          })
+          .filter((sc): sc is { id: string } => sc !== null)
+      : [],
     /**
      * IMPORTANT:
      * Some Medusa instances validate `shipping_profile_id` strictly as a string.

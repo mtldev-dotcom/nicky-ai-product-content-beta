@@ -57,7 +57,12 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
     data: payload.data,
   };
 
+  // Extract medusa_product_id from data blob to check for existing products
+  const dataObj = typeof payload.data === 'object' && payload.data !== null ? payload.data as Record<string, unknown> : {};
+  const medusaProductId = typeof dataObj.medusa_product_id === 'string' ? dataObj.medusa_product_id : null;
+
   if (payload.id) {
+    // Update existing product
     const { data, error } = await supabase
       .from('products')
       .update(record)
@@ -71,6 +76,33 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
     return { id: data.id };
   }
 
+  // Check if a product with the same medusaProductId already exists (prevent duplicates)
+  if (medusaProductId) {
+    const { data: existingProducts } = await supabase
+      .from('products')
+      .select('id')
+      .eq('organization_id', membership.organization_id)
+      .eq('data->>medusa_product_id', medusaProductId)
+      .limit(1);
+
+    if (existingProducts && existingProducts.length > 0) {
+      // Update existing product instead of creating duplicate
+      const existingId = existingProducts[0].id;
+      const { data, error } = await supabase
+        .from('products')
+        .update(record)
+        .eq('id', existingId)
+        .eq('organization_id', membership.organization_id)
+        .select('id')
+        .single();
+
+      if (error) throw new Error(error.message);
+      if (!data?.id) throw new Error('Failed to update existing product');
+      return { id: data.id };
+    }
+  }
+
+  // Create new product
   const { data, error } = await supabase.from('products').insert(record).select('id').single();
   if (error) throw new Error(error.message);
   if (!data?.id) throw new Error('Failed to save product');

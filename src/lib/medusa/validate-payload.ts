@@ -301,3 +301,187 @@ export function validateMedusaProductPayload(payload: unknown): void {
     }
   }
 }
+
+/**
+ * Medusa option structure (from API response)
+ */
+interface MedusaOption {
+  id: string;
+  title: string;
+  values: Array<{ id?: string; value: string } | string>;
+}
+
+/**
+ * Medusa variant structure (from API response)
+ */
+interface MedusaVariant {
+  id: string;
+  sku?: string;
+  options?: Array<{ option_id: string; value: string }>;
+}
+
+/**
+ * Validate that option IDs in update payload exist in Medusa
+ */
+export function validateOptionIds(
+  options: MedusaProductOption[],
+  medusaOptions: MedusaOption[]
+): void {
+  const medusaOptionIds = new Set(medusaOptions.map((o) => o.id));
+
+  options.forEach((option, index) => {
+    if (option.id) {
+      if (!medusaOptionIds.has(option.id)) {
+        throw new MedusaPayloadValidationError(
+          `Option at index ${index} has ID "${option.id}" that does not exist in Medusa. Omit ID for new options.`,
+          `options[${index}].id`,
+          option.id
+        );
+      }
+    }
+  });
+}
+
+/**
+ * Validate that variant IDs in update payload exist in Medusa
+ */
+export function validateVariantIds(
+  variants: MedusaProductVariant[],
+  medusaVariants: MedusaVariant[]
+): void {
+  const medusaVariantIds = new Set(medusaVariants.map((v) => v.id));
+
+  variants.forEach((variant, index) => {
+    if (variant.id) {
+      if (!medusaVariantIds.has(variant.id)) {
+        throw new MedusaPayloadValidationError(
+          `Variant at index ${index} has ID "${variant.id}" that does not exist in Medusa. Omit ID for new variants.`,
+          `variants[${index}].id`,
+          variant.id
+        );
+      }
+    }
+  });
+}
+
+/**
+ * Validate that variant options reference valid option IDs
+ */
+export function validateVariantOptions(
+  variant: MedusaProductVariant,
+  variantIndex: number,
+  medusaOptions: MedusaOption[]
+): void {
+  if (!variant.options || typeof variant.options !== 'object') {
+    return; // No options to validate
+  }
+
+  const medusaOptionIds = new Set(medusaOptions.map((o) => o.id));
+  const medusaOptionValuesMap = new Map<string, Set<string>>();
+
+  // Build map of option ID -> valid values
+  medusaOptions.forEach((opt) => {
+    const values = new Set<string>();
+    if (Array.isArray(opt.values)) {
+      opt.values.forEach((v) => {
+        if (typeof v === 'string') {
+          values.add(v);
+        } else if (isRecord(v) && typeof v.value === 'string') {
+          values.add(v.value);
+        }
+      });
+    }
+    medusaOptionValuesMap.set(opt.id, values);
+  });
+
+  // Validate each variant option
+  for (const [optionId, value] of Object.entries(variant.options)) {
+    if (typeof value !== 'string') {
+      throw new MedusaPayloadValidationError(
+        `Variant at index ${variantIndex} has invalid option value for option ${optionId}. Value must be a string.`,
+        `variants[${variantIndex}].options[${optionId}]`,
+        value
+      );
+    }
+
+    // Check if option ID exists
+    if (!medusaOptionIds.has(optionId)) {
+      throw new MedusaPayloadValidationError(
+        `Variant at index ${variantIndex} references option ID "${optionId}" that does not exist in Medusa.`,
+        `variants[${variantIndex}].options[${optionId}]`,
+        optionId
+      );
+    }
+
+    // Check if value exists for this option
+    const validValues = medusaOptionValuesMap.get(optionId);
+    if (validValues && !validValues.has(value)) {
+      // Try case-insensitive match
+      const caseInsensitiveMatch = Array.from(validValues).find(
+        (v) => v.toLowerCase() === value.toLowerCase()
+      );
+      if (!caseInsensitiveMatch) {
+        // Try partial match for compound values (e.g., "Silver/Black" might match "Silver" or "Black")
+        const partialMatch = Array.from(validValues).find((v) => {
+          const valueLower = value.toLowerCase();
+          const vLower = v.toLowerCase();
+          // Check if value contains the valid value or vice versa
+          return valueLower.includes(vLower) || vLower.includes(valueLower);
+        });
+        
+        if (!partialMatch) {
+          // Provide helpful error message with suggestion
+          const option = medusaOptions.find((o) => o.id === optionId);
+          const optionTitle = option?.title || optionId;
+          throw new MedusaPayloadValidationError(
+            `Option value "${value}" does not exist for option "${optionTitle}" (${optionId}). ` +
+            `Valid values: ${Array.from(validValues).join(', ')}. ` +
+            `Please add "${value}" to the option values in Medusa first, or use one of the existing values.`,
+            `variants[${variantIndex}].options[${optionId}]`,
+            value
+          );
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Validate update payload against current Medusa state
+ *
+ * This performs additional validation specific to updates:
+ * - Option IDs must exist in Medusa (or be omitted for new options)
+ * - Variant IDs must exist in Medusa (or be omitted for new variants)
+ * - Variant options must reference valid option IDs
+ * - Variant option values must match existing option values
+ */
+export function validateUpdatePayload(
+  payload: unknown,
+  medusaState: { options?: MedusaOption[]; variants?: MedusaVariant[] }
+): void {
+  // First, run standard validation
+  validateMedusaProductPayload(payload);
+
+  if (!isRecord(payload)) {
+    return; // Already validated above
+  }
+
+  const p = payload as Partial<MedusaProductPayload>;
+  const medusaOptions = medusaState.options || [];
+  const medusaVariants = medusaState.variants || [];
+
+  // Validate option IDs
+  if (p.options && Array.isArray(p.options)) {
+    validateOptionIds(p.options, medusaOptions);
+  }
+
+  // Validate variant IDs
+  if (p.variants && Array.isArray(p.variants)) {
+    validateVariantIds(p.variants, medusaVariants);
+
+    // Validate variant options
+    p.variants.forEach((variant, index) => {
+      validateVariantOptions(variant, index, medusaOptions);
+    });
+  }
+}

@@ -314,23 +314,20 @@ export default function ProductDetailsPage() {
   const [isUpdatingMedusa, setIsUpdatingMedusa] = useState(false);
 
   const handleMedusaUpdate = async () => {
-    const { medusaProductId } = useProductStore.getState();
-    if (!medusaProductId) return;
+    const productState = useProductStore.getState();
+    const { medusaProductId, id: localProductId } = productState;
+    if (!medusaProductId) {
+      alert('Product is not linked to Medusa. Please push to Medusa first.');
+      return;
+    }
 
     setIsUpdatingMedusa(true);
     try {
-      // 1. Save local draft first
-      await useProductStore.getState().saveToDb();
-
-      // 2. Build Medusa payload (this is an update, so pass isUpdate=true)
-      const { buildMedusaAdminProductPayload } = await import('@/lib/medusa/build-admin-product-payload');
-      const productState = useProductStore.getState();
-      const payload = buildMedusaAdminProductPayload(productState, true);
-
-      // 3. Send update
+      // 1. Send update to Medusa FIRST (before saving locally)
+      // This ensures we don't create duplicate local entries if Medusa update fails
       const res = await fetch(`/api/medusa/products/${medusaProductId}`, {
         method: 'POST',
-        body: JSON.stringify({ payload }),
+        body: JSON.stringify({ payload: productState }),
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -340,7 +337,30 @@ export default function ProductDetailsPage() {
         throw new Error(json.error || 'Failed to update Medusa product');
       }
 
-      alert('Successfully updated Medusa product!');
+      // 2. After successful Medusa update, ensure medusaProductId is set in local state
+      // The Medusa response confirms the update was successful
+      // We'll sync the local state on next save
+
+      // 3. Save updated state to local DB (now with Medusa data synced)
+      await productState.saveToDb();
+
+      // 4. Ensure product is properly linked (idempotent)
+      if (localProductId && medusaProductId) {
+        try {
+          await fetch('/api/products/link-medusa', {
+            method: 'POST',
+            body: JSON.stringify({
+              productId: localProductId,
+              medusaProductId: medusaProductId,
+            }),
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } catch (linkErr) {
+          console.warn('Failed to link product (non-critical):', linkErr);
+        }
+      }
+
+      alert('Successfully updated Medusa product and synced to local database!');
     } catch (err) {
       console.error('Update failed:', err);
       alert(err instanceof Error ? err.message : 'Failed to update Medusa product');

@@ -73,8 +73,13 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
         .map((val) => ({ value: val, translations: { en: val } }))
       : [];
 
+    // Preserve Medusa ID if present (critical for updates)
+    const medusaId = asString(optRecord.id);
+    const localId = medusaId || crypto.randomUUID();
+    
     return {
-      id: asString(optRecord.id) || crypto.randomUUID(),
+      id: localId,
+      medusaId: medusaId || undefined, // Preserve Medusa ID separately for updates
       name: optName,
       translations: { en: optName },
       values,
@@ -254,14 +259,37 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
         });
       }
 
+      // Preserve Medusa variant ID if present (critical for updates)
+      const medusaVariantId = variantId;
+      const localVariantId = medusaVariantId || crypto.randomUUID();
+      
+      // Also preserve Medusa format options (option IDs as keys) for updates
+      // UI format: { "Color": "Black" } (stored in options)
+      // Medusa format: { "opt_123": "Black" } (stored in medusaOptions)
+      const medusaVariantOptions: Record<string, string> = {};
+      if (Array.isArray(vOptionsRaw)) {
+        vOptionsRaw.forEach((vo) => {
+          if (!isRecord(vo)) return;
+          const optId = asString(vo.option_id);
+          const val = asString(vo.value);
+          if (optId && val) {
+            medusaVariantOptions[optId] = val;
+          }
+        });
+      }
+      
       return {
-        id: variantId || crypto.randomUUID(),
+        id: localVariantId,
+        medusaId: medusaVariantId || undefined, // Preserve Medusa ID separately for updates
         title: variantTitle,
         sku: variantSku,
         manage_inventory: v.manage_inventory !== false, // Default true
         allow_backorder: !!v.allow_backorder,
         prices,
-        options: variantOptions,
+        options: variantOptions, // UI format: { "Color": "Black" }
+        medusaOptions: Object.keys(medusaVariantOptions).length > 0 
+          ? medusaVariantOptions 
+          : undefined, // Medusa format: { "opt_123": "Black" } (for updates)
         inventory: [] // We don't map inventory levels deeply yet, complicated structure
       };
     }).filter((v): v is any => v !== null)

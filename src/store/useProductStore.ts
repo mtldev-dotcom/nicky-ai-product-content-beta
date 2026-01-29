@@ -387,6 +387,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
         shipping_weight: state.shipping_weight,
         shipping_dimensions: state.shipping_dimensions,
         aiMeta: state.aiMeta,
+        // Preserve medusaProductId in data blob for persistence
+        medusa_product_id: state.medusaProductId || undefined,
       },
     } as const;
 
@@ -583,10 +585,16 @@ export const useProductStore = create<ProductState>((set, get) => ({
 
     const aiMeta = isRecord(dataObj.aiMeta) ? (dataObj.aiMeta as ProductState['aiMeta']) : undefined;
 
+    // Extract medusaProductId from data blob (stored as medusa_product_id)
+    const medusaProductId = typeof dataObj.medusa_product_id === 'string' 
+      ? dataObj.medusa_product_id 
+      : undefined;
+
     set({
       id: record.id,
       title: record.title || '',
       handle: record.handle || '',
+      medusaProductId,
       status: record.status || 'draft',
       sku: record.sku || '',
       price: record.price ?? 0,

@@ -639,6 +639,263 @@ const response = await fetch(`/api/medusa/products/${productId}/variants`, {
 });
 ```
 
+### Updating an Existing Product
+
+```typescript
+// Automatically uses update strategy with ID reconciliation
+const response = await fetch(`/api/medusa/products/${productId}`, {
+  method: 'POST',
+  body: JSON.stringify({
+    payload: {
+      title: "Updated Product",
+      // Options with Medusa IDs (from reconciliation)
+      options: [
+        { id: "opt_123", title: "Color", values: ["Black", "Gold"] }, // Existing
+        { title: "Size", values: ["S", "M"] } // New (no ID)
+      ],
+      // Variants with Medusa IDs (from reconciliation)
+      variants: [
+        { 
+          id: "var_123", // Medusa ID (from reconciliation)
+          title: "Updated Variant",
+          options: { "opt_123": "Black" }, // Option IDs as keys
+          prices: [{ amount: 25, currency_code: "usd" }]
+        },
+        { 
+          // New variant (no ID)
+          title: "New Variant",
+          options: { "opt_123": "Gold" },
+          prices: [{ amount: 30, currency_code: "usd" }]
+        }
+      ]
+    }
+  })
+});
+```
+
+---
+
+---
+
+## Update Strategy (Phase 2)
+
+### Overview
+
+Product updates have unique challenges compared to creation:
+- **ID Preservation**: Must use existing Medusa IDs for options and variants
+- **ID Reconciliation**: Local state may have different IDs than Medusa
+- **Change Detection**: Need to identify what changed for debugging and optimization
+- **Validation**: Must validate IDs exist in Medusa before updating
+
+### Update Flow
+
+```
+User Updates Product
+    ↓
+[product-details/page.tsx] → handleMedusaUpdate()
+    ├─→ Save local draft
+    ├─→ [update-product-strategy.ts]
+    │   ├─→ Step 1: Fetch current Medusa product state (pre-flight)
+    │   ├─→ Step 2: Reconcile IDs (map local → Medusa IDs)
+    │   ├─→ Step 3: Detect changes (for logging/debugging)
+    │   ├─→ Step 4: Apply reconciled IDs to local state
+    │   ├─→ Step 5: Build update payload with Medusa IDs
+    │   ├─→ Step 6: Validate payload (standard + update-specific)
+    │   ├─→ Step 7: Sanitize payload
+    │   └─→ Step 8: Send update to Medusa
+    └─→ Return updated product
+```
+
+### Key Modules for Updates
+
+#### 1. `update-product-strategy.ts` - Update Orchestration
+
+**Purpose**: Orchestrates the complete update flow with pre-flight validation.
+
+**Key Functions**:
+- `updateProductInMedusa()`: Main update orchestrator
+- `fetchCurrentMedusaProduct()`: Pre-flight fetch of current state
+
+**Features**:
+- Pre-flight fetch to get current Medusa state
+- ID reconciliation before building payload
+- Change detection for debugging
+- Comprehensive logging at each step
+- Error handling with detailed context
+
+---
+
+#### 2. `reconcile-medusa-ids.ts` - ID Mapping
+
+**Purpose**: Maps local product state IDs to Medusa-assigned IDs.
+
+**Key Functions**:
+- `reconcileProductIds()`: Main reconciliation function
+- `reconcileOptionIds()`: Map option IDs
+- `reconcileVariantIds()`: Map variant IDs
+- `applyReconciledIds()`: Apply reconciled IDs to local state
+
+**Matching Strategies**:
+
+**Options**:
+1. **Primary**: Match by Medusa ID (if local state has it)
+2. **Secondary**: Match by option title (case-insensitive)
+3. **Tertiary**: Match by option values (exact set match)
+4. **Fallback**: Treat as new option (no ID in payload)
+
+**Variants**:
+1. **Primary**: Match by Medusa ID (if local state has it)
+2. **Secondary**: Match by SKU (exact match)
+3. **Tertiary**: Match by option combination (all options match)
+4. **Fallback**: Treat as new variant (no ID in payload)
+
+**Variant Options Mapping**:
+- Converts UI format `{ "Color": "Black" }` → Medusa format `{ "opt_123": "Black" }`
+- Uses reconciled option IDs as keys
+
+---
+
+#### 3. `detect-product-changes.ts` - Change Detection
+
+**Purpose**: Identifies what changed between local state and Medusa state.
+
+**Key Functions**:
+- `detectProductChanges()`: Main change detection
+- `detectOptionChanges()`: Option additions/modifications/removals
+- `detectVariantChanges()`: Variant additions/modifications/removals
+- `formatChangesForLog()`: Format changes for console logging
+
+**Change Types**:
+- **Added**: New options/variants in local state
+- **Modified**: Existing options/variants with changes
+- **Removed**: Options/variants in Medusa but not in local
+
+**Usage**: Primarily for debugging and logging, but can be used for:
+- User feedback (show what will change)
+- Payload optimization (only send changes - future enhancement)
+- Audit logging
+
+---
+
+### Update Payload Format
+
+**Product Update** (`POST /admin/products/:id`):
+```typescript
+{
+  title: "Updated Title",
+  options: [
+    { id: "opt_123", title: "Color", values: ["Black", "Gold"] }, // Update existing
+    { title: "Size", values: ["S", "M"] } // New option (no ID)
+  ],
+  variants: [
+    { id: "var_123", title: "Updated Variant", options: { "opt_123": "Black" } }, // Update existing
+    { title: "New Variant", options: { "opt_123": "Gold" } } // New variant (no ID)
+  ]
+}
+```
+
+**Key Rules**:
+- Include `id` for existing options/variants (from reconciliation)
+- Omit `id` for new options/variants
+- Variant options use option IDs as keys: `{ "opt_123": "Black" }`
+- Option values are strings (not objects with IDs)
+
+---
+
+### Update-Specific Validation
+
+**Functions** (in `validate-payload.ts`):
+- `validateUpdatePayload()`: Validate update against current Medusa state
+- `validateOptionIds()`: Ensure option IDs exist in Medusa
+- `validateVariantIds()`: Ensure variant IDs exist in Medusa
+- `validateVariantOptions()`: Ensure variant options reference valid option IDs and values
+
+**Validation Rules**:
+1. Option IDs must exist in Medusa (or be omitted for new options)
+2. Variant IDs must exist in Medusa (or be omitted for new variants)
+3. Variant option values must match existing option values (exact match)
+4. Option values must be strings (not objects)
+
+---
+
+### Update vs Create Differences
+
+| Aspect | Create | Update |
+|--------|--------|--------|
+| **Strategy** | Two-phase (if options + variants) | Single-phase with reconciliation |
+| **Option IDs** | Client-generated UUIDs (or omit) | Medusa IDs (from reconciliation) |
+| **Variant IDs** | Omitted (Medusa assigns) | Medusa IDs (from reconciliation) |
+| **Variant Options** | Option IDs from product-level options | Option IDs from reconciled mapping |
+| **Pre-flight** | None needed | Fetch current state for reconciliation |
+| **Validation** | Standard validation | Standard + update-specific validation |
+
+---
+
+### Common Update Issues & Solutions
+
+#### Issue 1: "Option ID not found"
+
+**Cause**: Option ID in payload doesn't exist in Medusa.
+
+**Solution**: Reconciliation should prevent this, but if it occurs:
+- Check if option was deleted in Medusa
+- Verify reconciliation matched correctly
+- Check console logs for reconciliation details
+
+---
+
+#### Issue 2: "Variant ID not found"
+
+**Cause**: Variant ID in payload doesn't exist in Medusa.
+
+**Solution**: Reconciliation should prevent this, but if it occurs:
+- Check if variant was deleted in Medusa
+- Verify reconciliation matched by SKU or options
+- Check console logs for reconciliation details
+
+---
+
+#### Issue 3: "Option value does not exist"
+
+**Cause**: Variant option value doesn't match any option values.
+
+**Solution**: 
+- Ensure option value exists in product-level options
+- Check for case sensitivity issues
+- Verify reconciliation mapped values correctly
+
+---
+
+#### Issue 4: Update doesn't reflect changes
+
+**Cause**: IDs not reconciled correctly, or changes not detected.
+
+**Solution**:
+- Check console logs for reconciliation results
+- Verify change detection shows expected changes
+- Check if payload includes all expected fields
+
+---
+
+### Update Logging
+
+All update operations log with `[Update]` prefix:
+
+```
+[Update] Starting product update for: prod_123
+[Update] Fetching current Medusa product state...
+[Update] Current Medusa state: { productId, title, optionsCount, variantsCount }
+[Update] Reconciling IDs...
+[Update] ID Reconciliation: { options: {...}, variants: {...} }
+[Update] Detecting changes...
+[Update] Changes detected: [formatted change list]
+[Update] Building update payload...
+[Update] Payload preview: { title, handle, optionsCount, variantsCount }
+[Update] Validating payload...
+[Update] Sending update request to Medusa...
+[Update] Update successful: { productId, title, optionsCount, variantsCount }
+```
+
 ---
 
 ## Conclusion
@@ -647,8 +904,23 @@ The Medusa integration has been significantly improved with:
 
 ✅ **Fixed Critical Bugs**: Variant options format, option value references  
 ✅ **Architectural Improvements**: Centralized client, error handling, retry logic  
+✅ **Update Strategy**: Pre-flight validation, ID reconciliation, change detection  
 ✅ **Better Developer Experience**: Comprehensive logging, structured errors  
 ✅ **Robustness**: Validation, sanitization, retry logic  
 ✅ **Maintainability**: Clear module separation, comprehensive types  
 
-The two-phase creation strategy is the key innovation that solves the chicken-and-egg problem of referencing option IDs that don't exist yet. The use of option titles (not IDs) for variant creation via dedicated endpoints is a critical detail that must be remembered for future work.
+**Key Innovations**:
+
+1. **Two-Phase Creation**: Solves the chicken-and-egg problem of referencing option IDs that don't exist yet
+2. **ID Reconciliation**: Maps local IDs to Medusa IDs using multiple matching strategies
+3. **Change Detection**: Identifies what changed for debugging and future optimization
+4. **Update Validation**: Validates IDs exist in Medusa before updating
+
+**Critical Details to Remember**:
+
+- **Variant Options Format**:
+  - Product creation/update: `{ "option_id": "value" }`
+  - Variant creation via endpoint: `{ "option_title": "value" }`
+- **Option Values**: Must match exactly (case-sensitive) with Medusa's stored values
+- **ID Preservation**: Always preserve Medusa IDs when loading products
+- **Reconciliation**: Always reconcile IDs before updating (pre-flight fetch required)

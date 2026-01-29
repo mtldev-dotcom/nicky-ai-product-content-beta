@@ -5,7 +5,7 @@ import { getMedusaAuth } from '@/lib/medusa/client';
 import { parseMedusaResponse } from '@/lib/medusa/response-parser';
 import { parseMedusaError } from '@/lib/medusa/error-handler';
 import { withRetry } from '@/lib/medusa/retry';
-import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
+import { updateProductInMedusa } from '@/lib/medusa/update-product-strategy';
 
 export const runtime = 'nodejs';
 
@@ -65,58 +65,31 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const { id } = await ctx.params;
     if (!id) return NextResponse.json({ error: 'Missing product id' }, { status: 400 });
 
-    const auth = await getMedusaAuth();
-    if (!auth.ok) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status });
-    }
-
     const { payload } = UpdateProductSchema.parse(await req.json());
 
-    // Sanitize payload (normalize currency_code, etc.)
-    const sanitizedPayload = sanitizeMedusaProductPayload(payload);
+    // Use update strategy with ID reconciliation and validation
+    const result = await updateProductInMedusa(id, payload);
 
-    const res = await withRetry(async () => {
-      return fetch(`${auth.baseUrl}/admin/products/${encodeURIComponent(id)}`, {
-        method: 'POST',
-        headers: auth.headers,
-        cache: 'no-store',
-        body: JSON.stringify(sanitizedPayload),
-      });
-    });
-
-    const text = await res.text();
-    const json = parseMedusaResponse(text);
-
-    if (!res.ok) {
-      // Log the full error for debugging
-      const payloadObj = typeof sanitizedPayload === 'object' && sanitizedPayload !== null && !Array.isArray(sanitizedPayload)
-        ? sanitizedPayload as Record<string, unknown>
-        : {};
-      
-      const error = parseMedusaError(res.status, res.statusText, json);
-      console.error('Medusa API error (update):', {
-        status: res.status,
-        statusText: res.statusText,
-        productId: id,
-        url: `${auth.baseUrl}/admin/products/${encodeURIComponent(id)}`,
-        response: json,
-        payloadPreview: {
-          title: payloadObj.title,
-          handle: payloadObj.handle,
-          variantsCount: Array.isArray(payloadObj.variants) ? payloadObj.variants.length : 0,
-        },
-      });
-
-      return NextResponse.json(
-        { error: error.message, details: json },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json(json);
+    return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update Medusa product';
-    return NextResponse.json({ error: message }, { status: 400 });
+    
+    // Enhanced error logging
+    console.error('Product update failed:', {
+      productId: (await ctx.params).id,
+      error: message,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return NextResponse.json(
+      { 
+        error: message,
+        details: error instanceof Error && 'details' in error 
+          ? (error as { details?: unknown }).details 
+          : undefined,
+      },
+      { status: 400 }
+    );
   }
 }
 
