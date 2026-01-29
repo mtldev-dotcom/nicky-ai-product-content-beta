@@ -251,4 +251,65 @@ export async function setLocalProductMedusaId(
   if (writeErr) throw new Error(writeErr.message);
 }
 
+/**
+ * Archive a local product row after it has been published to Medusa.
+ *
+ * We do NOT delete by default (keeps a recoverable working copy), but we hide it
+ * from the Local catalog list to avoid a confusing "two sources of truth" UI.
+ *
+ * Implementation: store an `archived` flag inside `products.data`.
+ */
+export async function archiveLocalProductAfterPublish(
+  productId: string,
+  reason?: string,
+  supabaseOverride?: Awaited<ReturnType<typeof createClient>>
+): Promise<void> {
+  if (!productId) throw new Error('Missing product id');
+
+  const supabase = supabaseOverride ?? (await createClient());
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .single();
+
+  if (!membership?.organization_id) throw new Error('No organization found');
+
+  const { data: row, error: readErr } = await supabase
+    .from('products')
+    .select('data')
+    .eq('id', productId)
+    .eq('organization_id', membership.organization_id)
+    .single();
+
+  if (readErr) throw new Error(readErr.message);
+
+  const existing =
+    row?.data && typeof row.data === 'object' && row.data !== null
+      ? (row.data as Record<string, unknown>)
+      : {};
+
+  const next = {
+    ...existing,
+    archived: true,
+    archived_at: new Date().toISOString(),
+    archived_reason: typeof reason === 'string' && reason.trim().length > 0 ? reason.trim() : 'published_to_medusa',
+  };
+
+  const { error: writeErr } = await supabase
+    .from('products')
+    .update({ data: next })
+    .eq('id', productId)
+    .eq('organization_id', membership.organization_id);
+
+  if (writeErr) throw new Error(writeErr.message);
+}
+
 

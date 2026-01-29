@@ -155,6 +155,7 @@ export default function Dashboard() {
       .from('products')
       .select('*')
       .eq('organization_id', orgId)
+      .neq('data->>archived', 'true')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -203,6 +204,7 @@ export default function Dashboard() {
             .from('products')
             .select('*')
             .eq('organization_id', orgId)
+            .neq('data->>archived', 'true')
             .order('created_at', { ascending: false });
 
           if (!error && productsData) {
@@ -411,7 +413,20 @@ export default function Dashboard() {
           body: JSON.stringify({ productId: p.id, medusaProductId: medusaId }),
         });
 
-        setProducts((prev) => prev.map((x) => (x.id === p.id ? { ...x, medusa_product_id: medusaId } : x)));
+        // Archive the local working copy to reduce "two sources of truth" confusion.
+        // This hides it from the Local list but keeps it recoverable.
+        try {
+          await fetch('/api/products/archive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: p.id, reason: 'published_to_medusa' }),
+          });
+        } catch (archiveErr) {
+          console.warn('Failed to archive local product after publish (non-critical):', archiveErr);
+        }
+
+        // Remove from local UI list immediately (since it will now be hidden by archived flag).
+        setProducts((prev) => prev.filter((x) => x.id !== p.id));
       }
 
       if (alertOnSuccess && !silent) {

@@ -53,7 +53,8 @@ export default function ProductDetailsPage() {
     updateRoot,
     translatingLanguages,
     aiMeta,
-    medusaProductId
+    medusaProductId,
+    status
   } = useProductStore();
 
   const getFieldSource = (path: string): 'ai' | 'source' | 'mixed' => {
@@ -313,7 +314,44 @@ export default function ProductDetailsPage() {
   };
 
   const [isUpdatingMedusa, setIsUpdatingMedusa] = useState(false);
+  const [isTogglingMedusaStatus, setIsTogglingMedusaStatus] = useState(false);
   const { toast } = useToast();
+
+  const handleMedusaStatusToggle = async (next: 'draft' | 'published') => {
+    const medusaId = useProductStore.getState().medusaProductId;
+    if (!medusaId) return;
+
+    setIsTogglingMedusaStatus(true);
+    try {
+      const res = await fetch(`/api/medusa/products/${medusaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload: { status: next } }),
+      });
+
+      const json = (await res.json()) as { error?: string; _clawd?: unknown };
+      if (!res.ok) throw new Error(json.error || 'Failed to update Medusa status');
+
+      // Keep local state in sync for the session
+      updateRoot({ status: next });
+
+      toast({
+        type: 'success',
+        title: `Medusa status set to ${next}`,
+        duration: 4000,
+      });
+    } catch (err) {
+      console.error('Failed to toggle Medusa status:', err);
+      toast({
+        type: 'error',
+        title: 'Failed to update Medusa status',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        duration: 6000,
+      });
+    } finally {
+      setIsTogglingMedusaStatus(false);
+    }
+  };
 
   const handleMedusaUpdate = async () => {
     const productState = useProductStore.getState();
@@ -408,19 +446,52 @@ export default function ProductDetailsPage() {
 
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Edit / Update Actions */}
-          {useProductStore.getState().medusaProductId && (
-            <button
-              onClick={handleMedusaUpdate}
-              disabled={isUpdatingMedusa}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
-            >
-              {isUpdatingMedusa ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              {isUpdatingMedusa ? 'Updating...' : 'Update Medusa'}
-            </button>
+          {medusaProductId && (
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              {/* Medusa Status Toggle */}
+              <div className="flex bg-black/20 p-1 rounded-xl border border-white/10">
+                <button
+                  onClick={() => handleMedusaStatusToggle('draft')}
+                  disabled={isTogglingMedusaStatus || isUpdatingMedusa}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                    status === 'draft'
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                    (isTogglingMedusaStatus || isUpdatingMedusa) && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Draft
+                </button>
+                <button
+                  onClick={() => handleMedusaStatusToggle('published')}
+                  disabled={isTogglingMedusaStatus || isUpdatingMedusa}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                    status === 'published'
+                      ? "bg-emerald-600 text-white"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5",
+                    (isTogglingMedusaStatus || isUpdatingMedusa) && "opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  Published
+                </button>
+              </div>
+
+              {/* Push updates to Medusa */}
+              <button
+                onClick={handleMedusaUpdate}
+                disabled={isUpdatingMedusa}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+              >
+                {isUpdatingMedusa ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                {isUpdatingMedusa ? 'Updating...' : 'Update Medusa'}
+              </button>
+            </div>
           )}
 
           <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">

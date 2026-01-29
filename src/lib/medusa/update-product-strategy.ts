@@ -195,6 +195,32 @@ export async function updateProductInMedusa(
     throw new Error(`Payload building failed: ${message}`);
   }
 
+  // If ONLY root fields changed (no options/variants changes), do NOT send options/variants in the update.
+  // Medusa can validate variant option values even when unchanged; if the local draft carries a value casing
+  // that doesn't exactly match Medusa, the update will fail even for a title-only change.
+  // This keeps "quick edits" safe.
+  const optionChangeCount =
+    changes.options.added.length + changes.options.modified.length + changes.options.removed.length;
+  const variantChangeCount =
+    changes.variants.added.length + changes.variants.modified.length + changes.variants.removed.length;
+
+  if (optionChangeCount === 0 && variantChangeCount === 0) {
+    const p = isRecord(payload) ? (payload as Record<string, unknown>) : null;
+    if (p) {
+      delete p.options;
+      delete p.variants;
+      // Also strip metadata.options_i18n if present (it is derived from options)
+      if (isRecord(p.metadata)) {
+        const md = p.metadata as Record<string, unknown>;
+        delete md.options_i18n;
+      }
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Update] Root-only change detected; sending minimal payload (no options/variants).');
+    }
+  }
+
   // Step 6: Ensure option values exist in Medusa (add missing ones)
   // This is similar to two-phase creation - we need option values to exist before using them in variants
   const medusaProduct = isRecord(currentMedusaState.product)
@@ -401,41 +427,56 @@ export async function updateProductInMedusa(
     if (process.env.NODE_ENV === 'development') {
       console.log('[Update] Validating payload...');
     }
-    
-    // First, standard validation
-    validateMedusaProductPayload(payload);
-    
-    // Extract and properly type Medusa variants
-    const medusaVariants: Array<{ id: string; sku?: string; options?: Array<{ option_id: string; value: string }> }> =
-      Array.isArray(medusaProduct.variants)
-        ? medusaProduct.variants
-            .filter((v): v is { id: string; sku?: string; options?: unknown } => {
-              if (!isRecord(v)) return false;
-              return typeof v.id === 'string';
-            })
-            .map((v) => ({
-              id: v.id as string,
-              sku: typeof v.sku === 'string' ? v.sku : undefined,
-              options: Array.isArray(v.options)
-                ? v.options.filter((opt): opt is { option_id: string; value: string } => {
-                    if (!isRecord(opt)) return false;
-                    return (
-                      typeof opt.option_id === 'string' && typeof opt.value === 'string'
-                    );
-                  })
-                : undefined,
-            }))
-        : [];
-    
-    validateUpdatePayload(payload, {
-      options: medusaOptions,
-      variants: medusaVariants,
-    });
+
+    const payloadRec = isRecord(payload) ? (payload as Record<string, unknown>) : {};
+    const hasVariants = Array.isArray(payloadRec.variants) && payloadRec.variants.length > 0;
+    const hasOptions = Array.isArray(payloadRec.options) && payloadRec.options.length > 0;
+
+    if (hasVariants) {
+      // Full payload validation (create/update-style)
+      validateMedusaProductPayload(payload);
+
+      // Extract and properly type Medusa variants for update validation
+      const medusaVariants: Array<{ id: string; sku?: string; options?: Array<{ option_id: string; value: string }> }> =
+        Array.isArray(medusaProduct.variants)
+          ? medusaProduct.variants
+              .filter((v): v is { id: string; sku?: string; options?: unknown } => {
+                if (!isRecord(v)) return false;
+                return typeof v.id === 'string';
+              })
+              .map((v) => ({
+                id: v.id as string,
+                sku: typeof v.sku === 'string' ? v.sku : undefined,
+                options: Array.isArray(v.options)
+                  ? v.options.filter((opt): opt is { option_id: string; value: string } => {
+                      if (!isRecord(opt)) return false;
+                      return typeof opt.option_id === 'string' && typeof opt.value === 'string';
+                    })
+                  : undefined,
+              }))
+          : [];
+
+      validateUpdatePayload(payload, {
+        options: medusaOptions,
+        variants: medusaVariants,
+      });
+    } else {
+      // Partial update validation (Medusa supports partial POST updates).
+      // We only sanity-check fields we are actually sending.
+      if ('title' in payloadRec && typeof payloadRec.title !== 'string') {
+        throw new Error('Invalid payload: title must be a string');
+      }
+      if ('handle' in payloadRec && typeof payloadRec.handle !== 'string') {
+        throw new Error('Invalid payload: handle must be a string');
+      }
+      if (hasOptions) {
+        // If someone sent options without variants, still validate options structure lightly.
+        // (But don't require variants.)
+        // We rely on Medusa API for deeper validation.
+      }
+    }
   } catch (validationError) {
-    const message =
-      validationError instanceof Error
-        ? validationError.message
-        : 'Payload validation failed';
+    const message = validationError instanceof Error ? validationError.message : 'Payload validation failed';
     throw new Error(`Payload validation failed: ${message}`);
   }
 
