@@ -1066,6 +1066,7 @@ export default function Dashboard() {
             <div className="hidden md:flex items-center gap-2 glass px-3 py-2 rounded-xl border border-white/10">
               <label className="flex items-center gap-2 text-xs text-zinc-300">
                 <input
+                  suppressHydrationWarning
                   type="checkbox"
                   checked={filteredUnifiedProducts.length > 0 && filteredUnifiedProducts.every(p => selectedIds.has(p.id))}
                   onChange={(e) => {
@@ -1087,6 +1088,7 @@ export default function Dashboard() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <input
+              suppressHydrationWarning
               type="text"
               placeholder="Search products..."
               value={searchQuery}
