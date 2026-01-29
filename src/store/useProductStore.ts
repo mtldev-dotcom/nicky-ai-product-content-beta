@@ -262,7 +262,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const isColorish = isColorishTitle(rawName);
     const finalName = isColorish ? normalizeColorsTitle(rawName) : rawName;
 
-    const translations = isColorish
+    const translations: Record<string, string> = isColorish
       ? { en: 'Colors', fr: 'Couleurs' }
       : { en: finalName };
 
@@ -299,7 +299,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
         const exists = o.values.some((v) => (isColors ? canonicalizeColorValue(v.value) : v.value) === key);
         if (exists) return o;
 
-        const translations = isColors
+        const translations: Record<string, string> = isColors
           ? { en: displayEnFromCanonical(canon), fr: displayFrFromCanonical(canon) }
           : { en: raw };
 
@@ -523,17 +523,19 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const options: ProductOption[] = Object.entries(optionMap).map(([name, values]) => {
       const isColors = isColorishTitle(name);
       const optName = isColors ? 'Colors' : name;
-
+      const optTranslations: Record<string, string> = isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName };
+      const valueEntries = Array.from(values).map(v => {
+        const val = isColors ? canonicalizeColorValue(v) : v;
+        const valTranslations: Record<string, string> = isColors
+          ? { en: displayEnFromCanonical(canonicalizeColorValue(v)), fr: displayFrFromCanonical(canonicalizeColorValue(v)) }
+          : { en: v };
+        return { value: val, translations: valTranslations };
+      });
       return {
         id: crypto.randomUUID(),
         name: optName,
-        translations: isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName },
-        values: Array.from(values).map(v => ({
-          value: isColors ? canonicalizeColorValue(v) : v,
-          translations: isColors
-            ? { en: displayEnFromCanonical(canonicalizeColorValue(v)), fr: displayFrFromCanonical(canonicalizeColorValue(v)) }
-            : { en: v }
-        }))
+        translations: optTranslations,
+        values: valueEntries,
       };
     });
 
@@ -630,8 +632,8 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const aiMeta = isRecord(dataObj.aiMeta) ? (dataObj.aiMeta as ProductState['aiMeta']) : undefined;
 
     // Extract medusaProductId from data blob (stored as medusa_product_id)
-    const medusaProductId = typeof dataObj.medusa_product_id === 'string' 
-      ? dataObj.medusa_product_id 
+    const medusaProductId = typeof dataObj.medusa_product_id === 'string'
+      ? dataObj.medusa_product_id
       : undefined;
 
     set({

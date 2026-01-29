@@ -158,12 +158,12 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
 
   const baseOptions: ProductOptionLike[] = Array.isArray(input.options)
     ? input.options.map((opt) => {
-        // Ensure option has a name or title (required for payload)
-        if (!opt.name && !opt.title) return { ...opt, name: 'Option', title: 'Option' };
-        if (!opt.name && opt.title) return { ...opt, name: opt.title };
-        if (opt.name && !opt.title) return { ...opt, title: opt.name };
-        return opt;
-      })
+      // Ensure option has a name or title (required for payload)
+      if (!opt.name && !opt.title) return { ...opt, name: 'Option', title: 'Option' };
+      if (!opt.name && opt.title) return { ...opt, name: opt.title };
+      if (opt.name && !opt.title) return { ...opt, title: opt.name };
+      return opt;
+    })
     : [];
 
   // Colors normalization (payload boundary):
@@ -191,7 +191,7 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
           },
         };
       })
-      .filter((x): x is ProductOptionValueLike => Boolean(x));
+      .filter((x): x is NonNullable<typeof x> => x !== null) as ProductOptionValueLike[];
 
     return {
       ...opt,
@@ -529,16 +529,16 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
           // For creates: Medusa will accept client-generated UUIDs or assign its own IDs
           // These IDs are needed for variant options to reference them in object format
           // For updates: Use existing Medusa option IDs
-          
+
           // Get title from name, title, or fallback to 'Option'
           // Product store uses 'name', but Medusa uses 'title', so handle both
           const optionTitle = asString(opt.name) || asString(opt.title) || 'Option';
-          
+
           const optionPayload: { id?: string; title: string; values: string[] } = {
             title: optionTitle,
             values: Array.isArray(opt.values) ? opt.values.map((v) => asString(v.value)).filter(Boolean) : [],
           };
-          
+
           // Include id for both creates and updates
           // For creates, this allows variant options to reference option IDs in object format
           // For updates, this is the Medusa-assigned ID from reconciliation
@@ -546,7 +546,7 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
           if (optId && optId.trim().length > 0) {
             optionPayload.id = optId;
           }
-          
+
           return optionPayload;
         })
         : [
@@ -559,54 +559,54 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     tags: Array.isArray(input.tags) ? input.tags.map((t) => ({ value: t })) : [],
     images: Array.isArray(input.images)
       ? input.images
-          .map((img, index) => {
-            // Handle both string URLs and object formats { url: string }
-            let url: string = '';
-            if (typeof img === 'string') {
-              url = img;
-            } else if (isRecord(img)) {
-              const imgRecord = img as UnknownRecord;
-              url = asString(imgRecord.url || imgRecord.src || '');
-            }
-            // Only include valid URLs
-            if (!url || url.trim().length === 0) return null;
-            return {
-              url: url.trim(),
-              metadata: null,
-              rank: index,
-            };
-          })
-          .filter((img): img is { url: string; metadata: null; rank: number } => img !== null)
+        .map((img, index) => {
+          // Handle both string URLs and object formats { url: string }
+          let url: string = '';
+          if (typeof img === 'string') {
+            url = img;
+          } else if (isRecord(img)) {
+            const imgRecord = img as UnknownRecord;
+            url = asString(imgRecord.url || imgRecord.src || '');
+          }
+          // Only include valid URLs
+          if (!url || url.trim().length === 0) return null;
+          return {
+            url: url.trim(),
+            metadata: null,
+            rank: index,
+          };
+        })
+        .filter((img): img is { url: string; metadata: null; rank: number } => img !== null)
       : [],
     categories: Array.isArray(input.categories)
       ? input.categories
-          .map((c) => {
-            // Handle both string IDs and object formats { id: string }
-            let id = '';
-            if (typeof c === 'string') {
-              id = c;
-            } else if (isRecord(c)) {
-              const cRecord = c as UnknownRecord;
-              id = asString(cRecord.id);
-            }
-            return id ? { id } : null;
-          })
-          .filter((c): c is { id: string } => c !== null)
+        .map((c) => {
+          // Handle both string IDs and object formats { id: string }
+          let id = '';
+          if (typeof c === 'string') {
+            id = c;
+          } else if (isRecord(c)) {
+            const cRecord = c as UnknownRecord;
+            id = asString(cRecord.id);
+          }
+          return id ? { id } : null;
+        })
+        .filter((c): c is { id: string } => c !== null)
       : [],
     sales_channels: Array.isArray(input.sales_channels)
       ? input.sales_channels
-          .map((sc) => {
-            // Handle both string IDs and object formats { id: string }
-            let id = '';
-            if (typeof sc === 'string') {
-              id = sc;
-            } else if (isRecord(sc)) {
-              const scRecord = sc as UnknownRecord;
-              id = asString(scRecord.id);
-            }
-            return id ? { id } : null;
-          })
-          .filter((sc): sc is { id: string } => sc !== null)
+        .map((sc) => {
+          // Handle both string IDs and object formats { id: string }
+          let id = '';
+          if (typeof sc === 'string') {
+            id = sc;
+          } else if (isRecord(sc)) {
+            const scRecord = sc as UnknownRecord;
+            id = asString(scRecord.id);
+          }
+          return id ? { id } : null;
+        })
+        .filter((sc): sc is { id: string } => sc !== null)
       : [],
     /**
      * IMPORTANT:

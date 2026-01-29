@@ -5,6 +5,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/** Normalize to Record<string, string> so ProductOption/ProductOptionValue types are satisfied (no undefined). */
+function toTranslations(obj: Record<string, unknown>): Record<string, string> {
+  const entries = Object.entries(obj).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
+  return Object.fromEntries(entries) as Record<string, string>;
+}
+
 export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   const root = isRecord(rawJson) ? rawJson : {};
 
@@ -79,22 +85,22 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
             const canon = canonicalizeColorValue(val);
             return {
               value: canon,
-              translations: { en: displayEnFromCanonical(canon), fr: displayFrFromCanonical(canon) }
+              translations: toTranslations({ en: displayEnFromCanonical(canon), fr: displayFrFromCanonical(canon) })
             };
           }
-          return { value: val, translations: { en: val } };
+          return { value: val, translations: toTranslations({ en: val }) };
         })
       : [];
 
     // Preserve Medusa ID if present (critical for updates)
     const medusaId = asString(optRecord.id);
     const localId = medusaId || crypto.randomUUID();
-    
+
     return {
       id: localId,
       medusaId: medusaId || undefined, // Preserve Medusa ID separately for updates
       name: optName,
-      translations: isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName },
+      translations: toTranslations(isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName }),
       values,
     };
   });
@@ -196,12 +202,12 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
           if (typeof trans === 'string') valTranslations[lang] = trans;
         });
       }
-      return { ...val, translations: valTranslations };
+      return { ...val, translations: toTranslations(valTranslations) };
     });
 
     return {
       ...opt,
-      translations: { en: opt.name, ...titleI18n },
+      translations: toTranslations({ en: opt.name, ...titleI18n }),
       values: enhancedValues
     };
   });
@@ -275,7 +281,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
       // Preserve Medusa variant ID if present (critical for updates)
       const medusaVariantId = variantId;
       const localVariantId = medusaVariantId || crypto.randomUUID();
-      
+
       // Also preserve Medusa format options (option IDs as keys) for updates
       // UI format: { "Color": "Black" } (stored in options)
       // Medusa format: { "opt_123": "Black" } (stored in medusaOptions)
@@ -290,7 +296,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
           }
         });
       }
-      
+
       return {
         id: localVariantId,
         medusaId: medusaVariantId || undefined, // Preserve Medusa ID separately for updates
@@ -300,8 +306,8 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
         allow_backorder: !!v.allow_backorder,
         prices,
         options: variantOptions, // UI format: { "Color": "Black" }
-        medusaOptions: Object.keys(medusaVariantOptions).length > 0 
-          ? medusaVariantOptions 
+        medusaOptions: Object.keys(medusaVariantOptions).length > 0
+          ? medusaVariantOptions
           : undefined, // Medusa format: { "opt_123": "Black" } (for updates)
         inventory: [] // We don't map inventory levels deeply yet, complicated structure
       };
@@ -314,35 +320,35 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   const handle = asString(root.handle) || '';
   const status = (root.status === 'published' ? 'published' : 'draft') as 'draft' | 'published';
   const thumbnail = asString(root.thumbnail) || images[0] || '';
-  
+
   // Extract taxonomy fields
   const collection_id = asString(root.collection_id) || '';
   const type_id = asString(root.type_id) || '';
   const shipping_profile_id = asString(root.shipping_profile_id) || '';
-  
+
   // Extract tags (Medusa format: [{ value: "tag" }])
   const tagsRaw = root.tags;
   const tags = Array.isArray(tagsRaw)
     ? tagsRaw
-        .map((t) => {
-          if (typeof t === 'string') return t;
-          if (isRecord(t)) return asString(t.value);
-          return '';
-        })
-        .filter((t): t is string => t.length > 0)
+      .map((t) => {
+        if (typeof t === 'string') return t;
+        if (isRecord(t)) return asString(t.value);
+        return '';
+      })
+      .filter((t): t is string => t.length > 0)
     : [];
-  
+
   // Extract sales_channels (Medusa format: [{ id: "sc_..." }])
   const salesChannelsRaw = root.sales_channels;
   const sales_channels = Array.isArray(salesChannelsRaw)
     ? salesChannelsRaw
-        .map((sc) => {
-          if (isRecord(sc)) return asString(sc.id);
-          return '';
-        })
-        .filter((id): id is string => id.length > 0)
+      .map((sc) => {
+        if (isRecord(sc)) return asString(sc.id);
+        return '';
+      })
+      .filter((id): id is string => id.length > 0)
     : [];
-  
+
   // Extract shipping dimensions
   const shipping_weight = asNumber(root.weight) || 0;
   const shipping_dimensions = {
@@ -353,7 +359,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
 
   // Extract vault from metadata
   const vaultMetadata = isRecord(metadata.vault) ? metadata.vault : {};
-  const vaultImages = Array.isArray(vaultMetadata.images) 
+  const vaultImages = Array.isArray(vaultMetadata.images)
     ? vaultMetadata.images.filter((img): img is string => typeof img === 'string' && img.length > 0)
     : [];
 
