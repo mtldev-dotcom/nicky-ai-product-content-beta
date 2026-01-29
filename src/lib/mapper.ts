@@ -1,4 +1,5 @@
 import { ProductState, Localization } from '@/store/useProductStore';
+import { canonicalizeColorValue, isColorishTitle, normalizeColorsTitle, displayEnFromCanonical, displayFrFromCanonical } from '@/lib/medusa/colors-normalization';
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -52,9 +53,12 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   const optionsRaw = isRecord(rawJson) ? rawJson.options : undefined;
   const options = (Array.isArray(optionsRaw) ? optionsRaw : []).map((opt) => {
     const optRecord = isRecord(opt) ? opt : {};
-    const optName = (typeof optRecord.title === 'string' && optRecord.title) ||
+    const rawName = (typeof optRecord.title === 'string' && optRecord.title) ||
       (typeof optRecord.name === 'string' && optRecord.name) ||
       'Option';
+
+    const isColors = isColorishTitle(rawName);
+    const optName = isColors ? normalizeColorsTitle(rawName) : rawName;
 
     const valuesRaw = optRecord.values;
     const values = Array.isArray(valuesRaw)
@@ -70,7 +74,16 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
           return '';
         })
         .filter((s): s is string => typeof s === 'string' && s.length > 0)
-        .map((val) => ({ value: val, translations: { en: val } }))
+        .map((val) => {
+          if (isColors) {
+            const canon = canonicalizeColorValue(val);
+            return {
+              value: canon,
+              translations: { en: displayEnFromCanonical(canon), fr: displayFrFromCanonical(canon) }
+            };
+          }
+          return { value: val, translations: { en: val } };
+        })
       : [];
 
     // Preserve Medusa ID if present (critical for updates)
@@ -81,7 +94,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
       id: localId,
       medusaId: medusaId || undefined, // Preserve Medusa ID separately for updates
       name: optName,
-      translations: { en: optName },
+      translations: isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName },
       values,
     };
   });
@@ -250,7 +263,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
             const foundOpt = (Array.isArray(optionsRaw) ? optionsRaw : []).find(o => isRecord(o) && o.id === optId);
             if (isRecord(foundOpt)) {
               const optName = asString(foundOpt.title) || asString(foundOpt.name) || 'Option';
-              variantOptions[optName] = val;
+              variantOptions[isColorishTitle(optName) ? normalizeColorsTitle(optName) : optName] = isColorishTitle(optName) ? canonicalizeColorValue(val) : val;
               return;
             }
           }

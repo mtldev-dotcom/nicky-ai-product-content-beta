@@ -85,67 +85,55 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
     const [showSavePresetModal, setShowSavePresetModal] = useState(false);
     const [presetName, setPresetName] = useState('');
 
-    // Default presets
-    const defaultPresets = [
-        {
-            id: 'default-color',
-            name: 'Color',
-            options: [
-                { name: 'Color', values: ['Black', 'White', 'Gold', 'Silver', 'Rose Gold'] }
-            ]
-        },
-        {
-            id: 'default-size',
-            name: 'Size',
-            options: [
-                { name: 'Size', values: ['XS', 'S', 'M', 'L', 'XL'] }
-            ]
-        },
+    // Built-in presets (always available, never deletable)
+    const builtInPresets = [
         {
             id: 'uncut-colors-en-fr',
-            name: 'Uncut Colors (EN/FR)',
+            name: 'Uncut Colors (EN/FR) — Canonical',
             options: [
                 {
-                    name: 'Color',
-                    translations: { en: 'Color', fr: 'Couleur' },
+                    name: 'Colors',
+                    translations: { en: 'Colors', fr: 'Couleurs' },
                     values: [], // Fallback for simple mapper
                     valuesWithTranslations: [
-                        { value: 'Purple', translations: { en: 'Purple', fr: 'Violet' } },
-                        { value: 'Blue', translations: { en: 'Blue', fr: 'Bleu' } },
-                        { value: 'Black', translations: { en: 'Black', fr: 'Noir' } },
-                        { value: 'Green', translations: { en: 'Green', fr: 'Vert' } },
-                        { value: 'Red', translations: { en: 'Red', fr: 'Rouge' } },
-                        { value: 'Copper', translations: { en: 'Copper', fr: 'Cuivre' } },
-                        { value: 'Gold', translations: { en: 'Gold', fr: 'Or' } },
-                        { value: 'Silver', translations: { en: 'Silver', fr: 'Argent' } },
+                        { value: 'purple', translations: { en: 'Purple', fr: 'Violet' } },
+                        { value: 'blue', translations: { en: 'Blue', fr: 'Bleu' } },
+                        { value: 'black', translations: { en: 'Black', fr: 'Noir' } },
+                        { value: 'green', translations: { en: 'Green', fr: 'Vert' } },
+                        { value: 'red', translations: { en: 'Red', fr: 'Rouge' } },
+                        { value: 'copper', translations: { en: 'Copper', fr: 'Cuivre' } },
+                        { value: 'gold', translations: { en: 'Gold', fr: 'Or' } },
+                        { value: 'silver', translations: { en: 'Silver', fr: 'Argent' } },
 
                         // Combinations - Silver Base
-                        { value: 'Silver/Purple', translations: { en: 'Silver/Purple', fr: 'Argent/Violet' } },
-                        { value: 'Silver/Blue', translations: { en: 'Silver/Blue', fr: 'Argent/Bleu' } },
-                        { value: 'Silver/Black', translations: { en: 'Silver/Black', fr: 'Argent/Noir' } },
-                        { value: 'Silver/Green', translations: { en: 'Silver/Green', fr: 'Argent/Vert' } },
-                        { value: 'Silver/Red', translations: { en: 'Silver/Red', fr: 'Argent/Rouge' } },
-                        { value: 'Silver/Copper', translations: { en: 'Silver/Copper', fr: 'Argent/Cuivre' } },
-                        { value: 'Silver/Gold', translations: { en: 'Silver/Gold', fr: 'Argent/Or' } },
+                        { value: 'silver/purple', translations: { en: 'Silver/Purple', fr: 'Argent/Violet' } },
+                        { value: 'silver/blue', translations: { en: 'Silver/Blue', fr: 'Argent/Bleu' } },
+                        { value: 'silver/black', translations: { en: 'Silver/Black', fr: 'Argent/Noir' } },
+                        { value: 'silver/green', translations: { en: 'Silver/Green', fr: 'Argent/Vert' } },
+                        { value: 'silver/red', translations: { en: 'Silver/Red', fr: 'Argent/Rouge' } },
+                        { value: 'silver/copper', translations: { en: 'Silver/Copper', fr: 'Argent/Cuivre' } },
+                        { value: 'silver/gold', translations: { en: 'Silver/Gold', fr: 'Argent/Or' } },
 
                         // Combinations - Black Base
-                        { value: 'Black/Purple', translations: { en: 'Black/Purple', fr: 'Noir/Violet' } },
-                        { value: 'Black/Blue', translations: { en: 'Black/Blue', fr: 'Noir/Bleu' } },
-                        { value: 'Black/Black', translations: { en: 'Black/Black', fr: 'Noir/Noir' } },
-                        { value: 'Black/Green', translations: { en: 'Black/Green', fr: 'Noir/Vert' } },
-                        { value: 'Black/Red', translations: { en: 'Black/Red', fr: 'Noir/Rouge' } },
-                        { value: 'Black/Copper', translations: { en: 'Black/Copper', fr: 'Noir/Cuivre' } },
-                        { value: 'Black/Gold', translations: { en: 'Black/Gold', fr: 'Noir/Or' } },
-                        { value: 'Black/Silver', translations: { en: 'Black/Silver', fr: 'Noir/Argent' } }
+                        { value: 'black/purple', translations: { en: 'Black/Purple', fr: 'Noir/Violet' } },
+                        { value: 'black/blue', translations: { en: 'Black/Blue', fr: 'Noir/Bleu' } },
+                        { value: 'black/black', translations: { en: 'Black/Black', fr: 'Noir/Noir' } },
+                        { value: 'black/green', translations: { en: 'Black/Green', fr: 'Noir/Vert' } },
+                        { value: 'black/red', translations: { en: 'Black/Red', fr: 'Noir/Rouge' } },
+                        { value: 'black/copper', translations: { en: 'Black/Copper', fr: 'Noir/Cuivre' } },
+                        { value: 'black/gold', translations: { en: 'Black/Gold', fr: 'Noir/Or' } },
+                        { value: 'black/silver', translations: { en: 'Black/Silver', fr: 'Noir/Argent' } }
                     ]
                 }
             ]
         }
     ];
 
-    const presets = settings.variantOptionPresets && settings.variantOptionPresets.length > 0
-        ? settings.variantOptionPresets
-        : defaultPresets;
+    const BUILTIN_IDS = new Set(builtInPresets.map(p => p.id));
+
+    // Merge: built-ins always appear first; user presets appended.
+    const userPresets = Array.isArray(settings.variantOptionPresets) ? settings.variantOptionPresets : [];
+    const presets = [...builtInPresets, ...userPresets.filter(p => !BUILTIN_IDS.has(p.id))];
 
     const handleLoadPreset = (preset: typeof presets[0]) => {
         const newOptions = preset.options.map(opt => {
@@ -205,6 +193,12 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
     };
 
     const handleDeletePreset = async (presetId: string) => {
+        // Built-in presets are not deletable.
+        if (presetId === 'uncut-colors-en-fr') {
+            alert('This preset is built-in and cannot be deleted.');
+            return;
+        }
+
         if (!confirm('Are you sure you want to delete this preset?')) return;
 
         const updatedPresets = (settings.variantOptionPresets || []).filter(p => p.id !== presetId);
@@ -265,7 +259,12 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
         const combinations = cartesian(optionSets);
 
         const newVariants: ProductVariant[] = combinations.map((combo: OptionChoice[]) => {
-            const variantValuesTitle = combo.map(c => c.value).join(' / ');
+            // Display title should use translations (EN) when available.
+            const variantValuesTitle = combo.map(c => {
+                const opt = validOptions.find(o => o.name === c.optionName);
+                const v = opt?.values.find(vv => vv.value === c.value);
+                return v?.translations?.en || c.value;
+            }).join(' / ');
             const variantTitle = `${productTitle || 'Draft Product'} - ${variantValuesTitle}`;
 
             const variantOptions = combo.reduce<Record<string, string>>((acc, curr) => {
@@ -273,7 +272,8 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
                 return acc;
             }, {});
 
-            const slugifiedOptions = variantValuesTitle.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+            // SKU should be stable + machine-friendly (use canonical values, not display labels)
+            const slugifiedOptions = combo.map(c => c.value).join('-').toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
             const variantSku = handle
                 ? `${handle}-${slugifiedOptions}`
                 : `product-${slugifiedOptions}`;
@@ -510,7 +510,7 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
                             <div className="space-y-3">
                                 <input
                                     type="text"
-                                    placeholder="e.g. Size, Color..."
+                                    placeholder="e.g. Size, Colors..."
                                     className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
                                     value={newOptionName}
                                     onChange={(e) => setNewOptionName(e.target.value)}
@@ -544,7 +544,7 @@ export function ProductVariantsModule({ taxonomy }: ProductVariantsModuleProps) 
                                                 {presets.map(p => (
                                                     <div key={p.id} className="p-2 hover:bg-white/10 flex items-center justify-between cursor-pointer group" onClick={() => handleLoadPreset(p)}>
                                                         <div className="text-xs text-white font-medium">{p.name}</div>
-                                                        {p.id !== 'default-color' && p.id !== 'default-size' && (
+                                                        {p.id !== 'uncut-colors-en-fr' && (
                                                             <button onClick={(e) => { e.stopPropagation(); handleDeletePreset(p.id); }} className="text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100">
                                                                 <Trash2 className="w-3 h-3" />
                                                             </button>

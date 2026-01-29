@@ -16,6 +16,7 @@
  */
 
 import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
+import { canonicalizeColorValue, isColorishTitle, normalizeColorsTitle, displayEnFromCanonical, displayFrFromCanonical } from '@/lib/medusa/colors-normalization';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -155,25 +156,54 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     return obj;
   };
 
-  const options: ProductOptionLike[] = Array.isArray(input.options) 
+  const baseOptions: ProductOptionLike[] = Array.isArray(input.options)
     ? input.options.map((opt) => {
         // Ensure option has a name or title (required for payload)
-        // This is a defensive check - reconciliation should have set this, but be safe
-        if (!opt.name && !opt.title) {
-          // If neither exists, this is a data integrity issue
-          // But we'll provide a fallback to prevent validation errors
-          return { ...opt, name: 'Option', title: 'Option' };
-        }
-        // Ensure both name and title are set for compatibility
-        if (!opt.name && opt.title) {
-          return { ...opt, name: opt.title };
-        }
-        if (opt.name && !opt.title) {
-          return { ...opt, title: opt.name };
-        }
+        if (!opt.name && !opt.title) return { ...opt, name: 'Option', title: 'Option' };
+        if (!opt.name && opt.title) return { ...opt, name: opt.title };
+        if (opt.name && !opt.title) return { ...opt, title: opt.name };
         return opt;
       })
     : [];
+
+  // Colors normalization (payload boundary):
+  // - force title to "Colors"
+  // - canonicalize values to lowercase slash format (silver/blue)
+  // - ensure EN/FR translations exist for metadata.options_i18n
+  const normalizedOptions: ProductOptionLike[] = baseOptions.map((opt) => {
+    const name = asString(opt.name || opt.title);
+    if (!isColorishTitle(name)) return opt;
+
+    const canonTitle = normalizeColorsTitle(name);
+    const values = Array.isArray(opt.values) ? opt.values : [];
+    const seen = new Set<string>();
+    const nextValues = values
+      .map((v) => {
+        const vv = canonicalizeColorValue(v?.value);
+        if (!vv || seen.has(vv)) return null;
+        seen.add(vv);
+        return {
+          value: vv,
+          translations: {
+            ...(isRecord(v?.translations) ? (v.translations as Record<string, string>) : {}),
+            en: displayEnFromCanonical(vv),
+            fr: displayFrFromCanonical(vv),
+          },
+        };
+      })
+      .filter((x): x is ProductOptionValueLike => Boolean(x));
+
+    return {
+      ...opt,
+      name: canonTitle,
+      title: canonTitle,
+      translations: { en: 'Colors', fr: 'Couleurs' },
+      values: nextValues,
+    };
+  });
+
+  // Use the normalized option set from this point onward.
+  const options = normalizedOptions;
 
   // Variant generation:
   // - Prefer explicit variants (the store/editor manages these).
@@ -183,7 +213,18 @@ export function buildMedusaAdminProductPayload(input: ProductLikeForMedusaPayloa
     // 1. Map Explicit Variants (if any)
     if (Array.isArray(input.variants) && input.variants.length > 0) {
       return input.variants.map((v) => {
-        const explicitOpts = isRecord(v.options) ? v.options : {};
+        const explicitOptsRaw = isRecord(v.options) ? v.options : {};
+
+        // Canonicalize Colors option values in explicit variant options (UI format) at payload boundary.
+        // We keep the key mapping logic below, but ensure values are canonical for Colors.
+        const explicitOpts: Record<string, unknown> = {};
+        for (const [k, val] of Object.entries(explicitOptsRaw)) {
+          if (isColorishTitle(k)) {
+            explicitOpts[normalizeColorsTitle(k)] = canonicalizeColorValue(val);
+          } else {
+            explicitOpts[k] = val;
+          }
+        }
 
         // Map variant options to Medusa format: { "option_id": "value" }
         // The variant.options can be in two formats:

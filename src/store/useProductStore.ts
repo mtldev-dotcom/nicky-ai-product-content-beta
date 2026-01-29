@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { saveProductToCloud } from '@/app/products/actions';
 import type { ProductBlueprint } from '@/lib/ingest-types';
+import { canonicalizeColorValue, isColorishTitle, normalizeColorsTitle, displayEnFromCanonical, displayFrFromCanonical } from '@/lib/medusa/colors-normalization';
 
 export interface Localization {
   title: string;
@@ -34,7 +35,7 @@ export interface ProductVariant {
     amount: number;
     currency_code: string;
   }[];
-  options: Record<string, string>; // e.g., { "Color": "Black" }
+  options: Record<string, string>; // e.g., { "Colors": "silver/blue" }
   inventory: {
     location_id: string;
     stocked_quantity: number;
@@ -256,26 +257,58 @@ export const useProductStore = create<ProductState>((set, get) => ({
       : [...state.ignoredUrls, url],
   })),
 
-  addOption: (name) => set((state) => ({
-    options: [...state.options, {
-      id: crypto.randomUUID(),
-      name,
-      translations: { en: name },
-      values: []
-    }],
-  })),
+  addOption: (name) => set((state) => {
+    const rawName = name.trim();
+    const isColorish = isColorishTitle(rawName);
+    const finalName = isColorish ? normalizeColorsTitle(rawName) : rawName;
+
+    const translations = isColorish
+      ? { en: 'Colors', fr: 'Couleurs' }
+      : { en: finalName };
+
+    return {
+      options: [...state.options, {
+        id: crypto.randomUUID(),
+        name: finalName,
+        translations,
+        values: []
+      }],
+      // Options changed -> clear variants to prevent mismatched combinations
+      variants: [],
+    };
+  }),
 
   updateOption: (id, name, translations) => set((state) => ({
     options: state.options.map((opt) => (opt.id === id ? { ...opt, name, translations } : opt)),
   })),
 
-  addOptionValue: (optionId, value) => set((state) => ({
-    options: state.options.map((opt) =>
-      opt.id === optionId
-        ? { ...opt, values: [...opt.values, { value, translations: { en: value } }] }
-        : opt
-    ),
-  })),
+  addOptionValue: (optionId, value) => set((state) => {
+    const opt = state.options.find((o) => o.id === optionId);
+    const isColors = opt ? isColorishTitle(opt.name) : false;
+
+    const raw = value.trim();
+    const canon = isColors ? canonicalizeColorValue(raw) : raw;
+
+    // Dedupe (case-sensitive for non-colors, canonical for colors)
+    const key = canon;
+
+    return {
+      options: state.options.map((o) => {
+        if (o.id !== optionId) return o;
+
+        const exists = o.values.some((v) => (isColors ? canonicalizeColorValue(v.value) : v.value) === key);
+        if (exists) return o;
+
+        const translations = isColors
+          ? { en: displayEnFromCanonical(canon), fr: displayFrFromCanonical(canon) }
+          : { en: raw };
+
+        return { ...o, values: [...o.values, { value: canon, translations }] };
+      }),
+      // Changing values invalidates variant matrix
+      variants: [],
+    };
+  }),
 
   updateOptionValue: (optionId, valueIndex, translations) => set((state) => ({
     options: state.options.map((opt) =>
@@ -472,26 +505,37 @@ export const useProductStore = create<ProductState>((set, get) => ({
       .map((img) => img.syncedUrl || img.sourceUrl)
       .filter((u): u is string => typeof u === 'string' && u.length > 0);
 
-    // Extract unique options and values from variants
+    // Extract unique options and values from variants (normalize Colors)
     const optionMap: Record<string, Set<string>> = {};
     (product.variants || []).forEach((v) => {
       if (v.options) {
         Object.entries(v.options).forEach(([name, value]) => {
-          if (!optionMap[name]) optionMap[name] = new Set();
-          if (typeof value === 'string') optionMap[name].add(value);
+          const keyName = isColorishTitle(name) ? 'Colors' : name;
+          if (!optionMap[keyName]) optionMap[keyName] = new Set();
+          if (typeof value === 'string') {
+            const vv = isColorishTitle(name) ? canonicalizeColorValue(value) : value;
+            optionMap[keyName].add(vv);
+          }
         });
       }
     });
 
-    const options: ProductOption[] = Object.entries(optionMap).map(([name, values]) => ({
-      id: crypto.randomUUID(),
-      name,
-      translations: { en: name },
-      values: Array.from(values).map(v => ({
-        value: v,
-        translations: { en: v }
-      }))
-    }));
+    const options: ProductOption[] = Object.entries(optionMap).map(([name, values]) => {
+      const isColors = isColorishTitle(name);
+      const optName = isColors ? 'Colors' : name;
+
+      return {
+        id: crypto.randomUUID(),
+        name: optName,
+        translations: isColors ? { en: 'Colors', fr: 'Couleurs' } : { en: optName },
+        values: Array.from(values).map(v => ({
+          value: isColors ? canonicalizeColorValue(v) : v,
+          translations: isColors
+            ? { en: displayEnFromCanonical(canonicalizeColorValue(v)), fr: displayFrFromCanonical(canonicalizeColorValue(v)) }
+            : { en: v }
+        }))
+      };
+    });
 
     set({
       title: product.identity.title,
