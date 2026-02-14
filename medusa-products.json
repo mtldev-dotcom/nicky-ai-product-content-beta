@@ -1,0 +1,1360 @@
+[
+  {
+    "id": "prod_01KEWNYSK6RA01EQQ0QMD4DE6H",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1768340550178-core-5-colors-rings.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1768340550178-core-5-colors-rings.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340751454-4274b7b3-7429-43e9-8d61-9267406ccf01.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340751765-363d66c5-fe49-492e-82c5-426008515883.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752015-62da7615-23c2-4b5b-b7db-e3b06e5a2a2a.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752219-09148cee-54b3-4966-8c0f-c2de0691cd44.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752432-efef351d-bc16-4b9a-bb0c-5fa344f4e214.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340846449-df63f35a-cc17-4901-8a8f-303324fe4725.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340977555-2c9b261b-44ec-4ad9-be77-70185ccb4b5b.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1768341389888-Generated_Image_January_13_2026_-_4_52PM.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/uploads/1768340550178-core-5-colors-rings.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340751454-4274b7b3-7429-43e9-8d61-9267406ccf01.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340751765-363d66c5-fe49-492e-82c5-426008515883.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752015-62da7615-23c2-4b5b-b7db-e3b06e5a2a2a.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752219-09148cee-54b3-4966-8c0f-c2de0691cd44.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768340752432-efef351d-bc16-4b9a-bb0c-5fa344f4e214.jpg"
+        ]
+      },
+      "title_i18n": {
+        "en": "The Bold Groove Ring",
+        "fr": "L'Anneau Groove Audacieux"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "blue",
+              "value_i18n": {
+                "en": "Blue",
+                "fr": "Bleu"
+              }
+            },
+            {
+              "value": "green",
+              "value_i18n": {
+                "en": "Green",
+                "fr": "Vert"
+              }
+            },
+            {
+              "value": "purple",
+              "value_i18n": {
+                "en": "Purple",
+                "fr": "Violet"
+              }
+            },
+            {
+              "value": "red",
+              "value_i18n": {
+                "en": "Red",
+                "fr": "Rouge"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Colors",
+            "fr": "Couleurs"
+          }
+        },
+        {
+          "values": [
+            {
+              "value": "6",
+              "value_i18n": {
+                "en": "6",
+                "fr": "6"
+              }
+            },
+            {
+              "value": "7",
+              "value_i18n": {
+                "en": "7",
+                "fr": "7"
+              }
+            },
+            {
+              "value": "8",
+              "value_i18n": {
+                "en": "8",
+                "fr": "8"
+              }
+            },
+            {
+              "value": "9",
+              "value_i18n": {
+                "en": "9",
+                "fr": "9"
+              }
+            },
+            {
+              "value": "10",
+              "value_i18n": {
+                "en": "10",
+                "fr": "10"
+              }
+            },
+            {
+              "value": "11",
+              "value_i18n": {
+                "en": "11",
+                "fr": "11"
+              }
+            },
+            {
+              "value": "12",
+              "value_i18n": {
+                "en": "12",
+                "fr": "12"
+              }
+            },
+            {
+              "value": "13",
+              "value_i18n": {
+                "en": "13",
+                "fr": "13"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Size",
+            "fr": "Taille"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "8mm black tungsten for unmatched durability",
+          "Beveled edge for a modern, sleek look",
+          "Available in five striking color options",
+          "Lightweight comfort for all-day wear",
+          "Perfect for any occasion—weddings to everyday style"
+        ],
+        "fr": [
+          "Tungstène noir de 8 mm pour une durabilité inégalée",
+          "Bord biseauté pour un look moderne et épuré",
+          "Disponible en cinq options de couleur saisissantes",
+          "Confort léger pour un port toute la journée",
+          "Parfait pour toutes les occasions — des mariages au style quotidien"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "men's jewelry",
+          "tungsten ring",
+          "black band ring",
+          "modern men's ring",
+          "beveled edge ring"
+        ],
+        "fr": [
+          "bijoux pour hommes",
+          "bague en tungstène",
+          "bague noire",
+          "bague moderne pour hommes",
+          "bague à bord biseauté"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Where bold meets refined.",
+        "fr": "Où l'audace rencontre le raffinement."
+      },
+      "seo_title_i18n": {
+        "en": "Men's Black Tungsten Band Ring | Bold Groove Design",
+        "fr": "Bague en Tungstène Noir pour Hommes | Design Groove Audacieux"
+      },
+      "description_i18n": {
+        "en": "Unleash your inner rebel with this 8mm black tungsten band. The striking black groove and beveled edge create a powerful statement. Available in five audacious color accents, this ring redefines modern masculinity.",
+        "fr": "Libérez votre rebelle intérieur avec ce bandeau en tungstène noir de 8 mm. La rainure noire frappante et le bord biseauté créent une déclaration puissante. Disponible en cinq accents de couleur audacieux, cette bague redéfinit la masculinité moderne."
+      },
+      "seo_description_i18n": {
+        "en": "Shop the Bold Groove Ring in 5 colors. Made from durable tungsten with a sleek beveled edge. Perfect for the modern man.",
+        "fr": "Découvrez l'Anneau Groove Audacieux en 5 couleurs. Fabriqué en tungstène durable avec un bord biseauté élégant. Parfait pour l'homme moderne."
+      }
+    }
+  },
+  {
+    "id": "prod_01KEWQSKXQQ1B7AT4PRZHFHCPW",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343270896-0ed0395e-045f-4f1e-a9e4-054bbcf367dc.jpg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343270896-0ed0395e-045f-4f1e-a9e4-054bbcf367dc.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376421-fa6f9ad4-aa04-4f18-86b2-07d75c1c571e.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376714-abb2dd76-666d-4bfb-8cda-0e7f0d621618.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376930-97ec20da-f092-4c0d-9e3b-ef7d4c0ef8e7.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343377184-72a2b81d-93b4-4e70-8d37-b4afe2832af0.jpg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343270896-0ed0395e-045f-4f1e-a9e4-054bbcf367dc.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376421-fa6f9ad4-aa04-4f18-86b2-07d75c1c571e.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376714-abb2dd76-666d-4bfb-8cda-0e7f0d621618.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343376930-97ec20da-f092-4c0d-9e3b-ef7d4c0ef8e7.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/fac64207-fdd7-4e15-b1b7-4122789628d7/ai-studio/1768343377184-72a2b81d-93b4-4e70-8d37-b4afe2832af0.jpg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Unapologetic Punk Huggie Earrings",
+        "fr": "Boucles d'oreilles Huggie Punk Intransigeantes"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "blue",
+              "value_i18n": {
+                "en": "Blue",
+                "fr": "Bleu"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Crafted from high-quality stainless steel",
+          "Available in four striking colors",
+          "Sleek, minimalist design",
+          "Perfect for stacking or solo wear",
+          "Lightweight and comfortable fit",
+          "Designed for the modern man"
+        ],
+        "fr": [
+          "Fabriquées en acier inoxydable de haute qualité",
+          "Disponibles en quatre couleurs frappantes",
+          "Design épuré et minimaliste",
+          "Parfaites pour empiler ou porter seules",
+          "Légères et confortables",
+          "Conçues pour l'homme moderne"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "huggie earrings",
+          "men's fashion jewelry",
+          "stainless steel earrings",
+          "punk earrings",
+          "hoop earrings",
+          "masculine jewelry"
+        ],
+        "fr": [
+          "boucles d'oreilles huggie",
+          "bijoux de mode pour hommes",
+          "boucles d'oreilles en acier inoxydable",
+          "boucles d'oreilles punk",
+          "boucles d'oreilles en anneau",
+          "bijoux masculins"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Small hoops. Big attitude.",
+        "fr": "Petits anneaux. Grande attitude."
+      },
+      "seo_title_i18n": {
+        "en": "Punk Huggie Earrings for Men - Stainless Steel Fashion",
+        "fr": "Boucles d'oreilles Huggie Punk pour Hommes - Mode en Acier Inoxydable"
+      },
+      "description_i18n": {
+        "en": "Elevate your edge with these bold huggie earrings. Crafted from premium stainless steel, these small hoops make a statement without saying a word. Available in black, blue, gold, and silver, they redefine modern masculinity. Wear them solo or stack for an unapologetic vibe.",
+        "fr": "Affirmez votre style avec ces boucles d'oreilles huggie audacieuses. Conçues en acier inoxydable de qualité supérieure, ces petits anneaux font sensation sans dire un mot. Disponibles en noir, bleu, or et argent, elles redéfinissent la masculinité moderne. Portez-les seules ou empilez-les pour un look sans compromis."
+      },
+      "seo_description_i18n": {
+        "en": "Discover bold punk huggie earrings for men. Available in black, blue, gold, and silver. Elevate your style with unique small hoop earrings.",
+        "fr": "Découvrez des boucles d'oreilles huggie punk audacieuses pour hommes. Disponibles en noir, bleu, or et argent. Élevez votre style avec des boucles d'oreilles à petits anneaux uniques."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFKJZF043BP4TH4Y79CJ84DW",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768626393085-6fd70cab-e0d7-4f52-b8f5-ad6a199edb7a.jpg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768626393085-6fd70cab-e0d7-4f52-b8f5-ad6a199edb7a.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626471088-necklace_cross_prayer_black_front_02.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626472389-necklace_cross_prayer_black_front_01.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626473453-necklace_cross_prayer_black_front_03.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769110174205-b1b4101c-94d6-4e85-af0d-f5c83db47bf0.jpg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768626393085-6fd70cab-e0d7-4f52-b8f5-ad6a199edb7a.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626471088-necklace_cross_prayer_black_front_02.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626472389-necklace_cross_prayer_black_front_01.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768626473453-necklace_cross_prayer_black_front_03.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769110174205-b1b4101c-94d6-4e85-af0d-f5c83db47bf0.jpg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Uncut Prayer Cross Necklace",
+        "fr": "Collier Croix de Prière Uncut"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Bold cross design with engraved prayer",
+          "Available in silver, gold, and black finishes",
+          "Durable chain with a modern link style",
+          "Perfect for layering or making a statement",
+          "Crafted for comfort and confidence"
+        ],
+        "fr": [
+          "Design de croix audacieux avec prière gravée",
+          "Disponible en finitions argent, or et noir",
+          "Chaîne durable au style moderne",
+          "Parfait pour superposer ou faire une déclaration",
+          "Conçu pour le confort et la confiance"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "men's jewelry",
+          "cross necklace",
+          "bold jewelry",
+          "faith jewelry",
+          "modern design"
+        ],
+        "fr": [
+          "bijoux pour hommes",
+          "collier croix",
+          "bijoux audacieux",
+          "bijoux de foi",
+          "design moderne"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Faith meets fierce style.",
+        "fr": "La foi rencontre un style audacieux."
+      },
+      "seo_title_i18n": {
+        "en": "Uncut Prayer Cross Necklace - Bold Faith Jewelry",
+        "fr": "Collier Croix de Prière Uncut - Bijoux de Foi Audacieux"
+      },
+      "description_i18n": {
+        "en": "Wear your faith boldly with our Uncut Prayer Cross. Crafted for the modern man, this necklace merges spiritual significance with striking design. Each cross features an engraved prayer, making a powerful statement of belief and style.",
+        "fr": "Affichez votre foi avec force grâce à notre Croix de Prière Uncut. Conçu pour l'homme moderne, ce collier allie signification spirituelle et design saisissant. Chaque croix arbore une prière gravée, affirmant puissamment votre croyance et votre style."
+      },
+      "seo_description_i18n": {
+        "en": "Explore the Uncut Prayer Cross Necklace. A bold blend of style and spirituality in silver, gold, and black finishes. Perfect for the modern man.",
+        "fr": "Découvrez le Collier Croix de Prière Uncut. Un mélange audacieux de style et de spiritualité en finitions argent, or et noir. Parfait pour l'homme moderne."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFKM32D2S2MHGW2F7H3YM7DG",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2022%2C%202026%20-%2010_08PM-01KFMD6ZGSSY2QRRP1ZPG117V0.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326482-cfaf5153-89b4-4dab-b9df-94694a43d3da.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326795-6f847447-e670-433a-8531-4b4ec1be802e.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326974-03a88833-ee9b-4151-aedc-dcb0bd3957e1.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625327197-995e7bb1-e8ac-4ff1-af1a-df3a91972225.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2022%2C%202026%20-%2010_08PM-01KFMD6ZGSSY2QRRP1ZPG117V0.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1768625242514-earring_hoop_textured_black_group_01.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326482-cfaf5153-89b4-4dab-b9df-94694a43d3da.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326795-6f847447-e670-433a-8531-4b4ec1be802e.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625326974-03a88833-ee9b-4151-aedc-dcb0bd3957e1.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768625327197-995e7bb1-e8ac-4ff1-af1a-df3a91972225.jpg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Loop Earrings: Unapologetic Edge",
+        "fr": "Boucles d'Oreilles Loop : Énergie Inébranlable"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "blue",
+              "value_i18n": {
+                "en": "Blue",
+                "fr": "Bleu"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Sleek, modern design for a bold statement",
+          "Available in multiple finishes: silver, black, gold, blue",
+          "Crafted for comfort without compromising style",
+          "Perfect for layering or wearing solo",
+          "Designed for the confident man who defies norms"
+        ],
+        "fr": [
+          "Design épuré et moderne pour une déclaration audacieuse",
+          "Disponible en plusieurs finitions : argent, noir, or, bleu",
+          "Conçues pour le confort sans compromettre le style",
+          "Parfaites pour le superposition ou à porter seules",
+          "Conçues pour l'homme confiant qui défie les normes"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "loop earrings",
+          "men's jewelry",
+          "modern accessories",
+          "bold design",
+          "luxury earrings"
+        ],
+        "fr": [
+          "boucles d'oreilles loop",
+          "bijoux pour hommes",
+          "accessoires modernes",
+          "design audacieux",
+          "boucles d'oreilles de luxe"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Wear the statement. Own the moment.",
+        "fr": "Affichez l'affirmation. Possédez le moment."
+      },
+      "seo_title_i18n": {
+        "en": "Luxury Loop Earrings for the Modern Man",
+        "fr": "Boucles d'Oreilles Loop de Luxe pour l'Homme Moderne"
+      },
+      "description_i18n": {
+        "en": "Elevate your style with our Loop Earrings. Bold, modern, and crafted for the man who dares to stand out. Each piece features a striking design that commands attention, blending luxury with a confident attitude.",
+        "fr": "Élevez votre style avec nos Boucles d'Oreilles Loop. Audacieuses, modernes, conçues pour l'homme qui ose se démarquer. Chaque pièce présente un design saisissant qui attire l'attention, alliant luxe et attitude confiante."
+      },
+      "seo_description_i18n": {
+        "en": "Discover our Loop Earrings – a bold, modern accessory for men who embrace unapologetic style. Available in various finishes.",
+        "fr": "Découvrez nos Boucles d'Oreilles Loop – un accessoire audacieux et moderne pour les hommes qui embrassent un style inébranlable. Disponibles en diverses finitions."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFKM8508NDD2458EWVT4KCDK",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/A48614d9366c1498d8b8c952b33a84831X.jpg_960x960q75.jpg__Original-01KFMPH788EKW3RMQMRQZQ2ZRD.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768624747729-77b74bed-48c1-455c-ac78-f12f0d7560c7.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768624747963-0b799431-f8e0-4d10-92e3-5f30fc92f4ff.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768624748102-7b27908c-0b81-43c4-bb11-7e1ea8039a6b.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/A48614d9366c1498d8b8c952b33a84831X.jpg_960x960q75.jpg__Original-01KFMPH788EKW3RMQMRQZQ2ZRD.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": []
+      },
+      "title_i18n": {
+        "en": "Tri-Color Chain Bracelet",
+        "fr": "Bracelet Chaîne Tri-Couleur"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Crafted from durable stainless steel",
+          "Available in silver, gold, and black finishes",
+          "Chunky chain design for maximum impact",
+          "Adjustable length for a perfect fit",
+          "Versatile for casual or formal occasions"
+        ],
+        "fr": [
+          "Fabriqué en acier inoxydable durable",
+          "Disponible en finitions argent, or et noir",
+          "Design de chaîne épaisse pour un impact maximal",
+          "Longueur ajustable pour un ajustement parfait",
+          "Polyvalent pour les occasions décontractées ou formelles"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "stainless steel bracelet",
+          "chain bracelet",
+          "men's jewelry",
+          "silver gold black bracelet",
+          "modern men's accessories"
+        ],
+        "fr": [
+          "bracelet en acier inoxydable",
+          "bracelet chaîne",
+          "bijoux pour hommes",
+          "bracelet argent or noir",
+          "accessoires modernes pour hommes"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Three shades. One bold statement.",
+        "fr": "Trois nuances. Une déclaration audacieuse."
+      },
+      "seo_title_i18n": {
+        "en": "Tri-Color Stainless Steel Chain Bracelet | THE UNCUT BRAND",
+        "fr": "Bracelet Chaîne Tri-Couleur en Acier Inoxydable | THE UNCUT BRAND"
+      },
+      "description_i18n": {
+        "en": "Elevate your wrist game with our bold stainless steel chain bracelet. Available in silver, gold, and black, this piece defies convention and commands attention. Wear it solo or stack it for an unapologetic statement.",
+        "fr": "Élevez votre style avec notre bracelet chaîne audacieux en acier inoxydable. Disponible en argent, or et noir, ce bijou défie la convention et attire tous les regards. Portez-le seul ou empilez-le pour une déclaration sans compromis."
+      },
+      "seo_description_i18n": {
+        "en": "Shop the Tri-Color Chain Bracelet in silver, gold, and black. Bold stainless steel design for the modern man. Defy tradition.",
+        "fr": "Découvrez le Bracelet Chaîne Tri-Couleur en argent, or et noir. Design audacieux en acier inoxydable pour l'homme moderne. Défiez la tradition."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFM2JSJ2J86ARPT8HB0BMEZX",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2023%2C%202026%20-%2012_18AM-01KFMMP2H04RAGR75ZKHR8DCV1.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126459932-IMG_5929_result.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126460945-the-titan-link-bracelet-render-2_result.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126461886-the-titan-link-bracelet-render-3_result.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2023%2C%202026%20-%2012_18AM-01KFMMP2H04RAGR75ZKHR8DCV1.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126459932-IMG_5929_result.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126460945-the-titan-link-bracelet-render-2_result.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126461886-the-titan-link-bracelet-render-3_result.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769126478243-uncut-brac.jpeg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Double Row Domineering Cuban Bracelet",
+        "fr": "Bracelet Cubain Dominateur à Double Rangée"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "16",
+              "value_i18n": {
+                "en": "16",
+                "fr": "16"
+              }
+            },
+            {
+              "value": "18",
+              "value_i18n": {
+                "en": "18",
+                "fr": "18"
+              }
+            },
+            {
+              "value": "20",
+              "value_i18n": {
+                "en": "20",
+                "fr": "20"
+              }
+            },
+            {
+              "value": "22",
+              "value_i18n": {
+                "en": "22",
+                "fr": "22"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "size cm",
+            "fr": "Taille cm"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "High-end titanium steel for unmatched durability",
+          "Braided double row design for a striking appearance",
+          "Polished finish for a sleek, modern look",
+          "Available in multiple sizes: 19/21/23 cm",
+          "Secure clasp for reliable wear"
+        ],
+        "fr": [
+          "Acier titane haut de gamme pour une durabilité inégalée",
+          "Design tressé à double rangée pour une apparence saisissante",
+          "Fini poli pour un look moderne et épuré",
+          "Disponible en plusieurs tailles : 19/21/23 cm",
+          "Fermoir sécurisé pour un port fiable"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "men's bracelet",
+          "titanium steel",
+          "Cuban bracelet",
+          "hip-hop jewelry",
+          "bold men's accessories"
+        ],
+        "fr": [
+          "bracelet pour hommes",
+          "acier titane",
+          "bracelet cubain",
+          "bijoux hip-hop",
+          "accessoires audacieux pour hommes"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Bold design meets modern craftsmanship.",
+        "fr": "Un design audacieux rencontre un artisanat moderne."
+      },
+      "seo_title_i18n": {
+        "en": "High-End Cuban Titanium Steel Bracelet for Men",
+        "fr": "Bracelet Cubain en Acier Titane Haut de Gamme pour Hommes"
+      },
+      "description_i18n": {
+        "en": "Make a statement with the bold elegance of our Double Row Cuban Bracelet. Crafted from high-end titanium steel, this piece exudes confidence and modern style. Its braided design captures attention, ensuring you stand out effortlessly. Wear it solo or stack it—either way, it speaks volumes.",
+        "fr": "Affirmez-vous avec l'élégance audacieuse de notre Bracelet Cubain à Double Rangée. Fabriqué en acier titane haut de gamme, ce bijou dégage confiance et style moderne. Son design tressé attire l'attention, vous garantissant de vous démarquer sans effort. Portez-le seul ou empilé—dans tous les cas, il en dit long."
+      },
+      "seo_description_i18n": {
+        "en": "Discover the bold elegance of our Double Row Cuban Bracelet, crafted from premium titanium steel. Perfect for the modern man.",
+        "fr": "Découvrez l'élégance audacieuse de notre Bracelet Cubain à Double Rangée, fabriqué en acier titane premium. Parfait pour l'homme moderne."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFM4Q2S4K6SFMXEKQR59XPCQ",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128190779-IMG_5898_result.jpg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128114027-blk-tank-cross-silver.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128190779-IMG_5898_result.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128587285-cross-black.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128588265-cross-silver.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128589245-cross-gold.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128114027-blk-tank-cross-silver.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128190779-IMG_5898_result.jpg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128587285-cross-black.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128588265-cross-silver.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769128589245-cross-gold.jpeg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Unyielding Cross Necklace",
+        "fr": "Collier Croix Inébranlable"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "18*30",
+              "value_i18n": {
+                "en": "18*30",
+                "fr": "18*30"
+              }
+            },
+            {
+              "value": "25*43",
+              "value_i18n": {
+                "en": "25*43",
+                "fr": "25*43"
+              }
+            },
+            {
+              "value": "30*54",
+              "value_i18n": {
+                "en": "30*54",
+                "fr": "30*54"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Cross size mm",
+            "fr": "Taille de la croix mm"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Stainless steel for lasting durability",
+          "Available in three striking colors",
+          "Bold cross design for maximum impact",
+          "Perfect for layering or standalone wear",
+          "Industrial finish for a modern edge"
+        ],
+        "fr": [
+          "Acier inoxydable pour une durabilité à toute épreuve",
+          "Disponible en trois couleurs saisissantes",
+          "Design croix audacieux pour un impact maximal",
+          "Parfait pour le superposition ou à porter seul",
+          "Fini industriel pour une touche moderne"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "stainless steel necklace",
+          "cross necklace",
+          "men's jewelry",
+          "modern cross pendant",
+          "bold fashion accessories"
+        ],
+        "fr": [
+          "collier en acier inoxydable",
+          "collier croix",
+          "bijoux pour hommes",
+          "pendentif croix moderne",
+          "accessoires de mode audacieux"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Faith meets fearless style.",
+        "fr": "La foi rencontre le style audacieux."
+      },
+      "seo_title_i18n": {
+        "en": "Stainless Steel Cross Necklace - Bold & Modern",
+        "fr": "Collier Croix en Acier Inoxydable - Audacieux & Moderne"
+      },
+      "description_i18n": {
+        "en": "Defy convention with this bold stainless steel cross necklace. Available in Silver, Gold, and Black, it’s a statement of faith and style. Wear it to stand out, not blend in.",
+        "fr": "Défiez les conventions avec ce collier croix en acier inoxydable audacieux. Disponible en Argent, Or et Noir, c'est une affirmation de foi et de style. Portez-le pour vous démarquer, pas pour vous fondre."
+      },
+      "seo_description_i18n": {
+        "en": "Shop our Unyielding Cross Necklace in Silver, Gold, and Black. A statement piece for the confident man.",
+        "fr": "Découvrez notre Collier Croix Inébranlable en Argent, Or et Noir. Une pièce maîtresse pour l'homme confiant."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFMPRAQW46T7WHKPGV579VDQ",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2024%2C%202026%20-%2012_24AM-01KFQ7FYBVCP3TAXY0Q698WTA6.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/ai-studio/1768626100259-dcec8770-4560-4cd1-9efe-dd0fcdfd9ef4.jpg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769147662291-necklace_cross_layered_processed_detail_01.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/Generated%20Image%20January%2024%2C%202026%20-%2012_24AM-01KFQ7FYBVCP3TAXY0Q698WTA6.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": []
+      },
+      "title_i18n": {
+        "en": "Bold Blue Cross Pendant",
+        "fr": "Pendentif Croix Bleu Audacieux"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "blue",
+              "value_i18n": {
+                "en": "Blue",
+                "fr": "Bleu"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Vibrant blue enamel for a bold pop of color.",
+          "Crafted from premium materials for lasting durability.",
+          "Modern design that redefines classic symbolism.",
+          "Versatile enough for any occasion.",
+          "Confidently makes a statement about who you are."
+        ],
+        "fr": [
+          "Émail bleu vibrant pour une touche de couleur audacieuse.",
+          "Fabriqué à partir de matériaux premium pour une durabilité exceptionnelle.",
+          "Design moderne qui redéfinit le symbolisme classique.",
+          "Assez polyvalent pour toutes les occasions.",
+          "Affirme qui vous êtes avec assurance."
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "cross pendant",
+          "men's jewelry",
+          "bold jewelry",
+          "modern accessories",
+          "blue enamel necklace"
+        ],
+        "fr": [
+          "pendentif croix",
+          "bijoux pour hommes",
+          "bijoux audacieux",
+          "accessoires modernes",
+          "collier en émail bleu"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Wear your faith with style.",
+        "fr": "Affichez votre foi avec style."
+      },
+      "seo_title_i18n": {
+        "en": "Bold Blue Cross Pendant - Modern Men's Jewelry",
+        "fr": "Pendentif Croix Bleu Audacieux - Bijoux Modernes pour Hommes"
+      },
+      "description_i18n": {
+        "en": "A striking cross pendant that defies tradition. The modern design features a vibrant blue enamel finish, making a statement while reflecting strength and confidence. Perfect for those who wear their beliefs unapologetically.",
+        "fr": "Un pendentif croix saisissant qui défie la tradition. Le design moderne arbore une finition en émail bleu vibrant, faisant une déclaration tout en reflétant force et confiance. Parfait pour ceux qui portent leurs convictions sans excuses."
+      },
+      "seo_description_i18n": {
+        "en": "Discover the Bold Blue Cross Pendant by THE UNCUT BRAND. A modern twist on a classic symbol, perfect for confident individuals.",
+        "fr": "Découvrez le Pendentif Croix Bleu Audacieux de THE UNCUT BRAND. Une interprétation moderne d'un symbole classique, parfait pour les individus confiants."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFQ637FBPF3FXPFB998BB1BR",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230866820-1769147335502-IMG_6315.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230866820-1769147335502-IMG_6315.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230868438-1769147336544-IMG_6316.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230869950-1769147338421-IMG_6318.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230871411-1769147339448-IMG_6319.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230866820-1769147335502-IMG_6315.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230868438-1769147336544-IMG_6316.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230869950-1769147338421-IMG_6318.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769230871411-1769147339448-IMG_6319.jpeg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Stainless Steel Spinner Rings",
+        "fr": "Bagues Spinner en Acier Inoxydable"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black/black",
+              "value_i18n": {
+                "en": "Black/Black",
+                "fr": "Noir/Noir"
+              }
+            },
+            {
+              "value": "black/blue",
+              "value_i18n": {
+                "en": "Black/Blue",
+                "fr": "Noir/Bleu"
+              }
+            },
+            {
+              "value": "black/gold",
+              "value_i18n": {
+                "en": "Black/Gold",
+                "fr": "Noir/Or"
+              }
+            },
+            {
+              "value": "black/silver",
+              "value_i18n": {
+                "en": "Black/Silver",
+                "fr": "Noir/Argent"
+              }
+            },
+            {
+              "value": "silver/blue",
+              "value_i18n": {
+                "en": "Silver/Blue",
+                "fr": "Argent/Bleu"
+              }
+            },
+            {
+              "value": "silver/gold",
+              "value_i18n": {
+                "en": "Silver/Gold",
+                "fr": "Argent/Or"
+              }
+            },
+            {
+              "value": "silver/silver",
+              "value_i18n": {
+                "en": "Silver/Silver",
+                "fr": "Argent/Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Colors",
+            "fr": "Couleurs"
+          }
+        },
+        {
+          "values": [
+            {
+              "value": "5",
+              "value_i18n": {
+                "en": "5",
+                "fr": "5"
+              }
+            },
+            {
+              "value": "6",
+              "value_i18n": {
+                "en": "6",
+                "fr": "6"
+              }
+            },
+            {
+              "value": "7",
+              "value_i18n": {
+                "en": "7",
+                "fr": "7"
+              }
+            },
+            {
+              "value": "8",
+              "value_i18n": {
+                "en": "8",
+                "fr": "8"
+              }
+            },
+            {
+              "value": "9",
+              "value_i18n": {
+                "en": "9",
+                "fr": "9"
+              }
+            },
+            {
+              "value": "10",
+              "value_i18n": {
+                "en": "10",
+                "fr": "10"
+              }
+            },
+            {
+              "value": "11",
+              "value_i18n": {
+                "en": "11",
+                "fr": "11"
+              }
+            },
+            {
+              "value": "12",
+              "value_i18n": {
+                "en": "12",
+                "fr": "12"
+              }
+            },
+            {
+              "value": "13",
+              "value_i18n": {
+                "en": "13",
+                "fr": "13"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Size",
+            "fr": "Taille"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Premium stainless steel construction",
+          "Available in striking color choices",
+          "Unique spinning feature for tactile engagement",
+          "Sleek, modern design for a bold look",
+          "Perfect for everyday wear or special occasions"
+        ],
+        "fr": [
+          "Construction en acier inoxydable premium",
+          "Disponibles en choix de couleurs saisissantes",
+          "Fonction spinning unique pour une expérience tactile",
+          "Design épuré et moderne pour un look audacieux",
+          "Parfaites pour un usage quotidien ou des occasions spéciales"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "stainless steel rings",
+          "spinner rings",
+          "men's jewelry",
+          "modern rings",
+          "bold accessories",
+          "colorful rings"
+        ],
+        "fr": [
+          "bagues en acier inoxydable",
+          "bagues spinner",
+          "bijoux pour hommes",
+          "bagues modernes",
+          "accessoires audacieux",
+          "bagues colorées"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Spin your style, own your moment.",
+        "fr": "Faites tourner votre style, possédez votre moment."
+      },
+      "seo_title_i18n": {
+        "en": "Bold Stainless Steel Spinner Rings - Multiple Colors",
+        "fr": "Bagues Spinner Audacieuses en Acier Inoxydable - Plusieurs Couleurs"
+      },
+      "description_i18n": {
+        "en": "Unleash your boldness with our Stainless Steel Spinner Rings. Each ring features a sleek, modern design and vibrant color options that command attention. Crafted for the unapologetic man, these rings are more than just accessories; they’re a statement of confidence and style. Spin them, flaunt them, own them.",
+        "fr": "Libérez votre audace avec nos bagues spinner en acier inoxydable. Chaque bague présente un design moderne et épuré avec des couleurs vibrantes qui attirent le regard. Conçues pour l'homme sans compromis, ces bagues sont plus que de simples accessoires ; elles sont une déclaration de confiance et de style. Faites-les tourner, affichez-les, possédez-les."
+      },
+      "seo_description_i18n": {
+        "en": "Explore our collection of premium stainless steel spinner rings in various colors. Perfect for the modern man who values style and confidence.",
+        "fr": "Découvrez notre collection de bagues spinner en acier inoxydable premium dans différentes couleurs. Parfaites pour l'homme moderne qui valorise le style et la confiance."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFQ6JS586BASECFJV9A4NM6Q",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231353490-1769196483196-IMG_6325.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231353490-1769196483196-IMG_6325.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231355046-1769196484827-IMG_6326.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231356618-1769196486533-IMG_6327.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231358155-1769196488561-IMG_6323.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231353490-1769196483196-IMG_6325.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231355046-1769196484827-IMG_6326.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231356618-1769196486533-IMG_6327.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231358155-1769196488561-IMG_6323.jpeg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Tri-Color Star of David Necklace",
+        "fr": "Collier Tri-Color Étoile de David"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Available in silver, black, and gold finishes",
+          "Bold Star of David design for modern expression",
+          "Heavy-duty chain for durability and style",
+          "Perfect for layering or as a standalone piece",
+          "Unisex design for versatile wear"
+        ],
+        "fr": [
+          "Disponible en finitions argent, noir et or",
+          "Design audacieux de l'Étoile de David pour une expression moderne",
+          "Chaîne robuste pour durabilité et style",
+          "Parfait pour le superposition ou comme pièce unique",
+          "Design unisexe pour un port polyvalent"
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "Star of David necklace",
+          "men's jewelry",
+          "silver jewelry",
+          "black jewelry",
+          "gold necklace",
+          "modern accessories"
+        ],
+        "fr": [
+          "collier Étoile de David",
+          "bijoux pour hommes",
+          "bijoux en argent",
+          "bijoux noirs",
+          "collier en or",
+          "accessoires modernes"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Three colors. One powerful symbol.",
+        "fr": "Trois couleurs. Un symbole puissant."
+      },
+      "seo_title_i18n": {
+        "en": "Tri-Color Star of David Necklace | Modern Men's Jewelry",
+        "fr": "Collier Tri-Color Étoile de David | Bijoux Modernes pour Hommes"
+      },
+      "description_i18n": {
+        "en": "Elevate your style with a bold Star of David necklace. Available in sleek silver, striking black, and radiant gold, this piece defies tradition and makes a statement.",
+        "fr": "Élevez votre style avec un collier audacieux en Étoile de David. Disponible en argent élégant, noir frappant et or éclatant, cette pièce défie la tradition et affirme votre présence."
+      },
+      "seo_description_i18n": {
+        "en": "Shop our striking Star of David necklace in silver, black, and gold. Bold, modern, and unapologetic—perfect for making a statement.",
+        "fr": "Découvrez notre collier saisissant en Étoile de David en argent, noir et or. Audacieux, moderne et sans excuses—parfait pour faire une déclaration."
+      }
+    }
+  },
+  {
+    "id": "prod_01KFQ6X3342RNAGKTRHHK3A0V3",
+    "thumbnail": "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231728574-IMG_6321-01KFMQRVX6VA3BYC3FEPMN9B5M.jpeg",
+    "images": [
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231724341-1769148326869-IMG_6295.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231725756-1769148327994-IMG_6296.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231727144-1769148329140-IMG_6297.jpeg",
+      "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231728574-IMG_6321-01KFMQRVX6VA3BYC3FEPMN9B5M.jpeg"
+    ],
+    "metadata": {
+      "brand": "THE UNCUT BRAND",
+      "vault": {
+        "video": null,
+        "images": [
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231724341-1769148326869-IMG_6295.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231725756-1769148327994-IMG_6296.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231727144-1769148329140-IMG_6297.jpeg",
+          "https://pub-90fab3dc48a942f684f3a82c0be3f78d.r2.dev/29256ed6-ca40-427a-b1fb-91cbbddc0b3b/uploads/1769231728574-IMG_6321-01KFMQRVX6VA3BYC3FEPMN9B5M.jpeg"
+        ]
+      },
+      "title_i18n": {
+        "en": "Bold Flat Color Rings",
+        "fr": "Bagues Unies Audacieuses"
+      },
+      "options_i18n": [
+        {
+          "values": [
+            {
+              "value": "black",
+              "value_i18n": {
+                "en": "Black",
+                "fr": "Noir"
+              }
+            },
+            {
+              "value": "gold",
+              "value_i18n": {
+                "en": "Gold",
+                "fr": "Or"
+              }
+            },
+            {
+              "value": "silver",
+              "value_i18n": {
+                "en": "Silver",
+                "fr": "Argent"
+              }
+            }
+          ],
+          "title_i18n": {
+            "en": "Color",
+            "fr": "Couleur"
+          }
+        }
+      ],
+      "features_i18n": {
+        "en": [
+          "Available in black, silver, and gold.",
+          "Sleek, minimalist design.",
+          "Perfect for stacking or solo wear.",
+          "Crafted for a confident, modern aesthetic.",
+          "Unisex appeal for any style."
+        ],
+        "fr": [
+          "Disponibles en noir, argent et or.",
+          "Design élégant et minimaliste.",
+          "Parfaites pour empiler ou porter seules.",
+          "Conçues pour une esthétique moderne et confiante.",
+          "Attrait unisexe pour tous les styles."
+        ]
+      },
+      "keywords_i18n": {
+        "en": [
+          "bold rings",
+          "flat color rings",
+          "men's jewelry",
+          "minimalist rings",
+          "black silver gold rings"
+        ],
+        "fr": [
+          "bagues audacieuses",
+          "bagues unies",
+          "bijoux pour hommes",
+          "bagues minimalistes",
+          "bagues noir argent or"
+        ]
+      },
+      "subtitle_i18n": {
+        "en": "Three colors, one bold statement.",
+        "fr": "Trois couleurs, une déclaration audacieuse."
+      },
+      "seo_title_i18n": {
+        "en": "Flat Color Bold Rings - Modern Men's Jewelry",
+        "fr": "Bagues Unies Audacieuses - Bijoux Modernes pour Hommes"
+      },
+      "description_i18n": {
+        "en": "Unleash your inner confidence with our flat color rings. Crafted in bold black, sleek silver, and striking gold, these pieces redefine modern masculinity. Wear them individually or stack them for an unapologetic statement. Elevate your look effortlessly.",
+        "fr": "Libérez votre confiance intérieure avec nos bagues unies. Conçues en noir audacieux, argent élégant et or frappant, ces pièces redéfinissent la masculinité moderne. Portez-les individuellement ou empilez-les pour une déclaration sans compromis. Élevez votre style sans effort."
+      },
+      "seo_description_i18n": {
+        "en": "Explore our bold flat color rings in black, silver, and gold. Minimalist design that elevates your style.",
+        "fr": "Découvrez nos bagues unies audacieuses en noir, argent et or. Design minimaliste qui élève votre style."
+      }
+    }
+  }
+]
