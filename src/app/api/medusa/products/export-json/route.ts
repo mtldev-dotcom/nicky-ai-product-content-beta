@@ -70,7 +70,7 @@ export async function GET() {
         );
       }
 
-      const products: MedusaProduct[] = json.products || [];
+      const products: MedusaProduct[] = (json as Record<string, unknown>).products as MedusaProduct[] || [];
 
       // Extract only the fields we need
       const minimalProducts: MinimalProduct[] = products.map((p: MedusaProduct) => ({
