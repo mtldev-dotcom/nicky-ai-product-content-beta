@@ -286,13 +286,14 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
     if (looksLikeMissingColumnSchemaCache) {
       console.warn('[Settings Save] Schema cache error detected for:', {
         message: msg,
-        affectedFields: ['ai_image_model', 'ai_image_provider', 'fal_api_key', 'gemini_api_key', 'ai_studio_prompt_library', 'ai_studio_toggle_phrases', 'preview_layout', 'variant_option_presets'].filter(field => msg.includes(field)),
+        affectedFields: ['ai_image_model', 'ai_image_provider', 'openrouter_api_key', 'fal_api_key', 'gemini_api_key', 'ai_studio_prompt_library', 'ai_studio_toggle_phrases', 'preview_layout', 'variant_option_presets'].filter(field => msg.includes(field)),
       });
-      
+
       // Only strip fields that are actually causing the error
       const fieldsToStrip = [];
       if (msg.includes('ai_image_model')) fieldsToStrip.push('ai_image_model');
       if (msg.includes('ai_image_provider')) fieldsToStrip.push('ai_image_provider');
+      if (msg.includes('openrouter_api_key')) fieldsToStrip.push('openrouter_api_key');
       if (msg.includes('fal_api_key')) fieldsToStrip.push('fal_api_key');
       if (msg.includes('gemini_api_key')) fieldsToStrip.push('gemini_api_key');
       if (msg.includes('ai_studio_prompt_library')) fieldsToStrip.push('ai_studio_prompt_library');
