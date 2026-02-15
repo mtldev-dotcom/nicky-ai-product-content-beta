@@ -32,8 +32,17 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
     return 0;
   };
 
-  const title = asString(findValue(root, ['title', 'name', 'product_name'])) || '';
-  const description = asString(findValue(root, ['description', 'body_html', 'content'])) || '';
+  // Helper to get i18n value at root level (for custom JSON formats)
+  const getRootI18nField = (field: string): string => {
+    const i18nData = root[`${field}_i18n`];
+    if (isRecord(i18nData) && typeof i18nData.en === 'string') {
+      return i18nData.en;
+    }
+    return '';
+  };
+
+  const title = asString(findValue(root, ['title', 'name', 'product_name'])) || getRootI18nField('title') || '';
+  const description = asString(findValue(root, ['description', 'body_html', 'content'])) || getRootI18nField('description') || '';
   const sku = asString(findValue(root, ['sku', 'handle', 'id'])) || '';
   const price = asNumber(findValue(root, ['price', 'amount', 'unit_price'])) || 0;
 
@@ -56,12 +65,23 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   }
 
   // Extract Options/Variants
-  const optionsRaw = isRecord(rawJson) ? rawJson.options : undefined;
+  // Support both standard 'options' and custom 'options_i18n' at root level
+  let optionsRaw = isRecord(rawJson) ? rawJson.options : undefined;
+  if (!optionsRaw && isRecord(rawJson) && Array.isArray(rawJson.options_i18n)) {
+    optionsRaw = rawJson.options_i18n;
+  }
   const options = (Array.isArray(optionsRaw) ? optionsRaw : []).map((opt) => {
     const optRecord = isRecord(opt) ? opt : {};
-    const rawName = (typeof optRecord.title === 'string' && optRecord.title) ||
+    let rawName = (typeof optRecord.title === 'string' && optRecord.title) ||
       (typeof optRecord.name === 'string' && optRecord.name) ||
-      'Option';
+      '';
+
+    // Support custom format with title_i18n at option level
+    if (!rawName && isRecord(optRecord.title_i18n) && typeof optRecord.title_i18n.en === 'string') {
+      rawName = optRecord.title_i18n.en;
+    }
+
+    rawName = rawName || 'Option';
 
     const isColors = isColorishTitle(rawName);
     const optName = isColors ? normalizeColorsTitle(rawName) : rawName;
@@ -120,30 +140,47 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
     ...emptyLoc,
     title,
     description,
-    subtitle: asString(findValue(root, ['subtitle', 'teaser'])) || '',
+    subtitle: asString(findValue(root, ['subtitle', 'teaser'])) || getRootI18nField('subtitle') || '',
     features: Array.isArray(findValue(root, ['features', 'benefits']))
       ? (findValue(root, ['features', 'benefits']) as unknown[]).filter((x): x is string => typeof x === 'string')
-      : [],
-    metadata_title: asString(findValue(root, ['metadata_title', 'seo_title'])) || title,
-    metadata_description: asString(findValue(root, ['metadata_description', 'seo_description'])) || description,
+      : (isRecord(root.features_i18n) && Array.isArray(root.features_i18n.en)
+        ? root.features_i18n.en
+        : []),
+    metadata_title: asString(findValue(root, ['metadata_title', 'seo_title'])) || getRootI18nField('seo_title') || title,
+    metadata_description: asString(findValue(root, ['metadata_description', 'seo_description'])) || getRootI18nField('seo_description') || description,
     keywords: Array.isArray(findValue(root, ['keywords', 'tags']))
       ? (findValue(root, ['keywords', 'tags']) as unknown[]).filter((x): x is string => typeof x === 'string')
-      : []
+      : (isRecord(root.keywords_i18n) && Array.isArray(root.keywords_i18n.en)
+        ? root.keywords_i18n.en
+        : [])
   };
 
   // Extract Metadata for i18n
   const metadata = isRecord(root['metadata']) ? root['metadata'] : {};
 
-  // Helper to extract i18n fields from metadata
+  // Helper to extract i18n fields from metadata or root level
   // e.g., title_i18n: { en: "...", fr: "..." }
+  // First checks root level, then metadata (root takes priority for custom formats)
   const getI18n = (field: string): Record<string, string> => {
-    const val = metadata[`${field}_i18n`];
-    return isRecord(val) ? (val as Record<string, string>) : {};
+    // Check root level first (for custom JSON formats)
+    const rootVal = root[`${field}_i18n`];
+    if (isRecord(rootVal) && Object.keys(rootVal).some(k => typeof rootVal[k] === 'string')) {
+      return rootVal as Record<string, string>;
+    }
+    // Fall back to metadata
+    const metaVal = metadata[`${field}_i18n`];
+    return isRecord(metaVal) ? (metaVal as Record<string, string>) : {};
   };
 
   const getI18nArray = (field: string): Record<string, string[]> => {
-    const val = metadata[`${field}_i18n`];
-    return isRecord(val) ? (val as Record<string, string[]>) : {};
+    // Check root level first (for custom JSON formats)
+    const rootVal = root[`${field}_i18n`];
+    if (isRecord(rootVal) && Object.keys(rootVal).some(k => Array.isArray(rootVal[k]))) {
+      return rootVal as Record<string, string[]>;
+    }
+    // Fall back to metadata
+    const metaVal = metadata[`${field}_i18n`];
+    return isRecord(metaVal) ? (metaVal as Record<string, string[]>) : {};
   };
 
   // 1. Identify all active languages from metadata
@@ -178,10 +215,16 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
   });
 
   // 3. Enhance Options with i18n
-  // metadata.options_i18n is array of objects, corresponding to options order? 
+  // metadata.options_i18n is array of objects, corresponding to options order?
   // Or match by title?
   // The user JSON example shows `options_i18n` as an array matching the `options` array order.
-  const optionsI18n = Array.isArray(metadata['options_i18n']) ? metadata['options_i18n'] : [];
+  // For custom formats, options_i18n might be at root level (already included in optionsRaw)
+  let optionsI18n = Array.isArray(metadata['options_i18n']) ? metadata['options_i18n'] : [];
+  if (!optionsI18n.length && Array.isArray(root.options_i18n)) {
+    // Custom format: options_i18n is at root and was already mapped to options above
+    // Use the same array as the source of additional i18n data
+    optionsI18n = root.options_i18n as unknown[];
+  }
 
   const enhancedOptions = options.map((opt, idx) => {
     const i18nData = optionsI18n[idx];
@@ -357,8 +400,15 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
     height: asNumber(root.height) || 0,
   };
 
-  // Extract vault from metadata
-  const vaultMetadata = isRecord(metadata.vault) ? metadata.vault : {};
+  // Extract vault from root or metadata (root level takes priority for custom formats)
+  let vaultMetadata: Record<string, unknown> = {};
+
+  if (isRecord(root.vault) && (Array.isArray(root.vault.images) || root.vault.video)) {
+    vaultMetadata = root.vault as Record<string, unknown>;
+  } else if (isRecord(metadata.vault)) {
+    vaultMetadata = metadata.vault as Record<string, unknown>;
+  }
+
   const vaultImages = Array.isArray(vaultMetadata.images)
     ? vaultMetadata.images.filter((img): img is string => typeof img === 'string' && img.length > 0)
     : [];
