@@ -13,6 +13,7 @@ import { z } from "zod";
 export const SettingsForClientSchema = z.object({
   // Secrets are always blank on the client
   openaiApiKey: z.literal(""),
+  openrouterApiKey: z.literal(""),
   falApiKey: z.literal(""),
   geminiApiKey: z.literal(""),
   r2AccountId: z.literal(""),
@@ -22,6 +23,7 @@ export const SettingsForClientSchema = z.object({
 
   // Secret presence flags
   hasOpenaiApiKey: z.boolean(),
+  hasOpenrouterApiKey: z.boolean(),
   hasFalApiKey: z.boolean(),
   hasGeminiApiKey: z.boolean(),
   hasR2AccountId: z.boolean(),
@@ -91,6 +93,7 @@ export type SettingsForClient = z.infer<typeof SettingsForClientSchema>;
 export const SettingsUpdateSchema = z.object({
   // Secrets: update semantics
   openaiApiKey: z.union([z.string(), z.null()]).optional(),
+  openrouterApiKey: z.union([z.string(), z.null()]).optional(),
   falApiKey: z.union([z.string(), z.null()]).optional(),
   geminiApiKey: z.union([z.string(), z.null()]).optional(),
   r2AccountId: z.union([z.string(), z.null()]).optional(),

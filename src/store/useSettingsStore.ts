@@ -5,6 +5,8 @@ import type { SettingsUpdate } from '@/lib/settings-schema';
 interface SettingsState {
   openaiApiKey: string;
   hasOpenaiApiKey: boolean;
+  openrouterApiKey: string;
+  hasOpenrouterApiKey: boolean;
   falApiKey: string;
   hasFalApiKey: boolean;
   geminiApiKey: string;
@@ -55,6 +57,7 @@ interface SettingsState {
 
   isSaving: boolean;
   setOpenaiApiKey: (key: string) => void;
+  setOpenrouterApiKey: (key: string) => void;
   setFalApiKey: (key: string) => void;
   setGeminiApiKey: (key: string) => void;
   setAiImageDefaults: (settings: Partial<Pick<SettingsState, 'aiImageProvider' | 'aiImageModel'>>) => void;
@@ -86,6 +89,8 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   openaiApiKey: '',
   hasOpenaiApiKey: false,
+  openrouterApiKey: '',
+  hasOpenrouterApiKey: false,
   falApiKey: '',
   hasFalApiKey: false,
   geminiApiKey: '',
@@ -118,6 +123,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   variantOptionPresets: null,
   isSaving: false,
   setOpenaiApiKey: (openaiApiKey) => set({ openaiApiKey }),
+  setOpenrouterApiKey: (openrouterApiKey) => set({ openrouterApiKey }),
   setFalApiKey: (falApiKey) => set({ falApiKey }),
   setGeminiApiKey: (geminiApiKey) => set({ geminiApiKey }),
   setAiImageDefaults: (settings) => set((state) => ({ ...state, ...settings })),
@@ -151,6 +157,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
        */
       const payload: SettingsUpdate = {
         openaiApiKey: state.openaiApiKey,
+        openrouterApiKey: state.openrouterApiKey,
         falApiKey: state.falApiKey,
         geminiApiKey: state.geminiApiKey,
         r2AccountId: state.r2AccountId,

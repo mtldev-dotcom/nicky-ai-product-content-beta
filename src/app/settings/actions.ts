@@ -145,6 +145,10 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
     organization_id: orgId,
     // Secrets (encrypted at rest, but never returned to client)
     openai_api_key: keepOrReplaceSecret(existing?.openai_api_key, parsed.openaiApiKey),
+    openrouter_api_key: keepOrReplaceSecret(
+      (existing as unknown as Record<string, unknown> | null)?.openrouter_api_key as string | null | undefined,
+      parsed.openrouterApiKey
+    ),
     fal_api_key: keepOrReplaceSecret((existing as unknown as Record<string, unknown> | null)?.fal_api_key as string | null | undefined, parsed.falApiKey),
     gemini_api_key: keepOrReplaceSecret(
       (existing as unknown as Record<string, unknown> | null)?.gemini_api_key as string | null | undefined,
@@ -271,6 +275,7 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
       msg.includes('schema cache') &&
       (msg.includes('ai_image_model') ||
         msg.includes('ai_image_provider') ||
+        msg.includes('openrouter_api_key') ||
         msg.includes('fal_api_key') ||
         msg.includes('gemini_api_key') ||
         msg.includes('ai_studio_prompt_library') ||
@@ -336,6 +341,7 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
   const safe: SettingsForClient = {
     // Never return secrets
     openaiApiKey: '',
+    openrouterApiKey: '',
     falApiKey: '',
     geminiApiKey: '',
     r2AccountId: '',
@@ -345,6 +351,7 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
 
     // Indicate whether secrets exist
     hasOpenaiApiKey: !!data.openai_api_key,
+    hasOpenrouterApiKey: !!(data as unknown as Record<string, unknown>).openrouter_api_key,
     hasFalApiKey: !!(data as unknown as Record<string, unknown>).fal_api_key,
     hasGeminiApiKey: !!(data as unknown as Record<string, unknown>).gemini_api_key,
     hasR2AccountId: !!data.r2_account_id,

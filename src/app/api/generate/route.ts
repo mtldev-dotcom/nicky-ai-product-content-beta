@@ -56,15 +56,23 @@ export async function POST(req: Request) {
       apiKey = process.env.OPENAI_API_KEY;
     }
 
-    if (!apiKey) {
-      return NextResponse.json({ error: 'OpenAI API key not configured' }, { status: 500 });
+    let openrouterApiKey = settings?.openrouter_api_key;
+    if (openrouterApiKey) {
+      openrouterApiKey = decrypt(openrouterApiKey, { allowPlaintext: true });
+    } else {
+      openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    }
+
+    if (!apiKey && !openrouterApiKey) {
+      return NextResponse.json({ error: 'No AI API key configured (OpenAI or OpenRouter)' }, { status: 500 });
     }
 
     const brandName = settings?.brand_name || 'a professional brand';
     const brandVoice = settings?.brand_voice || 'professional, clear, and engaging';
     const customInstructions = settings?.custom_instructions || '';
 
-    const openai = new OpenAI({ apiKey });
+    const openai = apiKey ? new OpenAI({ apiKey }) : null;
+    const openrouter = openrouterApiKey ? new OpenAI({ apiKey: openrouterApiKey, baseURL: 'https://openrouter.io/api/v1' }) : null;
 
     // Best-effort session creation (must never break the endpoint).
     try {
@@ -128,26 +136,60 @@ export async function POST(req: Request) {
 
     messages.push({ role: 'user', content: userContent });
 
-    const content = sessionId
-      ? (
-          await callLLMWithLogging({
-            sessionId,
-            step: 'GENERATE',
-            model: 'gpt-4o-mini',
-            messages,
-            openai,
-            responseFormat: 'json_object',
-          })
-        ).content
-      : (
-          await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+    let content: string | null = null;
+    let lastError: Error | null = null;
+
+    // Try OpenAI first
+    if (openai) {
+      try {
+        content = sessionId
+          ? (
+              await callLLMWithLogging({
+                sessionId,
+                step: 'GENERATE',
+                model: 'gpt-4o-mini',
+                messages,
+                openai,
+                responseFormat: 'json_object',
+              })
+            ).content
+          : (
+              await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages,
+                response_format: { type: 'json_object' },
+              })
+            ).choices[0]?.message?.content;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('OpenAI request failed');
+        console.warn('OpenAI request failed, will try OpenRouter fallback:', lastError.message);
+      }
+    }
+
+    // Fallback to OpenRouter if OpenAI failed or not configured
+    if (!content && openrouter) {
+      try {
+        console.log('Attempting OpenRouter fallback...');
+        content = (
+          await openrouter.chat.completions.create({
+            model: 'gpt-4-turbo', // Use compatible model from OpenRouter
             messages,
             response_format: { type: 'json_object' },
           })
         ).choices[0]?.message?.content;
+        console.log('OpenRouter fallback successful');
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('OpenRouter request failed');
+        console.error('OpenRouter fallback failed:', lastError.message);
+      }
+    }
 
-    if (!content) throw new Error('No content returned from AI');
+    if (!content) {
+      const errorMsg = lastError
+        ? `Failed to generate content: ${lastError.message}`
+        : 'No content returned from AI';
+      throw new Error(errorMsg);
+    }
 
     const parsedData = ProductSchema.parse(JSON.parse(content));
 
