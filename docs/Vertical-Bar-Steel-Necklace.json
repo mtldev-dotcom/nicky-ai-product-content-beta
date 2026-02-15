@@ -1,0 +1,130 @@
+{
+  "brand": "THE UNCUT BRAND",
+  "supplier": {
+    "name": "VNOX Official Store",
+    "url": "https://www.aliexpress.com/item/1005007891940116.html",
+    "sku": "1005007891940116",
+    "platform": "AliExpress",
+    "notes": "5.0 rating • 126 sold • Vertical bar pendant • Waterproof • Hypoallergenic"
+  },
+  "admin": {
+    "cost": 4.09,
+    "currency": "CAD",
+    "compare_at_price": 8.52,
+    "margin_target_percent": 70,
+    "inventory_tracking": true,
+    "fulfillment_type": "dropship",
+    "internal_notes": "Minimal vertical bar pendant. Clean masculine aesthetic. Strong for layering with Cuban chains. Confirm 316L grade. Shipping not free under threshold."
+  },
+  "vault": {
+    "video": null,
+    "images": []
+  },
+  "title_i18n": {
+    "en": "Vertical Bar Steel Necklace",
+    "fr": "Collier Barre Verticale en Acier"
+  },
+  "options_i18n": [
+    {
+      "title_i18n": {
+        "en": "Metal Color",
+        "fr": "Couleur du Métal"
+      },
+      "values": [
+        {
+          "value": "silver",
+          "value_i18n": {
+            "en": "Silver",
+            "fr": "Argent"
+          }
+        },
+        {
+          "value": "black",
+          "value_i18n": {
+            "en": "Black",
+            "fr": "Noir"
+          }
+        }
+      ]
+    },
+    {
+      "title_i18n": {
+        "en": "Length",
+        "fr": "Longueur"
+      },
+      "values": [
+        {
+          "value": "55cm",
+          "value_i18n": {
+            "en": "55cm",
+            "fr": "55cm"
+          }
+        },
+        {
+          "value": "60cm",
+          "value_i18n": {
+            "en": "60cm",
+            "fr": "60cm"
+          }
+        },
+        {
+          "value": "70cm",
+          "value_i18n": {
+            "en": "70cm",
+            "fr": "70cm"
+          }
+        }
+      ]
+    }
+  ],
+  "features_i18n": {
+    "en": [
+      "Solid stainless steel construction",
+      "Minimal vertical bar pendant",
+      "Waterproof and anti-allergy",
+      "IP black plated (black version)",
+      "Perfect for layering"
+    ],
+    "fr": [
+      "Construction en acier inoxydable solide",
+      "Pendentif barre verticale minimaliste",
+      "Imperméable et hypoallergénique",
+      "Placage noir IP (version noire)",
+      "Parfait pour superposition"
+    ]
+  },
+  "keywords_i18n": {
+    "en": [
+      "vertical bar necklace",
+      "minimal men necklace",
+      "stainless steel pendant",
+      "black steel necklace",
+      "streetwear necklace",
+      "simple chain"
+    ],
+    "fr": [
+      "collier barre verticale",
+      "collier homme minimal",
+      "pendentif acier inoxydable",
+      "collier acier noir",
+      "bijoux streetwear",
+      "chaîne simple"
+    ]
+  },
+  "subtitle_i18n": {
+    "en": "Minimal. Sharp. Uncut.",
+    "fr": "Minimal. Net. Uncut."
+  },
+  "seo_title_i18n": {
+    "en": "Vertical Bar Stainless Steel Necklace - Black or Silver",
+    "fr": "Collier Barre Verticale en Acier Inoxydable - Noir ou Argent"
+  },
+  "description_i18n": {
+    "en": "Pure lines. No noise. This vertical bar stainless steel necklace delivers clean, sharp presence without flash. Waterproof, hypoallergenic, and built for daily wear. Minimal energy. Maximum confidence.",
+    "fr": "Lignes pures. Sans bruit. Ce collier barre verticale en acier inoxydable offre une présence nette et moderne sans excès. Imperméable, hypoallergénique et conçu pour un port quotidien. Minimal. Confiance maximale."
+  },
+  "seo_description_i18n": {
+    "en": "Minimal stainless steel vertical bar necklace available in black or silver with multiple chain lengths.",
+    "fr": "Collier barre verticale minimal en acier inoxydable disponible en noir ou argent avec plusieurs longueurs."
+  }
+}
