@@ -5,6 +5,25 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
+/** Generate a UUID v4 string that works in both Node.js and browser environments */
+function generateUUID(): string {
+  try {
+    // Try using native crypto.randomUUID if available
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+  } catch (e) {
+    // Fall through to polyfill
+  }
+
+  // Fallback polyfill for UUID v4
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 /** Normalize to Record<string, string> so ProductOption/ProductOptionValue types are satisfied (no undefined). */
 function toTranslations(obj: Record<string, unknown>): Record<string, string> {
   const entries = Object.entries(obj).filter((entry): entry is [string, string] => typeof entry[1] === 'string');
@@ -114,7 +133,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
 
     // Preserve Medusa ID if present (critical for updates)
     const medusaId = asString(optRecord.id);
-    const localId = medusaId || crypto.randomUUID();
+    const localId = medusaId || generateUUID();
 
     return {
       id: localId,
@@ -323,7 +342,7 @@ export function mapExternalToProduct(rawJson: unknown): Partial<ProductState> {
 
       // Preserve Medusa variant ID if present (critical for updates)
       const medusaVariantId = variantId;
-      const localVariantId = medusaVariantId || crypto.randomUUID();
+      const localVariantId = medusaVariantId || generateUUID();
 
       // Also preserve Medusa format options (option IDs as keys) for updates
       // UI format: { "Color": "Black" } (stored in options)
