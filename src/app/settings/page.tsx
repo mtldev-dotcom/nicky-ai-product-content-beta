@@ -33,6 +33,7 @@ export default function SettingsPage() {
 
   const [localState, setLocalState] = useState({
     openaiApiKey: '',
+    openrouterApiKey: '',
     falApiKey: '',
     geminiApiKey: '',
     r2AccountId: '',
@@ -84,6 +85,7 @@ export default function SettingsPage() {
   useEffect(() => {
     setLocalState({
       openaiApiKey: settings.openaiApiKey,
+      openrouterApiKey: settings.openrouterApiKey,
       falApiKey: settings.falApiKey,
       geminiApiKey: settings.geminiApiKey,
       r2AccountId: settings.r2AccountId,
@@ -111,6 +113,7 @@ export default function SettingsPage() {
   const isDirty = useMemo(() => {
     return (
       localState.openaiApiKey !== settings.openaiApiKey ||
+      localState.openrouterApiKey !== settings.openrouterApiKey ||
       localState.falApiKey !== settings.falApiKey ||
       localState.geminiApiKey !== settings.geminiApiKey ||
       localState.r2AccountId !== settings.r2AccountId ||
@@ -223,6 +226,7 @@ export default function SettingsPage() {
       });
 
     settings.setOpenaiApiKey(localState.openaiApiKey);
+    settings.setOpenrouterApiKey(localState.openrouterApiKey);
     settings.setFalApiKey(localState.falApiKey);
     settings.setGeminiApiKey(localState.geminiApiKey);
     settings.setAiImageDefaults({
@@ -267,6 +271,7 @@ export default function SettingsPage() {
   const handleReset = () => {
     setLocalState({
       openaiApiKey: settings.openaiApiKey,
+      openrouterApiKey: settings.openrouterApiKey,
       falApiKey: settings.falApiKey,
       geminiApiKey: settings.geminiApiKey,
       r2AccountId: settings.r2AccountId,
