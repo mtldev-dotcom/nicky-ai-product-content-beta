@@ -7,9 +7,30 @@ import { SettingsForClientSchema, type SettingsForClient, SettingsUpdateSchema, 
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 
 /**
+ * Verifies the currently authenticated user is a member of the given org.
+ * Throws if the user is unauthenticated or not a member.
+ */
+async function assertOrgMembership(supabase: Awaited<ReturnType<typeof createClient>>, orgId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .eq('organization_id', orgId)
+    .maybeSingle();
+
+  if (!membership) throw new Error('Forbidden');
+}
+
+/**
  * Tests connection to MedusaJS with provided or stored credentials.
  */
 export async function testMedusaConnection(orgId: string, customUrl?: string, customApiKey?: string) {
+  const supabase = await createClient();
+  await assertOrgMembership(supabase, orgId);
+
   const settings = await loadDecryptedSettingsForServer(orgId);
   
   const url = customUrl || settings?.medusaUrl;
@@ -60,12 +81,15 @@ export async function testMedusaConnection(orgId: string, customUrl?: string, cu
  * Tests connection to Cloudflare R2 with provided or stored credentials.
  */
 export async function testR2Connection(
-  orgId: string, 
-  customAccountId?: string, 
-  customAccessKeyId?: string, 
+  orgId: string,
+  customAccountId?: string,
+  customAccessKeyId?: string,
   customSecretAccessKey?: string,
   customBucketName?: string
 ) {
+  const supabase = await createClient();
+  await assertOrgMembership(supabase, orgId);
+
   const settings = await loadDecryptedSettingsForServer(orgId);
 
   const accountId = customAccountId || settings?.r2AccountId;
@@ -121,6 +145,9 @@ export async function testR2Connection(
  */
 export async function saveEncryptedSettings(orgId: string, settings: SettingsUpdate) {
   const supabase = await createClient();
+
+  // Verify the caller belongs to this org before writing any data.
+  await assertOrgMembership(supabase, orgId);
 
   // Validate at the boundary (server action entry).
   const parsed = SettingsUpdateSchema.parse(settings);

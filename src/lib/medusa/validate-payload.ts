@@ -6,20 +6,7 @@
 
 import { z } from 'zod';
 import type { MedusaProductPayload, MedusaProductVariant, MedusaProductOption } from './types';
-
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function asString(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v : fallback;
-}
-
-function asNumber(v: unknown, fallback = 0): number {
-  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
-}
+import { type UnknownRecord, isRecord, asString, asNumber } from '@/lib/medusa/utils';
 
 /**
  * Payload validation error with details about what failed.

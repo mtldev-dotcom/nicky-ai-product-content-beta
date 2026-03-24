@@ -26,11 +26,7 @@ import {
   type ProductChanges,
 } from './detect-product-changes';
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
+import { type UnknownRecord, isRecord } from '@/lib/medusa/utils';
 
 /**
  * Fetch current Medusa product state

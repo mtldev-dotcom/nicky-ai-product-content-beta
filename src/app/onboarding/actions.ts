@@ -4,11 +4,25 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { encrypt } from '@/lib/crypto'
+import { z } from 'zod'
+
+const OrgNameSchema = z.object({
+  name: z.string().min(1, 'Organization name is required').max(100),
+});
+
+const WizardSettingsSchema = z.object({
+  storePlatform: z.string().optional(),
+  medusaUrl: z.string().url().optional().or(z.literal('')),
+  medusaApiKey: z.string().optional(),
+  openaiApiKey: z.string().optional(),
+  brandName: z.string().max(100).optional(),
+  brandVoice: z.string().max(500).optional(),
+});
 
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient()
-  
-  const name = formData.get('name') as string
+
+  const { name } = OrgNameSchema.parse({ name: formData.get('name') });
   const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '')
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -88,44 +102,41 @@ export async function saveWizardSettings(formData: FormData) {
     return { success: false, error: 'Settings not found' }
   }
 
+  // Validate form data at the server action boundary.
+  const fields = WizardSettingsSchema.parse({
+    storePlatform: formData.get('storePlatform') ?? undefined,
+    medusaUrl: formData.get('medusaUrl') ?? undefined,
+    medusaApiKey: formData.get('medusaApiKey') ?? undefined,
+    openaiApiKey: formData.get('openaiApiKey') ?? undefined,
+    brandName: formData.get('brandName') ?? undefined,
+    brandVoice: formData.get('brandVoice') ?? undefined,
+  });
+
   // Prepare update object
   const updates: Record<string, unknown> = {}
 
-  // Store settings (optional)
-  const storePlatform = formData.get('storePlatform') as string
-  const medusaUrl = formData.get('medusaUrl') as string
-  const medusaApiKey = formData.get('medusaApiKey') as string
-
-  if (storePlatform) {
-    updates.store_platform = storePlatform
+  if (fields.storePlatform) {
+    updates.store_platform = fields.storePlatform
   }
 
-  if (medusaUrl) {
-    updates.medusa_url = medusaUrl.trim()
+  if (fields.medusaUrl) {
+    updates.medusa_url = fields.medusaUrl.trim()
   }
 
-  if (medusaApiKey && medusaApiKey.trim().length > 0) {
-    // Encrypt the API key
-    const encrypted = encrypt(medusaApiKey.trim())
-    updates.medusa_api_key = encrypted
+  if (fields.medusaApiKey && fields.medusaApiKey.trim().length > 0) {
+    updates.medusa_api_key = encrypt(fields.medusaApiKey.trim())
   }
 
-  // AI settings
-  const openaiApiKey = formData.get('openaiApiKey') as string
-  const brandName = formData.get('brandName') as string
-  const brandVoice = formData.get('brandVoice') as string
-
-  if (openaiApiKey && openaiApiKey.trim().length > 0) {
-    const encrypted = encrypt(openaiApiKey.trim())
-    updates.openai_api_key = encrypted
+  if (fields.openaiApiKey && fields.openaiApiKey.trim().length > 0) {
+    updates.openai_api_key = encrypt(fields.openaiApiKey.trim())
   }
 
-  if (brandName) {
-    updates.brand_name = brandName.trim()
+  if (fields.brandName) {
+    updates.brand_name = fields.brandName.trim()
   }
 
-  if (brandVoice) {
-    updates.brand_voice = brandVoice.trim()
+  if (fields.brandVoice) {
+    updates.brand_voice = fields.brandVoice.trim()
   }
 
   // Update settings

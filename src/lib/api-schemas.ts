@@ -76,6 +76,9 @@ export const StudioGenerateRequestSchema = z.object({
   customPromptInstructions: z.string().trim().max(5000).optional(),
   // Optional: ID of selected asset (for tracking/logging)
   selectedAssetId: z.string().uuid().optional(),
+  // When true: server resolves the master reference image for this setup and uses it as
+  // the style anchor sent to Gemini alongside the product photo.
+  useMasterReference: z.boolean().default(false),
 });
 
 export type StudioGenerateRequest = z.infer<typeof StudioGenerateRequestSchema>;
@@ -188,5 +191,15 @@ export const StudioAssetListQuerySchema = z.object({
 });
 
 export type StudioAssetListQuery = z.infer<typeof StudioAssetListQuerySchema>;
+
+// --- Studio Master References ---
+
+export const StudioMasterUploadSchema = z.object({
+  jewelry_type: JewelryTypeSchema,
+  master_key: z.string().min(1).max(100),
+  label: z.string().max(200).optional(),
+});
+
+export type StudioMasterUpload = z.infer<typeof StudioMasterUploadSchema>;
 
 

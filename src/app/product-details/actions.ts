@@ -1,6 +1,124 @@
 'use server'
 
+import { createClient } from '@/utils/supabase/server';
 import { loadDecryptedSettingsForServer } from '@/app/settings/actions';
+import { buildMedusaAdminProductPayload, type ProductLikeForMedusaPayload } from '@/lib/medusa/build-admin-product-payload';
+import { sanitizeMedusaProductPayload } from '@/lib/medusa/normalize-product-payload';
+import { validateMedusaProductPayload } from '@/lib/medusa/validate-payload';
+import { shouldUseTwoPhase, createProductTwoPhase } from '@/lib/medusa/two-phase-creation';
+import { updateProductInMedusa } from '@/lib/medusa/update-product-strategy';
+import { parseMedusaError, parseMedusaResponse } from '@/lib/medusa/error-handler';
+import { extractProductId } from '@/lib/medusa/response-parser';
+import { withRetry } from '@/lib/medusa/retry';
+
+export type PushProductResult =
+  | { success: true; productId: string | null }
+  | { success: false; error: string; details?: unknown };
+
+/**
+ * Push a product to Medusa — create or update — from a server action.
+ *
+ * This keeps the Medusa payload building and push orchestration entirely
+ * server-side. Components only pass raw product state and handle UI feedback.
+ *
+ * Security:
+ * - Auth and org membership verified server-side.
+ * - Medusa API key is decrypted server-side and never returned to the browser.
+ */
+export async function pushProductToMedusa(
+  productData: ProductLikeForMedusaPayload,
+  medusaProductId: string | null
+): Promise<PushProductResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'Unauthorized' };
+
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!membership?.organization_id) {
+    return { success: false, error: 'No organization found' };
+  }
+
+  const settings = await loadDecryptedSettingsForServer(membership.organization_id);
+  if (!settings || !settings.medusaUrl || !settings.medusaApiKey || settings.storePlatform !== 'medusa') {
+    return { success: false, error: 'MedusaJS integration not configured' };
+  }
+
+  let baseUrl = settings.medusaUrl.trim().replace(/\/$/, '');
+  if (baseUrl.endsWith('/admin')) baseUrl = baseUrl.replace(/\/admin$/, '');
+
+  const apiKey = settings.medusaApiKey;
+  const headers = {
+    'x-medusa-access-token': apiKey,
+    'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
+    'Content-Type': 'application/json',
+  };
+
+  const isUpdate = !!medusaProductId;
+  const rawPayload = buildMedusaAdminProductPayload(productData, isUpdate);
+  const sanitizedPayload = sanitizeMedusaProductPayload(rawPayload);
+
+  try {
+    validateMedusaProductPayload(sanitizedPayload);
+  } catch (err) {
+    return { success: false, error: 'Payload validation failed', details: err instanceof Error ? err.message : String(err) };
+  }
+
+  // UPDATE path
+  if (isUpdate) {
+    try {
+      await updateProductInMedusa(medusaProductId, sanitizedPayload);
+      return { success: true, productId: medusaProductId };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update product in Medusa';
+      return { success: false, error: message };
+    }
+  }
+
+  // CREATE path
+  const useTwoPhase = shouldUseTwoPhase(sanitizedPayload);
+
+  if (useTwoPhase) {
+    try {
+      const response = await createProductTwoPhase(sanitizedPayload);
+      const productId = extractProductId(response);
+      return { success: true, productId };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Two-phase creation failed';
+      return { success: false, error: message };
+    }
+  }
+
+  // Single-phase create
+  try {
+    const res = await withRetry(async () =>
+      fetch(`${baseUrl}/admin/products`, {
+        method: 'POST',
+        headers,
+        cache: 'no-store',
+        body: JSON.stringify(sanitizedPayload),
+      })
+    );
+
+    const text = await res.text();
+    const response = parseMedusaResponse(text);
+
+    if (!res.ok) {
+      const error = parseMedusaError(res.status, res.statusText, response);
+      return { success: false, error: error.message, details: response };
+    }
+
+    const productId = extractProductId(response);
+    return { success: true, productId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to push product to Medusa';
+    return { success: false, error: message };
+  }
+}
 
 export async function getMedusaTaxonomy(orgId: string) {
   const settings = await loadDecryptedSettingsForServer(orgId);

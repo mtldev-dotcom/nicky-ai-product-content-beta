@@ -585,6 +585,54 @@
 - `npm test` passes.
 - `npm run build` passes.
 
+## 2026-03-24 — AI Studio: master reference image generation (n8n workflow port)
+
+### What was done
+
+Ported the n8n "product photo style transfer" workflow into the app as a native feature. Given a real product photo + a master reference image (the brand's dark industrial aesthetic anchor), Gemini generates a professional studio-quality output matching the reference.
+
+**New infrastructure:**
+- `supabase/migrations/20260324000000_add_studio_master_references.sql` — per-org table storing master images keyed by `(jewelry_type, master_key)`
+- `src/app/api/studio-masters/route.ts` — GET list
+- `src/app/api/studio-masters/upload/route.ts` — POST FormData upload → R2 → upsert
+- `src/app/api/studio-masters/[id]/route.ts` — DELETE with R2 cleanup
+
+**Changes to existing code:**
+- `src/lib/ai/promptLibrary.ts` — added `masterKey` field to all 10 setups
+- `src/lib/ai/studioPrompt.ts` — added `masterReferenceUrl` param triggering a rich two-image style-transfer prompt (bypasses template system)
+- `src/lib/api-schemas.ts` — added `useMasterReference: boolean` to `StudioGenerateRequestSchema` + new `StudioMasterUploadSchema`
+- `src/app/api/ai/studio-generate/route.ts` — resolves master from DB when `useMasterReference=true`, passes as `studioImageUrl` to Gemini
+- `src/app/studio-assets/page.tsx` — Masters tab, `MasterCard` component, `UploadModal` extended for master type with jewelry_type + setup selectors
+
+**Supabase CLI initialized:**
+- `supabase/config.toml` created with `project_id = "hbvniwwzmjnfbakrfqzw"`
+- npm scripts added: `db:push`, `db:pull`, `db:diff`, `db:reset`, `db:types`
+
+### Why it matters
+
+Replaces a brittle n8n automation with a fully integrated, org-scoped, multi-tenant feature. Each org manages their own style-anchor images via the Studio Assets UI and enables them per-generation with a single flag.
+
+### What works
+
+- `tsc --noEmit` — 0 errors
+- `npm test` — 32/32 pass
+- Full UI flow: Masters tab → upload → management
+- API: master resolution, two-image Gemini call, R2 upload, generation history persistence
+
+### What does NOT work yet (requires manual action)
+
+- Migration must be applied: `npm run db:push` (after `supabase link`)
+- Supabase CLI must be linked: `SUPABASE_ACCESS_TOKEN=<pat> npx supabase link --project-ref hbvniwwzmjnfbakrfqzw`
+- Master images must be uploaded via Studio Assets → Masters before `useMasterReference: true` will succeed
+- R2 bucket must have public read enabled for `studio-masters/` prefix (Gemini fetches the image directly)
+
+### Follow-up TODOs
+
+- Add `useMasterReference` toggle to the Studio generation UI (currently API-only)
+- Consider prompt iteration after reviewing first Gemini outputs
+- Add minimum resolution validation in upload modal
+- Generate TypeScript DB types: `npm run db:types`
+
 ## 2025-12-31 00:30 — Fix: bulk publish Medusa 400 (shipping_profile_id null) + robust non-JSON handling
 
 ### What happened

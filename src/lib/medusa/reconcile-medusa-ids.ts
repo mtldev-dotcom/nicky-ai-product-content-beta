@@ -6,16 +6,7 @@
  */
 
 import crypto from 'node:crypto';
-
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function asString(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v : fallback;
-}
+import { type UnknownRecord, isRecord, asString, extractOptionValues } from '@/lib/medusa/utils';
 
 /**
  * Medusa Option structure (from API response)
@@ -87,24 +78,6 @@ export interface ReconciledProductState {
   optionIdMap: Map<string, string>; // local option ID -> Medusa option ID
   variantIdMap: Map<string, string>; // local variant ID -> Medusa variant ID
   optionNameToIdMap: Map<string, string>; // option name -> Medusa option ID
-}
-
-/**
- * Extract option values as strings from various formats
- */
-function extractOptionValues(values: unknown): string[] {
-  if (!Array.isArray(values)) return [];
-  
-  return values
-    .map((v) => {
-      if (typeof v === 'string') return v.trim();
-      if (isRecord(v)) {
-        const value = v.value;
-        if (typeof value === 'string') return value.trim();
-      }
-      return '';
-    })
-    .filter((v): v is string => v.length > 0);
 }
 
 /**

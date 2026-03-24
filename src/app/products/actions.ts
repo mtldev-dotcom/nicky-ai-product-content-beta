@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { z } from 'zod';
 
 /**
  * Server-side product persistence.
@@ -11,21 +12,22 @@ import { createClient } from '@/utils/supabase/server';
  * - Reduce reliance on client-side anon writes (RLS-only protection).
  */
 
-export type ProductSavePayload = {
-  id?: string;
+const ProductSaveSchema = z.object({
+  id: z.string().uuid().optional(),
+  title: z.string().min(1),
+  handle: z.string().min(1),
+  status: z.enum(['draft', 'published']),
+  sku: z.string(),
+  price: z.number(),
+  data: z.record(z.string(), z.unknown()),
+});
 
-  // Root fields
-  title: string;
-  handle: string;
-  status: 'draft' | 'published';
-  sku: string;
-  price: number;
-
-  // JSON payload blob (everything else)
-  data: unknown;
-};
+export type ProductSavePayload = z.infer<typeof ProductSaveSchema>;
 
 export async function saveProductToCloud(payload: ProductSavePayload): Promise<{ id: string }> {
+  // Validate at the server action boundary — TypeScript types are compile-time only.
+  const parsed = ProductSaveSchema.parse(payload);
+
   const supabase = await createClient();
 
   const {
@@ -49,19 +51,18 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
 
   const record = {
     organization_id: membership.organization_id,
-    title: payload.title,
-    handle: payload.handle,
-    status: payload.status,
-    sku: payload.sku,
-    price: payload.price,
-    data: payload.data,
+    title: parsed.title,
+    handle: parsed.handle,
+    status: parsed.status,
+    sku: parsed.sku,
+    price: parsed.price,
+    data: parsed.data,
   };
 
   // Extract medusa_product_id from data blob to check for existing products
-  const dataObj = typeof payload.data === 'object' && payload.data !== null ? payload.data as Record<string, unknown> : {};
-  const medusaProductId = typeof dataObj.medusa_product_id === 'string' ? dataObj.medusa_product_id : null;
+  const medusaProductId = typeof parsed.data.medusa_product_id === 'string' ? parsed.data.medusa_product_id : null;
 
-  if (payload.id) {
+  if (parsed.id) {
     // Update existing product.
     // IMPORTANT: For products that were previously pushed to Medusa we may only send
     // partial UI fields from the client (title/handle/status). Overwriting the entire
@@ -90,22 +91,21 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
     const { data: existingRow, error: readErr } = await supabase
       .from('products')
       .select('data')
-      .eq('id', payload.id)
+      .eq('id', parsed.id)
       .eq('organization_id', membership.organization_id)
       .single();
 
     if (readErr) throw new Error(readErr.message);
 
     const existingData = existingRow && typeof existingRow.data === 'object' && existingRow.data !== null ? (existingRow.data as Record<string, unknown>) : {};
-    const incomingData = typeof payload.data === 'object' && payload.data !== null ? (payload.data as Record<string, unknown>) : {};
-    const mergedData = deepMerge(existingData, incomingData);
+    const mergedData = deepMerge(existingData, parsed.data);
 
     const recordToUpdate = { ...record, data: mergedData };
 
     const { data, error } = await supabase
       .from('products')
       .update(recordToUpdate)
-      .eq('id', payload.id)
+      .eq('id', parsed.id)
       .eq('organization_id', membership.organization_id)
       .select('id')
       .single();

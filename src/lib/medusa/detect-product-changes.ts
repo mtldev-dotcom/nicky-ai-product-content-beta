@@ -6,16 +6,7 @@
  */
 
 import type { ReconciledProductState } from './reconcile-medusa-ids';
-
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function asString(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v : fallback;
-}
+import { type UnknownRecord, isRecord, asString, extractOptionValues } from '@/lib/medusa/utils';
 
 /**
  * Change type for an option
@@ -80,25 +71,6 @@ export interface ProductChanges {
   // Summary
   hasChanges: boolean;
   changeCount: number;
-}
-
-/**
- * Extract option values as strings
- */
-function extractOptionValues(values: unknown): string[] {
-  if (!Array.isArray(values)) return [];
-  
-  return values
-    .map((v) => {
-      if (typeof v === 'string') return v.trim();
-      if (isRecord(v)) {
-        const value = v.value;
-        if (typeof value === 'string') return value.trim();
-      }
-      return '';
-    })
-    .filter((v): v is string => v.length > 0)
-    .sort(); // Sort for comparison
 }
 
 /**

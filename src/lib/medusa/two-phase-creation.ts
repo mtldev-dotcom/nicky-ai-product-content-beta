@@ -14,11 +14,7 @@ import { withRetry } from './retry';
 import { sanitizeMedusaProductPayload } from './normalize-product-payload';
 import type { MedusaProductPayload } from './types';
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
+import { type UnknownRecord, isRecord } from '@/lib/medusa/utils';
 
 /**
  * Create a product using two-phase approach.

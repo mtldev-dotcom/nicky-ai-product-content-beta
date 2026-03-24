@@ -88,6 +88,7 @@ export function buildStudioPrompt(params: {
   togglePhrases?: StudioTogglePhrases | null;
   modelImageUrl?: string | null;
   studioImageUrl?: string | null;
+  masterReferenceUrl?: string | null;
   customPromptInstructions?: string | null;
 }): { promptText: string; setupTitle: string; modelTitle: string } {
   const lib = coerceLibrary(params.library);
@@ -101,23 +102,52 @@ export function buildStudioPrompt(params: {
 
   // If custom prompt instructions are provided, use them as the complete prompt
   if (params.customPromptInstructions && params.customPromptInstructions.trim().length > 0) {
-    return { 
-      promptText: params.customPromptInstructions.trim(), 
-      setupTitle: setup.title, 
-      modelTitle: model.title 
+    return {
+      promptText: params.customPromptInstructions.trim(),
+      setupTitle: setup.title,
+      modelTitle: model.title
     };
   }
 
   const togglesAndModifiers = buildTogglesAndModifiers(params.options, phrases);
 
+  // Master reference mode: two-image style-transfer prompt.
+  // The master reference image is sent as the last image to Gemini (via studioImageUrl slot).
+  // The product photo is the first image. The prompt tells Gemini exactly which is which.
+  if (params.masterReferenceUrl) {
+    const jewelryType = setup.jewelryType;
+    const promptText = [
+      `You are a professional product photographer specializing in luxury jewelry.`,
+      ``,
+      `You are provided with exactly two images in this order:`,
+      `— Image 1 (PRODUCT PHOTO): The actual ${jewelryType} to be photographed.`,
+      `— Image 2 (MASTER REFERENCE): A studio shot showing the exact setup, lighting, composition, textures, and dark industrial aesthetic you must replicate.`,
+      ``,
+      `Generate a photorealistic professional studio photograph of the ${jewelryType} from Image 1, placed into the exact studio environment and lighting shown in Image 2.`,
+      ``,
+      `PRESERVE JEWELRY IDENTITY: Keep the exact design, material, finish, color, engravings, and proportions of the ${jewelryType} from Image 1. Do not alter the jewelry design in any way.`,
+      ``,
+      `MATCH THE MASTER REFERENCE EXACTLY:`,
+      `— Background textures, surfaces, and props must be identical to Image 2`,
+      `— Lighting direction, intensity, and color temperature must match Image 2`,
+      `— Maintain the dark industrial aesthetic and deep shadows from Image 2`,
+      `— Same spatial composition, framing, and focal distance as Image 2`,
+      `— Output must be photorealistic — no illustration, no CGI look`,
+      ``,
+      togglesAndModifiers,
+    ].join('\n');
+
+    return { promptText, setupTitle: setup.title, modelTitle: model.title };
+  }
+
   const template = lib.finalPromptTemplate.template;
-  
+
   // If modelImageUrl is provided, use minimal model prompt (image will be provided separately)
   // Otherwise, use the full text-based model prompt
-  const modelPrompt = params.modelImageUrl 
+  const modelPrompt = params.modelImageUrl
     ? 'Use the provided model image as reference for the human model appearance and pose.'
     : model.prompt;
-  
+
   // If studioImageUrl is provided, use minimal setup prompt (image will be provided separately)
   // Otherwise, use the full text-based setup prompt
   const setupPrompt = params.studioImageUrl

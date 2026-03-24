@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useProductStore, type Localization } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { buildMedusaAdminProductPayload } from '@/lib/medusa/build-admin-product-payload';
+import { pushProductToMedusa } from '@/app/product-details/actions';
 import {
     Database,
     Copy,
@@ -102,60 +103,42 @@ export function ProductJsonModule() {
         setPushResult(null);
 
         try {
-            const payload = JSON.parse(fullJson) as unknown;
-            const endpoint = product.medusaProductId
-                ? `/api/medusa/products/${product.medusaProductId}`
-                : '/api/medusa/push-product';
+            const result = await pushProductToMedusa(
+                {
+                    title: product.title,
+                    subtitle: product.subtitle,
+                    description: product.description,
+                    handle: product.handle,
+                    status: product.status,
+                    thumbnail: product.thumbnail,
+                    price: product.price,
+                    sku: product.sku,
+                    collection_id: product.collection_id || null,
+                    type_id: product.type_id || null,
+                    tags: product.tags,
+                    categories: product.categories,
+                    sales_channels: product.sales_channels,
+                    shipping_profile_id: product.shipping_profile_id || null,
+                    shipping_weight: product.shipping_weight || null,
+                    shipping_dimensions: product.shipping_dimensions || null,
+                    images: product.images,
+                    vault: product.vault,
+                    activeLanguages: product.activeLanguages,
+                    localization: product.localization as unknown as Record<string, Localization>,
+                    options: product.options,
+                    variants: product.variants,
+                },
+                product.medusaProductId || null
+            );
 
-            const res = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ payload }),
-            });
-
-            const data = (await res.json()) as { productId?: string | null; error?: string; details?: unknown };
-
-            if (!res.ok) {
-                // Build detailed error message from Medusa's response
-                let errorMessage = data.error || 'Failed to push product to Medusa';
-                
-                // Extract Medusa error details if available
-                if (data.details) {
-                    const details = data.details as Record<string, unknown>;
-                    
-                    // Medusa often returns error messages in different formats
-                    if (details.message) {
-                        errorMessage += `\n\nDetails: ${String(details.message)}`;
-                    } else if (details.error) {
-                        errorMessage += `\n\nError: ${String(details.error)}`;
-                    } else if (details.errors) {
-                        // Medusa validation errors are often in an errors array
-                        const errors = Array.isArray(details.errors) 
-                            ? details.errors.map((e: unknown) => {
-                                if (typeof e === 'string') return e;
-                                if (typeof e === 'object' && e !== null) {
-                                    const err = e as Record<string, unknown>;
-                                    return err.message || err.error || JSON.stringify(e);
-                                }
-                                return String(e);
-                            }).join('\n')
-                            : String(details.errors);
-                        errorMessage += `\n\nValidation Errors:\n${errors}`;
-                    } else {
-                        // Fallback: show the full details object (truncated)
-                        const detailsStr = JSON.stringify(details, null, 2);
-                        errorMessage += `\n\nDetails:\n${detailsStr.substring(0, 500)}${detailsStr.length > 500 ? '...' : ''}`;
-                    }
-                }
-                
-                setPushError(errorMessage);
+            if (!result.success) {
+                setPushError(result.error);
                 return;
             }
 
-            // If it was an update, we might not get a new ID, but we know the current one.
-            const finalId = data.productId || product.medusaProductId;
+            const finalId = result.productId || product.medusaProductId;
 
-            // If it was a create, update the store with the new ID
+            // If it was a create, update the store with the new Medusa ID
             if (!product.medusaProductId && finalId) {
                 product.updateRoot({ medusaProductId: finalId });
             }
@@ -163,7 +146,7 @@ export function ProductJsonModule() {
             setPushResult({ productId: finalId || null });
         } catch (e) {
             console.error('Push to Medusa failed:', e);
-            setPushError('Failed to push product to Medusa (invalid JSON or network error)');
+            setPushError('Failed to push product to Medusa');
         } finally {
             setIsPushing(false);
         }

@@ -8,15 +8,7 @@
  * - `{ id, ... }` - direct entity format
  */
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function asString(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v : fallback;
-}
+import { type UnknownRecord, isRecord, asString } from '@/lib/medusa/utils';
 
 /**
  * Extract product ID from Medusa response.

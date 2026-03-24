@@ -14,20 +14,7 @@
  */
 
 import crypto from 'node:crypto';
-
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
-
-function asString(v: unknown, fallback = ''): string {
-  return typeof v === 'string' ? v : fallback;
-}
-
-function asNumber(v: unknown, fallback = 0): number {
-  return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
-}
+import { type UnknownRecord, isRecord, asString, asNumber } from '@/lib/medusa/utils';
 
 function slugify(input: string): string {
   return input
@@ -136,7 +123,7 @@ export type LocalProductSavePayload = {
   status: 'draft' | 'published';
   sku: string;
   price: number;
-  data: unknown;
+  data: Record<string, unknown>;
 };
 
 /**

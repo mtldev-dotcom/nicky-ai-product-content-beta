@@ -1,5 +1,15 @@
 # Codebase Audit Report — Product Architect (Next.js + Supabase)
 
+> **Status note (March 2026):** The findings listed in sections 3–5 below represent the baseline state at time of the initial audit. The following have since been resolved:
+> - Lint errors (50 errors) — now 0 errors, 0 warnings
+> - PDF policy enforcement — implemented in `/lib/ingest/pdf-policy.ts`
+> - LLM logging — extended across all AI routes
+> - Security: `saveEncryptedSettings` auth bypass (C1) — fixed with `assertOrgMembership` guard
+> - Dead code: `page.tsx.bak`, `image-processing.ts`, `issues/` folder — deleted
+> - Medusa helper duplication — eliminated via `lib/medusa/utils.ts`
+> - Zod validation added to `products/actions.ts` and `onboarding/actions.ts`
+> - Medusa push logic moved from `ProductJsonModule` to `product-details/actions.ts`
+
 ## 1) Executive summary
 
 The app is **functionally cohesive** and already implements the two big pipelines:
@@ -7,9 +17,9 @@ The app is **functionally cohesive** and already implements the two big pipeline
 - **AI generation**: `/api/generate`, `/api/enhance`, `/api/translate`
 - **JUST DROP IT ingest**: `/api/products/ingest` with classification → extraction → blueprint generation + full usage logging
 
-Security posture is **intentionally strong** in two key areas (encryption + SSRF), but the repo has meaningful **DX/quality debt**:
+Security posture is **intentionally strong** in two key areas (encryption + SSRF), but the repo had meaningful **DX/quality debt** at the time of this audit (see status note above for what has been resolved):
 
-- `npm run lint` currently fails with **50 errors** (mostly `no-explicit-any` + React text escaping + an effect anti-pattern warning).
+- `npm run lint` currently fails with **50 errors** (mostly `no-explicit-any` + React text escaping + an effect anti-pattern warning). *(Resolved)*
 - There is **duplicated UI constants/logic** (e.g. language lists and translation handling).
 - Several docs were outdated or irrelevant and have been removed; the canonical docs are now `docs/app-guide.md` and this report.
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { createClient } from '@/utils/supabase/server';
 import { StudioGenerateRequestSchema } from '@/lib/api-schemas';
-import { buildStudioPrompt } from '@/lib/ai/studioPrompt';
+import { buildStudioPrompt, getSetupById } from '@/lib/ai/studioPrompt';
 import { generateStudioImages, type GeneratedImage, type ImageProviderId } from '@/lib/ai/imageProvider';
 import { loadDecryptedSettingsForServer } from '@/app/settings/actions';
 import { createSession, logPipelineEvent, updateSessionError, updateSessionStatus } from '@/lib/llm/session-manager';
@@ -144,9 +144,49 @@ export async function POST(req: Request) {
       }
     }
 
+    // Master reference resolution: when useMasterReference=true, look up the uploaded
+    // master image for this (org, jewelry_type, setup.masterKey) combination and use it
+    // as the style anchor (passed to Gemini as the second image via studioImageUrl slot).
+    let masterReferenceUrl: string | null = null;
+    if (parsed.useMasterReference) {
+      const setup = getSetupById(parsed.setupId, settings.aiStudioPromptLibrary as never);
+      const masterKey = setup && 'masterKey' in setup ? (setup as { masterKey: string }).masterKey : null;
+
+      if (!masterKey) {
+        return NextResponse.json(
+          { error: `Setup '${parsed.setupId}' has no master key configured.` },
+          { status: 400 }
+        );
+      }
+
+      const { data: masterRef, error: masterErr } = await supabase
+        .from('studio_master_references')
+        .select('public_url')
+        .eq('organization_id', orgId)
+        .eq('jewelry_type', parsed.jewelryType)
+        .eq('master_key', masterKey)
+        .maybeSingle();
+
+      if (masterErr) {
+        return NextResponse.json({ error: masterErr.message }, { status: 500 });
+      }
+
+      if (!masterRef) {
+        return NextResponse.json(
+          {
+            error: `No master reference image found for ${parsed.jewelryType} / ${parsed.setupId}. Upload one in Studio Assets → Masters tab.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      masterReferenceUrl = masterRef.public_url;
+    }
+
     // Build prompt from the canonical library.
-    // If modelImageUrl or studioImageUrl are provided, they will replace text-based prompts.
-    // If customPromptInstructions are provided, they will replace the entire prompt template.
+    // masterReferenceUrl → rich two-image style-transfer prompt.
+    // modelImageUrl / studioImageUrl → minimal reference prompts (existing behaviour).
+    // customPromptInstructions → bypass all templates.
     const { promptText } = buildStudioPrompt({
       setupId: parsed.setupId,
       modelId: parsed.modelId,
@@ -159,7 +199,9 @@ export async function POST(req: Request) {
       library: settings.aiStudioPromptLibrary,
       togglePhrases: settings.aiStudioTogglePhrases,
       modelImageUrl,
-      studioImageUrl,
+      // masterReferenceUrl takes precedence over any user-supplied studioImageUrl
+      studioImageUrl: masterReferenceUrl ?? studioImageUrl,
+      masterReferenceUrl,
       customPromptInstructions: parsed.customPromptInstructions || null,
     });
 
@@ -206,7 +248,8 @@ export async function POST(req: Request) {
       prompt: promptText,
       variants: parsed.variants,
       modelImageUrl: modelImageUrl || undefined,
-      studioImageUrl: studioImageUrl || undefined,
+      // masterReferenceUrl takes the studioImageUrl slot (sent as the last image to Gemini)
+      studioImageUrl: (masterReferenceUrl ?? studioImageUrl) || undefined,
       openaiApiKey,
       falApiKey,
       geminiApiKey,
@@ -300,6 +343,7 @@ export async function POST(req: Request) {
       provider,
       providerModel: providerModel || null,
       options: parsed.options,
+      usedMasterReference: parsed.useMasterReference,
     }));
 
     const nextData: JsonRecord = {

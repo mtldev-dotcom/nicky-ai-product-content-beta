@@ -1,9 +1,9 @@
-# Dashboard UI/UX Improvements
+# Dashboard — Completed Improvements & Roadmap
 
 ## Summary
-This document outlines 10 key UI/UX improvements for the product dashboard page, addressing duplicate detection, better filtering, sorting, and overall user experience.
+This document tracks UI/UX work for the product dashboard. Section 1 lists what is **implemented and shipped**. Section 2 is the **feature backlog** — proposed improvements not yet built.
 
-## Implemented Improvements
+## Section 1 — Implemented (Shipped)
 
 ### 1. ✅ Duplicate Detection & Grouping
 - **Issue**: Multiple products with similar names create visual clutter
@@ -20,7 +20,7 @@ This document outlines 10 key UI/UX improvements for the product dashboard page,
 - **Solution**: Update Medusa first, then sync locally; check for existing products before creating
 - **Status**: Implemented in `product-details/page.tsx` and `products/actions.ts`
 
-## Recommended UI/UX Enhancements
+## Section 2 — Backlog (Not Yet Built)
 
 ### 4. Sortable Columns (MedusaJS Catalog)
 - Add sortable headers for Product, Variants, Status, Created

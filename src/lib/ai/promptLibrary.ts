@@ -17,12 +17,14 @@ export const PROMPT_LIBRARY_JSON = {
       "id": "ring_setup_01_concrete_pedestal",
       "jewelryType": "ring",
       "title": "Ring — Concrete Pedestal",
+      "masterKey": "concrete_pedestal",
       "prompt": "A single men’s ring displayed upright on a raw rectangular concrete pedestal. The concrete has sharp edges, dark charcoal tone, subtle pores and imperfections. Ring centered, minimal composition, strong vertical presence. No branding visible, no text. Professional jewelry studio lighting, ultra-realistic metal texture."
     },
     {
       "id": "ring_setup_02_mannequin_hand",
       "jewelryType": "ring",
       "title": "Ring — Matte Black Mannequin Hand",
+      "masterKey": "mannequin_hand",
       "prompt": "A matte black mannequin hand posed naturally with slightly bent fingers, wearing a men’s ring. Hand resting on a flat concrete slab. Minimalist composition, modern luxury aesthetic. Ring is the hero, hand fades subtly into shadow. Professional studio lighting, hyper-realistic finish."
     },
 
@@ -30,12 +32,14 @@ export const PROMPT_LIBRARY_JSON = {
       "id": "bracelet_setup_01_concrete_wrist_form",
       "jewelryType": "bracelet",
       "title": "Bracelet — Concrete Wrist Form",
+      "masterKey": "concrete_wrist_form",
       "prompt": "Men’s bracelet wrapped around a cylindrical concrete wrist display. Dark charcoal concrete, smooth but imperfect texture. Bracelet slightly angled to catch light and show depth. Minimal background, industrial luxury mood. Ultra-sharp focus on metal links."
     },
     {
       "id": "bracelet_setup_02_draped_metal_bar",
       "jewelryType": "bracelet",
       "title": "Bracelet — Draped Metal Bar",
+      "masterKey": "draped_metal_bar",
       "prompt": "Men’s bracelet gently draped over a thin matte black metal bar. Bar suspended above a concrete base, subtle shadow underneath. Bracelet forms a natural curve, relaxed tension. Clean studio composition, premium product photography."
     },
 
@@ -43,12 +47,14 @@ export const PROMPT_LIBRARY_JSON = {
       "id": "chain_setup_01_vertical_drop",
       "jewelryType": "chain",
       "title": "Chain — Vertical Drop Display",
+      "masterKey": "vertical_drop",
       "prompt": "Men’s chain hanging vertically from a hidden matte black hook. Chain perfectly centered against a dark concrete background. Natural gravity flow, clean silhouette. Focus on link structure and metal finish. High-contrast studio lighting, luxury editorial look."
     },
     {
       "id": "chain_setup_02_layered_concrete_surface",
       "jewelryType": "chain",
       "title": "Chain — Layered Concrete Surface",
+      "masterKey": "layered_concrete_surface",
       "prompt": "Men’s chain laid in a soft curve on a large concrete slab. Concrete surface slightly angled toward the camera. Chain overlaps itself naturally, creating depth and highlights. Minimalist industrial studio aesthetic."
     },
 
@@ -56,12 +62,14 @@ export const PROMPT_LIBRARY_JSON = {
       "id": "pendant_setup_01_suspended_hero",
       "jewelryType": "pendant",
       "title": "Pendant — Suspended Hero Shot",
+      "masterKey": "suspended_hero",
       "prompt": "Men’s pendant hanging from a thin chain, floating in front of a dark concrete wall. Pendant centered, perfectly still, strong shadow separation. Lighting emphasizes shape and engraved details. Premium jewelry studio photography."
     },
     {
       "id": "pendant_setup_02_resting_on_block",
       "jewelryType": "pendant",
       "title": "Pendant — Resting on Concrete Block",
+      "masterKey": "resting_on_block",
       "prompt": "Men’s pendant resting flat on a rectangular concrete block. Chain partially visible, softly leading out of frame. Close-up composition, shallow depth of field. Industrial luxury mood, ultra-realistic texture."
     },
 
@@ -69,12 +77,14 @@ export const PROMPT_LIBRARY_JSON = {
       "id": "earring_setup_01_vertical_pin_display",
       "jewelryType": "earring",
       "title": "Earring — Vertical Pin Display",
+      "masterKey": "vertical_pin_display",
       "prompt": "Single men’s earring mounted on a thin matte black vertical pin. Pin anchored into a small concrete base. Minimalist composition, strong negative space. Sharp focus on metal texture."
     },
     {
       "id": "earring_setup_02_paired_flat_lay",
       "jewelryType": "earring",
       "title": "Earring — Paired Flat Lay",
+      "masterKey": "paired_flat_lay",
       "prompt": "Pair of men’s earrings placed symmetrically on a dark concrete slab. Slight angle to create natural highlights. Clean studio flat-lay composition. High-end editorial jewelry look."
     }
   ],

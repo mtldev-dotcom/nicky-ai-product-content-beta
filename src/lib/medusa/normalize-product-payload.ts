@@ -6,11 +6,7 @@
  * mutating the input object.
  */
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(v: unknown): v is UnknownRecord {
-    return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
+import { type UnknownRecord, isRecord } from '@/lib/medusa/utils';
 
 export function normalizeCurrencyCode(input: unknown, fallback: string = 'usd'): string {
     // Preconditions:

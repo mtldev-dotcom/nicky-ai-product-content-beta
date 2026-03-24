@@ -10,7 +10,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "db:push": "supabase db push",
+    "db:pull": "supabase db pull",
+    "db:diff": "supabase db diff",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --project-id hbvniwwzmjnfbakrfqzw --schema public > src/types/supabase.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.957.0",
@@ -41,6 +46,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "supabase": "^2.84.0",
     "tailwindcss": "^4",
     "tsx": "^4.20.5",
     "typescript": "^5"
