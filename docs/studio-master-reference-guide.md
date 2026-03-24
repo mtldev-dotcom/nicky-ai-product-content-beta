@@ -234,3 +234,85 @@ The `useMasterReference` flag is API-ready but not yet exposed in the Studio gen
 2. Add a toggle checkbox: "Use master reference image"
 3. Include `useMasterReference: toggleValue` in the POST body
 4. Optionally show a warning if no master exists for the selected setup (call `GET /api/studio-masters` and check)
+
+---
+
+## 🇫🇷 Version TDAH — Guide rapide en français
+
+> **C'est quoi cette feature ?**
+> Tu donnes une photo de ton produit + une image de référence de ton style de marque → Gemini génère une photo studio professionnelle qui match ton esthétique.
+
+---
+
+### ✅ Setup une seule fois — dans l'ordre
+
+**1. Appliquer la migration base de données**
+
+```
+! SUPABASE_ACCESS_TOKEN=<ton-token> npx supabase link --project-ref hbvniwwzmjnfbakrfqzw
+! npm run db:push
+```
+
+- Token → https://supabase.com/dashboard/account/tokens → "Generate new token"
+- Mot de passe DB → Supabase dashboard → Settings → Database → Connection string
+
+**2. Vérifier que R2 est public**
+
+- Ouvre `pub-933308a8961a4cde9368a092dfc1175b.r2.dev/n'importe-quelle-image` dans ton browser
+- Si ça charge → ✅ OK
+
+**3. Uploader tes images de référence**
+
+1. Va dans **Studio Assets** (menu latéral)
+2. Clique l'onglet **Masters**
+3. Clique **Upload Master**
+4. Choisis : type de bijou + setup (shot type) + ton image
+5. Upload → répète pour chaque setup que tu utilises
+
+---
+
+### 🧪 Tester rapidement
+
+Copie ça dans la console du browser (quand t'es connecté sur l'app) :
+
+```js
+fetch('/api/ai/studio-generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    productId: 'COLLE-UN-UUID-DE-PRODUIT-ICI',
+    inputImages: [{ id: '1', url: 'URL-DE-TA-PHOTO-PRODUIT' }],
+    jewelryType: 'ring',
+    setupId: 'ring_setup_01_concrete_pedestal',
+    modelId: 'none',
+    options: { macro: true, noFingerprints: true, extraRimLight: false, darkness: 70 },
+    variants: 1,
+    provider: 'gemini',
+    useMasterReference: true
+  })
+}).then(r => r.json()).then(console.log)
+```
+
+**Résultat attendu :** un objet `{ generations: [{ outputImageUrl: '...' }] }`
+
+---
+
+### ❌ Erreurs fréquentes
+
+| Message d'erreur | Fix |
+|---|---|
+| `No master reference image found` | Upload une image master pour ce setup dans l'onglet Masters |
+| `R2/S3 not configured` | Settings → Storage → entre les credentials R2 |
+| `Unauthorized` | T'es pas connecté — recharge la page |
+| Migration pas appliquée | Relance `npm run db:push` |
+
+---
+
+### 📍 Où trouver quoi
+
+| Quoi | Où |
+|---|---|
+| Uploader/gérer les masters | Studio Assets → onglet Masters |
+| Voir les images générées | Éditeur produit → section Images |
+| Logs de génération | `/usage` dans l'app |
+| Guide complet (anglais) | Ce document, sections du haut ☝️ |

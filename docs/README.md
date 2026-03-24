@@ -41,3 +41,18 @@ This folder contains the **authoritative documentation** for the Product Archite
 ## Archived
 
 - `docs/archived/mobile-ux-analysis.md` — Superseded by `mobile-first-optimization-log.md`
+
+---
+
+## 🇫🇷 Index rapide — Version TDAH
+
+> **T'as besoin de quoi ?** Choisis direct :
+
+| Je veux... | Fichier |
+|---|---|
+| Comprendre l'app en gros | `docs/app-guide.md` |
+| Setup la feature photos IA (master reference) | `docs/studio-master-reference-guide.md` |
+| Voir ce qui a changé récemment | `docs/progress-report.md` |
+| Comprendre comment Medusa est intégré | `docs/medusa-integration-architecture.md` |
+| Tester le push vers Medusa | `docs/medusa-integration-testing-walkthrough.md` |
+| Voir les décisions d'archi (immuables) | `docs/adr/` |

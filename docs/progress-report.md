@@ -658,3 +658,37 @@ Replaces a brittle n8n automation with a fully integrated, org-scoped, multi-ten
 - `npm run build` passes.
 
 
+
+---
+
+## 🇫🇷 Résumé TDAH — Dernière session (2026-03-24)
+
+### C'est quoi ce qui a été fait ?
+
+**Feature :** Génération de photos produit avec image de référence de style (master reference)
+
+**En gros :** Tu uploades une image "master" (ton esthétique de marque) → l'app envoie ta photo produit + le master à Gemini → Gemini génère une photo studio qui match ton style.
+
+---
+
+### Fichiers importants touchés
+
+| Fichier | Pourquoi |
+|---|---|
+| `supabase/migrations/20260324000000_...sql` | Nouvelle table pour stocker les masters |
+| `src/lib/ai/promptLibrary.ts` | Ajout `masterKey` sur les 10 setups |
+| `src/lib/ai/studioPrompt.ts` | Nouveau mode de prompt "style transfer" |
+| `src/app/api/studio-masters/` | 3 nouvelles routes API (list / upload / delete) |
+| `src/app/studio-assets/page.tsx` | Onglet Masters dans l'UI |
+| `supabase/config.toml` | Supabase CLI initialisé |
+
+---
+
+### Avant de pouvoir tester — checklist
+
+- [ ] Linker le CLI Supabase (`supabase link`)
+- [ ] `npm run db:push` (appliquer la migration)
+- [ ] Confirmer que R2 est public
+- [ ] Uploader au moins une image master dans Studio Assets → Masters
+
+→ Guide complet : `docs/studio-master-reference-guide.md`
