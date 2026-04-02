@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     });
 
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    const publicUrl = `${publicUrlBase}/${fileKey}`;
+    const publicUrl = `${publicUrlBase.replace(/\/+$/, '')}/${fileKey}`;
 
     return NextResponse.json({ presignedUrl, publicUrl, fileKey });
   } catch (error: unknown) {

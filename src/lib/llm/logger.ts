@@ -16,6 +16,7 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { createClient } from '@/utils/supabase/server';
 import { minimizeContent } from './redaction';
 import { estimateCost } from './cost-calculator';
+import type { StreamEmit } from '@/lib/ingest/stream-types';
 
 export interface LLMCallParams {
   sessionId: string;
@@ -26,6 +27,8 @@ export interface LLMCallParams {
   responseFormat?: 'json_object' | 'text';
   temperature?: number;
   maxTokens?: number;
+  /** Optional SSE emitter — when provided, emits an llm_call event after each successful call. */
+  emit?: StreamEmit;
 }
 
 export interface LLMCallResult {
@@ -87,7 +90,7 @@ export async function logCallPreview(params: {
 export async function callLLMWithLogging(
   params: LLMCallParams
 ): Promise<LLMCallResult> {
-  const { sessionId, step, model, messages, openai, responseFormat, temperature, maxTokens } = params;
+  const { sessionId, step, model, messages, openai, responseFormat, temperature, maxTokens, emit } = params;
   
   // Execute the LLM call
   let response;
@@ -115,6 +118,29 @@ export async function callLLMWithLogging(
     completion_tokens: response.usage?.completion_tokens ?? 0,
   };
   
+  // Emit to SSE stream (non-blocking, best-effort)
+  if (emit) {
+    try {
+      const lastUser = [...messages].reverse().find(m => m.role === 'user');
+      const rawPrompt = typeof lastUser?.content === 'string'
+        ? lastUser.content
+        : Array.isArray(lastUser?.content)
+          ? (lastUser.content as Array<{ type: string; text?: string }>).find(p => p.type === 'text')?.text ?? `[${step}]`
+          : `[${step}]`;
+      emit({
+        type: 'llm_call',
+        step,
+        model,
+        promptPreview: rawPrompt.replace(/\s+/g, ' ').substring(0, 200),
+        responsePreview: content.replace(/\s+/g, ' ').substring(0, 200),
+        tokens: { prompt: usage.prompt_tokens, completion: usage.completion_tokens },
+        ts: Date.now(),
+      });
+    } catch {
+      // Emit failures are non-fatal
+    }
+  }
+
   // Log the call (non-blocking)
   await logLLMCall(sessionId, step, model, messages, content, usage).catch(err => {
     // Logging failures must NOT break the pipeline

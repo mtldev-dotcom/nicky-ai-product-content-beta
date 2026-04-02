@@ -8,6 +8,7 @@
 import OpenAI from 'openai';
 import { callLLMWithLogging } from '@/lib/llm/logger';
 import { detectFileType } from './file-processors';
+import type { StreamEmit } from './stream-types';
 
 export interface ClassificationResult {
   languages: string[];
@@ -43,7 +44,8 @@ export function classifyUrlSource(url: string): 'aliexpress' | 'amazon' | 'other
 export async function detectLanguages(
   text: string,
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<string[]> {
   if (!text || text.trim().length === 0) {
     return ['en']; // Default to English
@@ -67,8 +69,9 @@ ${text.substring(0, 1000)}`;
       responseFormat: 'json_object',
       temperature: 0.1,
       maxTokens: 50,
+      emit,
     });
-    
+
     const parsed = JSON.parse(result.content) as { languages?: unknown };
     const languagesRaw = parsed.languages;
     const languages = Array.isArray(languagesRaw) ? languagesRaw : ['en'];
@@ -92,7 +95,8 @@ ${text.substring(0, 1000)}`;
 export async function classifyContentSegments(
   text: string,
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<ClassificationResult['contentSegments']> {
   if (!text || text.trim().length === 0) {
     return { titles: [], bullets: [], specs: [], descriptions: [] };
@@ -122,6 +126,7 @@ ${text.substring(0, 2000)}`;
       responseFormat: 'json_object',
       temperature: 0.3,
       maxTokens: 500,
+      emit,
     });
     
     const parsed = JSON.parse(result.content);
@@ -146,29 +151,30 @@ export async function classifyInputs(
   urls: string[],
   files: Array<{ type: string; mime: string; url: string }>,
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<ClassificationResult> {
   // Combine all text for language detection
   const allText = [...textBlocks, ...urls].join(' ');
-  
+
   // Detect languages
-  const languages = await detectLanguages(allText, sessionId, openai);
-  
+  const languages = await detectLanguages(allText, sessionId, openai, emit);
+
   // Classify file types
   const fileTypes = files.map(file => ({
     type: detectFileType(file.mime || '', file.url),
     mime: file.mime || '',
   }));
-  
+
   // Classify URL sources
   const urlSources = urls.map(url => ({
     url,
     platform: classifyUrlSource(url),
   }));
-  
+
   // Classify content segments from text blocks
   const combinedText = textBlocks.join('\n\n');
-  const contentSegments = await classifyContentSegments(combinedText, sessionId, openai);
+  const contentSegments = await classifyContentSegments(combinedText, sessionId, openai, emit);
   
   return {
     languages,

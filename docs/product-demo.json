@@ -1,0 +1,44 @@
+{
+  "title": "Minimalist Recycled Leather Wallet",
+  "description": "Hand-crafted from 100% recycled premium leather, this slim wallet combines sustainability with timeless design. Featuring a precision-cut silhouette and reinforced stitching for ultimate longevity.",
+  "subtitle": "Sustainability meets sophisticated design.",
+  "sku": "WL-MIN-001",
+  "price": 45,
+  "images": [
+    "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1550520920-27af500dae7a?auto=format&fit=crop&q=80&w=800"
+  ],
+  "options": [
+    {
+      "name": "Color",
+      "values": [
+        "Obsidian Black",
+        "Arctic White",
+        "Saddle Brown"
+      ]
+    },
+    {
+      "name": "Size",
+      "values": [
+        "Slim",
+        "Executive"
+      ]
+    }
+  ],
+  "features": [
+    "100% recycled leather",
+    "Holds up to 8 cards",
+    "RFID protection layer",
+    "Hand-stitched durability"
+  ],
+  "metadata_title": "Minimalist Wallet | Recycled Leather | The Uncut Brand",
+  "metadata_description": "Shop our handcrafted minimalist wallet made from recycled leather. Sustainable, slim, and built to last.",
+  "keywords": [
+    "wallet",
+    "leather",
+    "minimalist",
+    "sustainable",
+    "recycled",
+    "rfid protection"
+  ]
+}

@@ -10,6 +10,7 @@ import OpenAI from 'openai';
 import type { Evidence, ProductBlueprint, AIMeta } from '@/lib/ingest-types';
 import { callLLMWithLogging } from '@/lib/llm/logger';
 import { logPipelineEvent } from '@/lib/llm/session-manager';
+import type { StreamEmit } from './stream-types';
 
 export interface OrgSettings {
   brandName: string;
@@ -52,7 +53,8 @@ export async function generateFromEvidence(
   evidence: Evidence,
   settings: OrgSettings,
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<ProductBlueprint> {
   await logPipelineEvent(sessionId, 'BLUEPRINT_GENERATION_STARTED');
   
@@ -173,6 +175,7 @@ IMPORTANT:
       responseFormat: 'json_object',
       temperature: 0.7,
       maxTokens: 4000,
+      emit,
     });
     
     let parsed;

@@ -692,3 +692,84 @@ Replaces a brittle n8n automation with a fully integrated, org-scoped, multi-ten
 - [ ] Uploader au moins une image master dans Studio Assets → Masters
 
 → Guide complet : `docs/studio-master-reference-guide.md`
+
+---
+
+## 2026-04-02 — Create page rewrite + SSE streaming pipeline log
+
+### What was done
+
+**1. Create page full rewrite (`src/app/create/page.tsx`)**
+
+- Replaced the old dual-path UI (Quick Start fast path + progressive-disclosure ingest path) with a single flat 4-section form:
+  - Section 1: Images (drag-drop upload + image URL input + thumbnails)
+  - Section 2: Product Details (single textarea for source notes, copy, specs, variants)
+  - Section 3: Supplier URL (optional, single field)
+  - Section 4: JSON Import (optional, bypasses AI)
+- Removed the `/api/generate` fast path entirely — all submissions now go through the full JUST DROP IT ingest pipeline.
+- Any one input (image / text / URL) is sufficient to submit.
+- JSON import maps `docs/product-demo.json` format and skips AI completely.
+- Ctrl+V paste routes through R2 upload (was previously stored as base64 in memory).
+
+**2. SSE streaming for the ingest pipeline**
+
+- `POST /api/products/ingest` now returns `text/event-stream` instead of plain JSON.
+- The pipeline emits events in real time as agents run:
+  - `session_created` — pipeline started, session ID available
+  - `pipeline_event` — agent phase transitions (CLASSIFICATION_STARTED, EXTRACTION_STARTED, etc.)
+  - `llm_call` — every GPT call: model name, step slug, prompt preview, token counts (in↑ out↓)
+  - `url_fetch` — supplier URL fetch started/done/error
+  - `complete` — full blueprint + evidence payload
+  - `error` — pipeline failure
+- `StreamEmit` callback (`src/lib/ingest/stream-types.ts`) is threaded through classifier → extractor → blueprint-generator → `callLLMWithLogging`.
+- All existing Supabase logging (`llm_sessions`, `llm_calls`, `pipeline_events`) is preserved.
+
+**3. GenerationLogPanel component (`src/components/create/GenerationLogPanel.tsx`)**
+
+- Terminal-style log panel that appears below the form when the pipeline starts.
+- Auto-scrolls; shows agent sections, LLM calls with token counts, URL fetches, errors, and a total token summary.
+- "View session" link to `/usage/[sessionId]` for full session replay.
+
+**4. R2 public URL trailing-slash fix**
+
+- `src/app/api/media/presigned/route.ts` and `src/app/api/media/sync/route.ts` both used `${publicUrlBase}/${fileKey}` — when `S3_FILE_URL` had a trailing slash this produced double-slash URLs.
+- Fixed with `publicUrlBase.replace(/\/+$/, '')` in both routes.
+
+### Why it matters
+
+- The old dual-path created silent confusion: users could submit a prompt + image and the fast path would silently ignore the image if it fell into the ingest path. Now there's one path, no confusion.
+- Real-time streaming makes a 10–30 second pipeline feel interactive instead of frozen.
+- The GenerationLogPanel doubles as a debugging tool for understanding exactly what the AI agents saw and produced.
+- The double-slash bug was causing broken image URLs for any org with a trailing slash in their `S3_FILE_URL`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `src/app/create/page.tsx` | Full rewrite — flat layout, stream consumer, log panel |
+| `src/app/api/products/ingest/route.ts` | Converted to SSE streaming |
+| `src/lib/ingest/stream-types.ts` | NEW — `IngestStreamEvent` + `StreamEmit` |
+| `src/lib/llm/logger.ts` | Added optional `emit` to `callLLMWithLogging` |
+| `src/lib/ingest/classifier.ts` | Threaded `emit` through all functions |
+| `src/lib/ingest/extractor.ts` | Threaded `emit`; `extractFromUrl` emits `url_fetch` events |
+| `src/lib/ingest/blueprint-generator.ts` | Threaded `emit` |
+| `src/components/create/GenerationLogPanel.tsx` | NEW — terminal log UI |
+| `src/app/api/media/presigned/route.ts` | Fix trailing-slash double-slash bug |
+| `src/app/api/media/sync/route.ts` | Fix trailing-slash double-slash bug |
+
+### What works
+
+- Full 4-agent pipeline runs on any combination of image / text / URL input.
+- Live log streams to the browser as each agent step runs.
+- JSON import bypasses AI and loads directly (same as before).
+- Session logs saved to Supabase and viewable at `/usage`.
+- R2 public URLs correct regardless of trailing slash in `S3_FILE_URL`.
+
+### What does NOT work yet
+
+- R2 direct uploads (presigned PUT) require a CORS policy on the R2 bucket — must be set in Cloudflare Dashboard (see `docs/create-product-flow.md` → R2 Media Upload Notes).
+
+### Follow-up TODOs
+
+- Set R2 bucket CORS policy to unblock direct file uploads in local dev and production.
+- Consider adding a prompt preview expandable section in GenerationLogPanel (click to see full prompt sent to each agent).

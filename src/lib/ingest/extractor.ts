@@ -11,6 +11,7 @@ import { callLLMWithLogging } from '@/lib/llm/logger';
 import { logPipelineEvent } from '@/lib/llm/session-manager';
 import { assertSafeExternalUrl, fetchExternalWithLimits } from '@/lib/ssrf';
 import { processCSV, processJSON, detectFileType } from './file-processors';
+import type { StreamEmit } from './stream-types';
 
 /**
  * Extracts evidence from text blocks.
@@ -18,7 +19,8 @@ import { processCSV, processJSON, detectFileType } from './file-processors';
 export async function extractFromText(
   textBlocks: string[],
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<Partial<Evidence>> {
   await logPipelineEvent(sessionId, 'EXTRACTION_TEXT_STARTED');
   
@@ -58,8 +60,9 @@ ${combinedText.substring(0, 4000)}`;
       responseFormat: 'json_object',
       temperature: 0.3,
       maxTokens: 2000,
+      emit,
     });
-    
+
     const parsed = JSON.parse(result.content);
     await logPipelineEvent(sessionId, 'EXTRACTION_TEXT_COMPLETE');
     
@@ -88,7 +91,8 @@ ${combinedText.substring(0, 4000)}`;
 export async function extractFromImage(
   imageUrl: string,
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<Partial<Evidence>> {
   await logPipelineEvent(sessionId, 'EXTRACTION_VISION_STARTED');
   
@@ -119,6 +123,7 @@ Return JSON with the same structure as text extraction.`;
       responseFormat: 'json_object',
       temperature: 0.3,
       maxTokens: 2000,
+      emit,
     });
     
     const parsed = JSON.parse(result.content);
@@ -153,10 +158,14 @@ export async function extractFromUrl(
   url: string,
   sessionId: string,
   openai: OpenAI,
-  allowedHosts?: string[]
+  allowedHosts?: string[],
+  emit?: StreamEmit
 ): Promise<Partial<Evidence>> {
   await logPipelineEvent(sessionId, 'EXTRACTION_URL_STARTED', `URL: ${url.substring(0, 100)}`);
-  
+
+  const shortUrl = url.replace(/^https?:\/\//, '').substring(0, 80);
+  emit?.({ type: 'url_fetch', url: shortUrl, status: 'started', ts: Date.now() });
+
   try {
     // SSRF protection
     const safeUrl = await assertSafeExternalUrl(url, { allowedHosts });
@@ -211,13 +220,14 @@ export async function extractFromUrl(
     ].join('\n\n');
     
     // Use text extraction on the enriched content
-    const evidence = await extractFromText([combinedInput], sessionId, openai);
-    
+    const evidence = await extractFromText([combinedInput], sessionId, openai, emit);
+
     // Add supplier metadata
     const platform = (url || '').toLowerCase().includes('aliexpress') ? 'aliexpress' :
                      (url || '').toLowerCase().includes('amazon') ? 'amazon' : 'other';
-    
+
     await logPipelineEvent(sessionId, 'EXTRACTION_URL_COMPLETE');
+    emit?.({ type: 'url_fetch', url: shortUrl, status: 'done', ts: Date.now() });
     
     return {
       ...evidence,
@@ -229,6 +239,7 @@ export async function extractFromUrl(
   } catch (error) {
     console.error('URL extraction failed:', error);
     await logPipelineEvent(sessionId, 'EXTRACTION_URL_ERROR');
+    emit?.({ type: 'url_fetch', url: shortUrl, status: 'error', ts: Date.now() });
     return {};
   }
 }
@@ -239,42 +250,36 @@ export async function extractFromUrl(
 export async function extractFromFile(
   file: { type: string; mime: string; url: string },
   sessionId: string,
-  openai: OpenAI
+  openai: OpenAI,
+  emit?: StreamEmit
 ): Promise<Partial<Evidence>> {
   const fileType = detectFileType(file.mime || '', file.url);
-  
+
   try {
     if (fileType === 'image') {
-      return await extractFromImage(file.url, sessionId, openai);
+      return await extractFromImage(file.url, sessionId, openai, emit);
     }
-    
+
     if (fileType === 'csv') {
-      // Fetch and parse CSV
       const response = await fetch(file.url);
       const text = await response.text();
       const { headers, rows } = await processCSV(text);
-      
-      // Convert CSV to text for extraction
       const csvText = `Headers: ${headers.join(', ')}\nRows:\n${rows.slice(0, 10).map(r => r.join(', ')).join('\n')}`;
-      return await extractFromText([csvText], sessionId, openai);
+      return await extractFromText([csvText], sessionId, openai, emit);
     }
-    
+
     if (fileType === 'json') {
-      // Fetch and parse JSON
       const response = await fetch(file.url);
       const text = await response.text();
       const json = await processJSON(text);
-      
-      // Convert JSON to text for extraction
       const jsonText = JSON.stringify(json, null, 2).substring(0, 5000);
-      return await extractFromText([jsonText], sessionId, openai);
+      return await extractFromText([jsonText], sessionId, openai, emit);
     }
-    
+
     if (fileType === 'text') {
-      // Fetch and extract from text
       const response = await fetch(file.url);
       const text = await response.text();
-      return await extractFromText([text], sessionId, openai);
+      return await extractFromText([text], sessionId, openai, emit);
     }
     
     // PDF and other types not yet supported
@@ -295,10 +300,11 @@ export async function extractEvidence(
   files: Array<{ type: string; mime: string; url: string }>,
   sessionId: string,
   openai: OpenAI,
-  allowedHosts?: string[]
+  allowedHosts?: string[],
+  emit?: StreamEmit
 ): Promise<Evidence> {
   await logPipelineEvent(sessionId, 'EXTRACTION_STARTED');
-  
+
   // Start with empty evidence
   const evidence: Evidence = {
     titles: [],
@@ -315,23 +321,23 @@ export async function extractEvidence(
   
   // Extract from text blocks
   if (textBlocks.length > 0) {
-    const textEvidence = await extractFromText(textBlocks, sessionId, openai);
+    const textEvidence = await extractFromText(textBlocks, sessionId, openai, emit);
     mergeEvidence(evidence, textEvidence);
   }
-  
+
   // Extract from URLs (process in parallel, but limit concurrency)
-  const urlPromises = urls.slice(0, 5).map(url => // Limit to 5 URLs
-    extractFromUrl(url, sessionId, openai, allowedHosts).catch(err => {
+  const urlPromises = urls.slice(0, 5).map(url =>
+    extractFromUrl(url, sessionId, openai, allowedHosts, emit).catch(err => {
       console.error(`URL extraction failed for ${url}:`, err);
       return {};
     })
   );
   const urlResults = await Promise.all(urlPromises);
   urlResults.forEach(urlEvidence => mergeEvidence(evidence, urlEvidence));
-  
+
   // Extract from files (process in parallel, limit concurrency)
-  const filePromises = files.slice(0, 10).map(file => // Limit to 10 files
-    extractFromFile(file, sessionId, openai).catch(err => {
+  const filePromises = files.slice(0, 10).map(file =>
+    extractFromFile(file, sessionId, openai, emit).catch(err => {
       console.error(`File extraction failed:`, err);
       return {};
     })

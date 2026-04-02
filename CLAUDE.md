@@ -11,7 +11,7 @@ This file is the authoritative guide for Claude working in this repo. Read it fu
 **Who it's for:** Small-to-medium e-commerce operators using MedusaJS who need to create and manage large product catalogs efficiently.
 
 **Core flows:**
-1. **JUST DROP IT** — upload an image/JSON → AI classifies, extracts, and generates a product blueprint
+1. **JUST DROP IT** — upload images/text/URL/JSON → 4-agent AI pipeline classifies, extracts, and generates a ProductBlueprint; streamed live via SSE
 2. **Editor** — edit product fields, variants, options, localization, and media
 3. **Push to Medusa** — validate and sync a product to MedusaJS via two-phase creation or update strategy
 4. **Studio** — AI image generation for product photography
@@ -69,11 +69,13 @@ src/
 ├── components/
 │   ├── ui/               — Reusable primitive components (Toast, Lightbox, etc.)
 │   ├── layout/           — Shell, Navigation
+│   ├── create/           — Components specific to the /create page (e.g. GenerationLogPanel)
 │   └── [feature]/        — Feature-specific components. UI only — no direct Medusa/DB calls.
 ├── lib/
 │   ├── medusa/           — All MedusaJS integration logic
 │   │   └── utils.ts      — Shared primitives (isRecord, asString, etc.) — import from here, never redefine
 │   ├── ingest/           — Product ingestion pipeline (classify → extract → generate)
+│   │   └── stream-types.ts — IngestStreamEvent union + StreamEmit type (shared server/client)
 │   ├── llm/              — LLM session tracking and logging
 │   ├── ai/               — Image generation providers
 │   └── *.ts              — Other shared utilities
@@ -186,8 +188,82 @@ if (!membership?.organization_id) return NextResponse.json({ error: 'Forbidden' 
 4. First thing in the handler: parse the request with the schema.
 5. Second thing: verify auth and resolve the org.
 6. Third thing: business logic (call lib functions, not inline).
-7. Return `NextResponse.json(...)` with typed responses.
+7. Return `Response.json(...)` (or `NextResponse.json(...)`) with typed responses.
 8. Never return decrypted secrets in the response.
+9. For long-running pipelines, use SSE streaming — see the section below.
+
+---
+
+## How to add a streaming (SSE) API route
+
+The JUST DROP IT ingest pipeline (`/api/products/ingest`) streams events to the client as agents run. Follow this pattern for any new long-running endpoint:
+
+```typescript
+export const runtime = 'nodejs';
+
+export async function POST(req: Request) {
+  // 1. Parse + validate BEFORE the stream (errors return plain JSON)
+  const parsed = MySchema.parse(await req.json());
+
+  // 2. Auth + org resolution BEFORE the stream
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // 3. Create the stream — all pipeline work happens inside start()
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit: StreamEmit = (event) => {
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`)); }
+        catch { /* client disconnected */ }
+      };
+      try {
+        // ... pipeline work, calling emit() at each step ...
+        emit({ type: 'complete', ... });
+      } catch (err) {
+        emit({ type: 'error', message: err instanceof Error ? err.message : 'Unknown' });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // disable nginx buffering
+    },
+  });
+}
+```
+
+**Client consumption** (see `src/app/create/page.tsx` for the full pattern):
+```typescript
+const res = await fetch('/api/...', { method: 'POST', body: JSON.stringify(payload) });
+if (!res.ok) { /* handle JSON error */ return; }
+
+const reader = res.body!.getReader();
+const decoder = new TextDecoder();
+let buffer = '';
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+  const lines = buffer.split('\n');
+  buffer = lines.pop() ?? '';
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    const event = JSON.parse(line.slice(6));
+    // handle event
+  }
+}
+```
+
+**StreamEmit threading:** Add `emit?: StreamEmit` as the last parameter of any lib function that should emit events. Pass it through to `callLLMWithLogging`. Event types live in `src/lib/ingest/stream-types.ts`.
 
 ---
 

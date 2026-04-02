@@ -10,6 +10,7 @@ This folder contains the **authoritative documentation** for the Product Archite
 
 ## Feature / integration docs
 
+- **Create Product flow (full reference)**: `docs/create-product-flow.md`
 - **JUST DROP IT (product ingestion) PRD**: `docs/drop-it-phase/prd-drop-it.md`
 - **JUST DROP IT (technical flow)**: `docs/drop-it-phase/drop-it-flow.md`
 - **Medusa v2 integration notes**: `docs/medusa-v2-integration.md`
@@ -32,6 +33,7 @@ This folder contains the **authoritative documentation** for the Product Archite
 
 ## Feature guides
 
+- `docs/create-product-flow.md` — Full create product flow: 4-agent pipeline, SSE streaming, JSON import, R2 uploads
 - `docs/studio-master-reference-guide.md` — Setup and testing guide for AI Studio master reference photo generation
 
 ## In progress
@@ -51,6 +53,7 @@ This folder contains the **authoritative documentation** for the Product Archite
 | Je veux... | Fichier |
 |---|---|
 | Comprendre l'app en gros | `docs/app-guide.md` |
+| Comprendre le flow Create Product en détail | `docs/create-product-flow.md` |
 | Setup la feature photos IA (master reference) | `docs/studio-master-reference-guide.md` |
 | Voir ce qui a changé récemment | `docs/progress-report.md` |
 | Comprendre comment Medusa est intégré | `docs/medusa-integration-architecture.md` |

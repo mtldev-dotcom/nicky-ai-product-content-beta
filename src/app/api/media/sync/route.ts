@@ -123,7 +123,7 @@ export async function POST(req: Request) {
     });
 
     await s3Client.send(command);
-    const publicUrl = `${publicUrlBase}/${fileKey}`;
+    const publicUrl = `${publicUrlBase.replace(/\/+$/, '')}/${fileKey}`;
 
     return NextResponse.json({ publicUrl, fileKey });
   } catch (error: unknown) {
