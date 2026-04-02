@@ -1,5 +1,60 @@
 # Product Architect — Progress Report (Roadmap Execution Log)
 
+## 2026-04-02 00:00 — R2 Bucket Image Cleanup Implementation
+
+### What was done
+- Implemented comprehensive R2 bucket cleanup for product images to prevent orphaned assets
+- Added new `product_images` table to track R2 file keys for each product image
+- Created API endpoints for image registration, fetching, and deletion
+- Updated product deletion flow to remove all associated images from R2
+- Updated ProductMediaModule to track and delete images properly
+
+### Why it matters
+- **Prevents orphaned images** in R2 bucket when products/images are deleted
+- **Reduces storage costs** by cleaning up unused assets
+- **Addresses security/privacy concerns** with lingering product images
+- **Maintains consistency** with existing studio asset deletion patterns
+
+### What works
+- ✅ Image upload → automatically registered in `product_images` table
+- ✅ Image sync (add by URL) → automatically registered
+- ✅ Individual image deletion → removes from R2 + database
+- ✅ Product deletion → removes all associated images from R2
+- ✅ Graceful degradation if R2 not configured or table missing
+- `npm run build` passes
+- `npm run lint` passes (warnings only)
+
+### What does NOT work yet
+- Backfill for existing product images (old images not tracked until re-upload)
+- No unit tests for new API endpoints (CI-safe tests to be added)
+
+### Files changed
+- **New migration:** `supabase/migrations/20260402000000_add_product_images_table.sql`
+- **New endpoints:**
+  - `src/app/api/products/images/route.ts` (GET)
+  - `src/app/api/products/images/[id]/route.ts` (DELETE)
+  - `src/app/api/products/images/register/route.ts` (POST)
+- **Modified:**
+  - `src/app/products/actions.ts` (deleteProductFromCloud updated)
+  - `src/components/product-details/modules/ProductMediaModule.tsx` (tracking + deletion)
+- **New docs:** `docs/r2-bucket-cleanup.md`
+
+### Tests that exist / are missing
+- **Existing:** Build + lint pass
+- **Missing:** 
+  - Unit tests for image registration endpoint
+  - Unit tests for image deletion endpoint
+  - Integration test for product deletion flow
+  - Backfill script for existing images
+
+### Follow-up TODOs
+- Apply migration to Supabase database
+- Test end-to-end flow in staging environment
+- Add unit tests for new endpoints
+- Consider backfill script for existing product images
+
+---
+
 ## 2025-12-28 00:00 — Roadmap kickoff
 
 ### What was done

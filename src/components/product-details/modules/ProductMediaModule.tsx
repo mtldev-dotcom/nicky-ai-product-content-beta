@@ -30,7 +30,7 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useIsMobile } from '@/lib/mobile-utils';
 
 export function ProductMediaModule() {
-    const { images, reorderImages, setThumbnail, setImages, thumbnail, ignoredUrls, toggleIgnoreSync } = useProductStore();
+    const { images, reorderImages, setThumbnail, setImages, thumbnail, ignoredUrls, toggleIgnoreSync, id: productId } = useProductStore();
     const [bulkUrls, setBulkUrls] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [syncingUrls, setSyncingUrls] = useState<string[]>([]);
@@ -43,9 +43,38 @@ export function ProductMediaModule() {
     const [selectionMode, setSelectionMode] = useState(false);
     const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
     const [isStudioModalOpen, setIsStudioModalOpen] = useState(false);
+    
+    // Track image records with their database IDs for deletion
+    const [imageRecords, setImageRecords] = useState<Record<string, { id: string; url: string }>>({});
 
     const selectedCount = selectedUrls.size;
     const selectedImageUrls = [...selectedUrls];
+
+    // Fetch image records when product loads
+    useEffect(() => {
+        if (!productId) {
+            setImageRecords({});
+            return;
+        }
+
+        const fetchImageRecords = async () => {
+            try {
+                const res = await fetch(`/api/products/images?productId=${productId}`);
+                if (res.ok) {
+                    const { images: records } = await res.json();
+                    const recordsMap: Record<string, { id: string; url: string }> = {};
+                    for (const record of records) {
+                        recordsMap[record.public_url] = { id: record.id, url: record.public_url };
+                    }
+                    setImageRecords(recordsMap);
+                }
+            } catch (err) {
+                console.error('Failed to fetch image records:', err);
+            }
+        };
+
+        fetchImageRecords();
+    }, [productId]);
 
     useEffect(() => {
         setSelectedUrls((prev) => {
@@ -99,7 +128,7 @@ export function ProductMediaModule() {
                     continue;
                 }
 
-                const { presignedUrl, publicUrl } = await res.json();
+                const { presignedUrl, publicUrl, fileKey } = await res.json();
 
                 await fetch(presignedUrl, {
                     method: 'PUT',
@@ -108,6 +137,26 @@ export function ProductMediaModule() {
                 });
 
                 newImages.push(publicUrl);
+
+                // Register the image in product_images table if we have a product ID
+                if (useProductStore.getState().id) {
+                    try {
+                        await fetch('/api/products/images/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                productId: useProductStore.getState().id,
+                                fileKey,
+                                publicUrl,
+                                sizeBytes: file.size,
+                                contentType: file.type,
+                            }),
+                        });
+                    } catch (regErr) {
+                        console.error('Failed to register image:', regErr);
+                        // Continue even if registration fails
+                    }
+                }
             } catch (err) {
                 console.error('Upload failed:', err);
             }
@@ -129,10 +178,27 @@ export function ProductMediaModule() {
                 body: JSON.stringify({ url }),
             });
 
-            const { publicUrl } = await res.json();
+            const { publicUrl, fileKey } = await res.json();
 
             if (res.ok) {
                 setImages(images.map(img => img === url ? publicUrl : img));
+
+                // Register the synced image
+                if (useProductStore.getState().id && fileKey) {
+                    try {
+                        await fetch('/api/products/images/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                productId: useProductStore.getState().id,
+                                fileKey,
+                                publicUrl,
+                            }),
+                        });
+                    } catch (regErr) {
+                        console.error('Failed to register synced image:', regErr);
+                    }
+                }
             }
         } catch (err) {
             console.error('Sync failed:', err);
@@ -141,7 +207,19 @@ export function ProductMediaModule() {
         }
     };
 
-    const removeImage = (url: string) => {
+    const removeImage = async (url: string, imageId?: string) => {
+        // If we have an imageId (from product_images table), delete from R2
+        if (imageId) {
+            try {
+                await fetch(`/api/products/images/${imageId}`, {
+                    method: 'DELETE',
+                });
+            } catch (err) {
+                console.error('Failed to delete image from R2:', err);
+            }
+        }
+
+        // Remove from local state
         setImages(images.filter(img => img !== url));
         setMobileActionSheetUrl(null);
     };
@@ -363,7 +441,8 @@ export function ProductMediaModule() {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            removeImage(url);
+                                                            const imageRecord = imageRecords[url];
+                                                            removeImage(url, imageRecord?.id);
                                                         }}
                                                         className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-200 transition-colors"
                                                     >

@@ -157,6 +157,7 @@ export async function saveProductToCloud(payload: ProductSavePayload): Promise<{
  *
  * Postconditions:
  * - Deletes ONLY if `(id + organization_id)` match.
+ * - Deletes all associated images from R2 bucket.
  * - Throws if the caller is not authorized, or if deletion fails.
  */
 export async function deleteProductFromCloud(
@@ -185,6 +186,78 @@ export async function deleteProductFromCloud(
     throw new Error('No organization found');
   }
 
+  const orgId = membership.organization_id;
+
+  // Fetch all product images for this product to delete from R2
+  const { data: productImages } = await supabase
+    .from('product_images')
+    .select('file_key')
+    .eq('product_id', productId)
+    .eq('organization_id', orgId);
+
+  // Get R2 credentials for deleting images
+  const { data: settings } = await supabase
+    .from('organization_settings')
+    .select('*')
+    .eq('organization_id', orgId)
+    .single();
+
+  let accessKeyId = settings?.r2_access_key_id;
+  let secretAccessKey = settings?.r2_secret_access_key;
+  let accountId = settings?.r2_account_id;
+
+  const { decrypt } = await import('@/lib/crypto');
+  if (accessKeyId) accessKeyId = decrypt(accessKeyId, { allowPlaintext: true });
+  if (secretAccessKey) secretAccessKey = decrypt(secretAccessKey, { allowPlaintext: true });
+  if (accountId) accountId = decrypt(accountId, { allowPlaintext: true });
+
+  accessKeyId = accessKeyId || process.env.S3_ACCESS_KEY_ID;
+  secretAccessKey = secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
+
+  if (!accountId) {
+    accountId = process.env.S3_ACCOUNT_ID;
+    if (!accountId && process.env.S3_ENDPOINT) {
+      const endpointMatch = process.env.S3_ENDPOINT.match(/https?:\/\/([a-f0-9]+)\.r2\.cloudflarestorage\.com/);
+      if (endpointMatch && endpointMatch[1]) {
+        accountId = endpointMatch[1];
+      }
+    }
+  }
+
+  const bucket = settings?.r2_bucket_name || process.env.S3_BUCKET;
+
+  // Delete images from R2 if configured
+  if (accessKeyId && secretAccessKey && bucket && accountId && productImages && productImages.length > 0) {
+    const { S3Client, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    
+    const s3Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    // Delete all images in parallel
+    await Promise.all(
+      productImages.map(async (img) => {
+        try {
+          if (img.file_key) {
+            await s3Client.send(new DeleteObjectCommand({
+              Bucket: bucket,
+              Key: img.file_key,
+            }));
+          }
+        } catch (r2Error) {
+          console.error('Failed to delete image from R2:', img.file_key, r2Error);
+          // Continue with other deletions even if one fails
+        }
+      })
+    );
+  }
+
+  // Delete from database (cascade will handle product_images due to FK constraint)
   const { error } = await supabase
     .from('products')
     .delete()
