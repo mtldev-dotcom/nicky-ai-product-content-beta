@@ -4,11 +4,12 @@ import React from 'react';
 import { Cloud, ExternalLink, Lock, Database, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { testR2Connection } from '@/app/settings/actions';
+import type { SettingsDraftState, SettingsSummary } from '@/lib/settings-ui';
 
 interface StorageSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
-  settings: any;
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
+  settings: SettingsSummary;
   orgId: string | null;
 }
 
@@ -34,8 +35,8 @@ export function StorageSection({
         localState.r2BucketName
       );
       setTestResult(res);
-    } catch (err: any) {
-      setTestResult({ success: false, error: err.message });
+    } catch (error) {
+      setTestResult({ success: false, error: error instanceof Error ? error.message : 'Connection test failed' });
     } finally {
       setIsTesting(false);
     }
@@ -101,7 +102,7 @@ export function StorageSection({
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
             value={localState.r2AccountId}
             onChange={(e) => {
-              setLocalState({ ...localState, r2AccountId: e.target.value });
+              setLocalState((prev) => ({ ...prev, r2AccountId: e.target.value }));
               setTestResult(null);
             }}
           />
@@ -120,7 +121,7 @@ export function StorageSection({
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
             value={localState.r2BucketName}
             onChange={(e) => {
-              setLocalState({ ...localState, r2BucketName: e.target.value });
+              setLocalState((prev) => ({ ...prev, r2BucketName: e.target.value }));
               setTestResult(null);
             }}
           />
@@ -133,7 +134,7 @@ export function StorageSection({
             placeholder="Access Key"
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
             value={localState.r2AccessKeyId}
-            onChange={(e) => setLocalState({ ...localState, r2AccessKeyId: e.target.value })}
+            onChange={(e) => setLocalState((prev) => ({ ...prev, r2AccessKeyId: e.target.value }))}
           />
           {settings.hasR2AccessKeyId && !localState.r2AccessKeyId && (
             <p className="text-[10px] text-emerald-400/80 italic px-1">
@@ -152,7 +153,7 @@ export function StorageSection({
             placeholder="Secret Key"
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
             value={localState.r2SecretAccessKey}
-            onChange={(e) => setLocalState({ ...localState, r2SecretAccessKey: e.target.value })}
+            onChange={(e) => setLocalState((prev) => ({ ...prev, r2SecretAccessKey: e.target.value }))}
           />
           {settings.hasR2SecretAccessKey && !localState.r2SecretAccessKey && (
             <p className="text-[10px] text-emerald-400/80 italic px-1">
@@ -168,7 +169,7 @@ export function StorageSection({
             placeholder="https://pub-xyz.r2.dev or https://assets.yourdomain.com"
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
             value={localState.r2PublicUrl}
-            onChange={(e) => setLocalState({ ...localState, r2PublicUrl: e.target.value })}
+            onChange={(e) => setLocalState((prev) => ({ ...prev, r2PublicUrl: e.target.value }))}
           />
           <p className="text-[10px] text-zinc-500 italic px-1">
             Required for the media library to display assets correctly.

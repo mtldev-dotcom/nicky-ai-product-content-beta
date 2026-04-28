@@ -1,0 +1,94 @@
+⚠ Port 3000 is in use by process 15284, using available port 3001 instead.
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:42
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:659:11
+    at new Promise (<anonymous>)
+    at retryable (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:641:21)
+    at SupabaseAuthClient._refreshAccessToken (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4795:224)
+    at SupabaseAuthClient._callRefreshToken (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4951:48)
+    at SupabaseAuthClient.__loadSession (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4091:57)
+    at async SupabaseAuthClient._useSession (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4021:28)
+    at async SupabaseAuthClient._emitInitialSession (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4575:16) {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+Error: fetch failed
+    at context.fetch (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\node_modules\next\dist\server\web\sandbox\context.js:321:60)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:577:23
+    at _handleRequest (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:931:24)
+    at _request (D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:918:24)
+    at D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:4800:225
+    at async D:\DEV-D\fullstack-shop\nicky-ai-product-content-beta\.next\dev\server\edge\chunks\node_modules_@supabase_auth-js_dist_module_33c852e9._.js:647:36 {
+  
+}
+AuthRetryableFetchError: fetch failed
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}
+AuthRetryableFetchError: fetch failed
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 0,
+  code: undefined
+}

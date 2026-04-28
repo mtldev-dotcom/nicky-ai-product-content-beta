@@ -4,10 +4,11 @@ import React from 'react';
 import { Languages, Check, Globe2 } from 'lucide-react';
 import { ALL_LANGUAGES } from '@/lib/languages';
 import { cn } from '@/lib/utils';
+import type { SettingsDraftState } from '@/lib/settings-ui';
 
 interface LocalizationSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
 }
 
 export function LocalizationSection({
@@ -47,7 +48,7 @@ export function LocalizationSection({
                   // Ensure at least one language is active
                   if (newLangs.length === 0) return;
                   
-                  setLocalState({ ...localState, activeLanguages: newLangs });
+                  setLocalState((prev) => ({ ...prev, activeLanguages: newLangs }));
                 }}
                 className={cn(
                   "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all relative overflow-hidden group",

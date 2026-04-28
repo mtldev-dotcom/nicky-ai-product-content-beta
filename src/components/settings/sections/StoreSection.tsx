@@ -4,12 +4,13 @@ import React from 'react';
 import { Store, Globe, Lock, Eye, EyeOff, RefreshCw, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { testMedusaConnection } from '@/app/settings/actions';
+import type { MedusaTaxonomyData, SettingsDraftState, SettingsSummary } from '@/lib/settings-ui';
 
 interface StoreSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
-  settings: any;
-  taxonomy: any;
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
+  settings: SettingsSummary;
+  taxonomy: MedusaTaxonomyData | null;
   isLoadingTaxonomy: boolean;
   taxonomyError: string | null;
   syncTaxonomy: () => Promise<void>;
@@ -41,8 +42,8 @@ export function StoreSection({
         localState.medusaApiKey
       );
       setTestResult(res);
-    } catch (err: any) {
-      setTestResult({ success: false, error: err.message });
+    } catch (error) {
+      setTestResult({ success: false, error: error instanceof Error ? error.message : 'Connection test failed' });
     } finally {
       setIsTesting(false);
     }
@@ -63,7 +64,7 @@ export function StoreSection({
         <select 
           className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500/50 cursor-pointer"
           value={localState.storePlatform}
-          onChange={(e) => setLocalState({ ...localState, storePlatform: e.target.value })}
+          onChange={(e) => setLocalState((prev) => ({ ...prev, storePlatform: e.target.value }))}
         >
           <option value="medusa">MedusaJS</option>
           <option value="shopify" disabled>Shopify (Coming Soon)</option>
@@ -110,7 +111,7 @@ export function StoreSection({
               className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
               value={localState.medusaUrl}
               onChange={(e) => {
-                setLocalState({ ...localState, medusaUrl: e.target.value });
+                setLocalState((prev) => ({ ...prev, medusaUrl: e.target.value }));
                 setTestResult(null);
               }}
             />
@@ -136,7 +137,7 @@ export function StoreSection({
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                 value={localState.medusaApiKey}
                 onChange={(e) => {
-                  setLocalState({ ...localState, medusaApiKey: e.target.value });
+                  setLocalState((prev) => ({ ...prev, medusaApiKey: e.target.value }));
                   setTestResult(null);
                 }}
               />
@@ -200,10 +201,10 @@ export function StoreSection({
                     <select
                       className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
                       value={localState.defaultSalesChannelId ?? ''}
-                      onChange={(e) => setLocalState({ ...localState, defaultSalesChannelId: e.target.value || null })}
+                      onChange={(e) => setLocalState((prev) => ({ ...prev, defaultSalesChannelId: e.target.value || null }))}
                     >
                       <option value="">None</option>
-                      {taxonomy.sales_channels.map((sc: any) => (
+                      {taxonomy.sales_channels.map((sc) => (
                         <option key={sc.id} value={sc.id}>
                           {sc.name}
                         </option>
@@ -216,10 +217,10 @@ export function StoreSection({
                     <select
                       className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
                       value={localState.defaultShippingProfileId ?? ''}
-                      onChange={(e) => setLocalState({ ...localState, defaultShippingProfileId: e.target.value || null })}
+                      onChange={(e) => setLocalState((prev) => ({ ...prev, defaultShippingProfileId: e.target.value || null }))}
                     >
                       <option value="">None</option>
-                      {taxonomy.shipping_profiles.map((sp: any) => (
+                      {taxonomy.shipping_profiles.map((sp) => (
                         <option key={sp.id} value={sp.id}>
                           {sp.name}
                         </option>
@@ -232,10 +233,10 @@ export function StoreSection({
                     <select
                       className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
                       value={localState.defaultCollectionId ?? ''}
-                      onChange={(e) => setLocalState({ ...localState, defaultCollectionId: e.target.value || null })}
+                      onChange={(e) => setLocalState((prev) => ({ ...prev, defaultCollectionId: e.target.value || null }))}
                     >
                       <option value="">None</option>
-                      {taxonomy.collections.map((c: any) => (
+                      {taxonomy.collections.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.title}
                         </option>
@@ -248,7 +249,7 @@ export function StoreSection({
                       <label className="text-xs font-medium text-zinc-400">Default Categories</label>
                       <button
                         type="button"
-                        onClick={() => setLocalState({ ...localState, defaultCategoryIds: [] })}
+                        onClick={() => setLocalState((prev) => ({ ...prev, defaultCategoryIds: [] }))}
                         className="text-[10px] text-zinc-500 hover:text-zinc-300 transition-colors"
                       >
                         Clear All
@@ -258,7 +259,7 @@ export function StoreSection({
                       {taxonomy.categories.length === 0 ? (
                         <p className="text-xs text-zinc-500 italic">No categories found.</p>
                       ) : (
-                        taxonomy.categories.map((cat: any) => {
+                        taxonomy.categories.map((cat) => {
                           const checked = localState.defaultCategoryIds.includes(cat.id);
                           return (
                             <label key={cat.id} className="flex items-center gap-3 py-1 group cursor-pointer">
@@ -278,9 +279,9 @@ export function StoreSection({
                                 checked={checked}
                                 onChange={() => {
                                   const next = checked
-                                    ? localState.defaultCategoryIds.filter((id: string) => id !== cat.id)
+                                    ? localState.defaultCategoryIds.filter((id) => id !== cat.id)
                                     : [...localState.defaultCategoryIds, cat.id];
-                                  setLocalState({ ...localState, defaultCategoryIds: next });
+                                  setLocalState((prev) => ({ ...prev, defaultCategoryIds: next }));
                                 }}
                               />
                               <span className={cn("text-xs transition-colors", checked ? "text-white font-medium" : "text-zinc-400")}>

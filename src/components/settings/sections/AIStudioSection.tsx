@@ -3,12 +3,13 @@
 import React, { useEffect } from 'react';
 import { Sparkles, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
-import { providerLabel, topImageModelsForProvider, coerceAiImageProviderId } from '@/lib/ai/topImageModels';
+import { providerLabel, topImageModelsForProvider, coerceAiImageProviderId, type AiImageProviderId } from '@/lib/ai/topImageModels';
+import type { SettingsDraftState } from '@/lib/settings-ui';
 
 interface AIStudioSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
-  availableImageProviders: string[];
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
+  availableImageProviders: AiImageProviderId[];
 }
 
 export function AIStudioSection({
@@ -24,7 +25,7 @@ export function AIStudioSection({
 
     // If current model is not in the available models for this provider, reset to first model
     if (availableModels.length > 0 && !availableModels.includes(currentModel)) {
-      setLocalState((prev: any) => ({
+      setLocalState((prev) => ({
         ...prev,
         aiImageModel: availableModels[0],
       }));
@@ -37,7 +38,7 @@ export function AIStudioSection({
     const availableModels = topImageModelsForProvider(provider);
     const defaultModel = availableModels[0] || '';
 
-    setLocalState((prev: any) => ({
+    setLocalState((prev) => ({
       ...prev,
       aiImageProvider: provider,
       aiImageModel: defaultModel,
@@ -50,7 +51,7 @@ export function AIStudioSection({
     const availableModels = topImageModelsForProvider(currentProvider);
     
     if (availableModels.length > 0 && !availableModels.includes(localState.aiImageModel)) {
-      setLocalState((prev: any) => ({
+      setLocalState((prev) => ({
         ...prev,
         aiImageModel: availableModels[0],
       }));
@@ -80,11 +81,11 @@ export function AIStudioSection({
             disabled={availableImageProviders.length === 0}
           >
             {availableImageProviders.length === 0 ? (
-              <option value={localState.aiImageProvider}>Configure API keys in 'AI Engine' first</option>
+              <option value={localState.aiImageProvider}>Configure API keys in &apos;AI Engine&apos; first</option>
             ) : (
               availableImageProviders.map((p) => (
                 <option key={p} value={p}>
-                  {providerLabel(p as any)}
+                  {providerLabel(p)}
                 </option>
               ))
             )}
@@ -99,7 +100,7 @@ export function AIStudioSection({
           <select
             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all font-mono text-sm cursor-pointer"
             value={localState.aiImageModel || topImageModelsForProvider(localState.aiImageProvider)[0] || ''}
-            onChange={(e) => setLocalState((prev: any) => ({ ...prev, aiImageModel: e.target.value }))}
+            onChange={(e) => setLocalState((prev) => ({ ...prev, aiImageModel: e.target.value }))}
             disabled={availableImageProviders.length === 0}
           >
             {topImageModelsForProvider(localState.aiImageProvider).map((modelId) => (

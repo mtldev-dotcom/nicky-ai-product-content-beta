@@ -1,102 +1,53 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import { ArrowLeft, Clock, DollarSign, Hash, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface Session {
-  id: string;
-  org_id: string;
-  user_id: string;
-  module: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  input_summary: string;
-  evidence_summary: string | null;
-  blueprint_summary: string | null;
-  total_tokens_prompt: number;
-  total_tokens_completion: number;
-  total_cost_estimate: number | null;
-  error_message: string | null;
-}
-
-interface PipelineEvent {
-  id: string;
-  event_type: string;
-  payload_preview: string | null;
-  created_at: string;
-}
-
-interface LLMCall {
-  id: string;
-  step: string;
-  model: string;
-  prompt_preview: string;
-  prompt_full: string | null;
-  response_preview: string | null;
-  tokens_prompt: number;
-  tokens_completion: number;
-  created_at: string;
-}
+import type { UsageCallRecord, UsagePipelineEventRecord, UsageSessionRecord } from '@/lib/data/usage-repository';
 
 export default function SessionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.sessionId as string;
-  const supabase = createClient();
   
-  const [session, setSession] = useState<Session | null>(null);
-  const [events, setEvents] = useState<PipelineEvent[]>([]);
-  const [calls, setCalls] = useState<LLMCall[]>([]);
+  const [session, setSession] = useState<UsageSessionRecord | null>(null);
+  const [events, setEvents] = useState<UsagePipelineEventRecord[]>([]);
+  const [calls, setCalls] = useState<UsageCallRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedCalls, setExpandedCalls] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (sessionId) {
-      loadSessionData();
-    }
-  }, [sessionId]);
-
-  const loadSessionData = async () => {
+  const loadSessionData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Load session
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('llm_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single();
-      
-      if (sessionError) throw sessionError;
-      setSession(sessionData);
-
-      // Load pipeline events
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('pipeline_events')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
-      
-      if (!eventsError) setEvents(eventsData || []);
-
-      // Load LLM calls
-      const { data: callsData, error: callsError } = await supabase
-        .from('llm_calls')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
-      
-      if (!callsError) setCalls(callsData || []);
-
+      const res = await fetch(`/api/usage/sessions/${sessionId}`, { cache: 'no-store' });
+      const payload = (await res.json()) as {
+        session?: UsageSessionRecord | null;
+        events?: UsagePipelineEventRecord[];
+        calls?: UsageCallRecord[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to load session detail');
+      }
+      setSession(payload.session ?? null);
+      setEvents(payload.events ?? []);
+      setCalls(payload.calls ?? []);
     } catch (error) {
       console.error('Failed to load session data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load session data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionId) {
+      void loadSessionData();
+    }
+  }, [sessionId, loadSessionData]);
 
   const toggleCallExpansion = (callId: string) => {
     const newExpanded = new Set(expandedCalls);
@@ -113,7 +64,7 @@ export default function SessionDetailPage() {
   };
 
   const getDuration = () => {
-    if (!session?.started_at || !session?.completed_at) return '—';
+    if (!session?.started_at || !session?.completed_at) return '-';
     const start = new Date(session.started_at);
     const end = new Date(session.completed_at);
     const seconds = Math.floor((end.getTime() - start.getTime()) / 1000);
@@ -134,7 +85,7 @@ export default function SessionDetailPage() {
   if (!session) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-400">Session not found</div>
+        <div className="text-zinc-400">{error || 'Session not found'}</div>
       </div>
     );
   }
@@ -153,6 +104,12 @@ export default function SessionDetailPage() {
           <p className="text-zinc-400">Module: {session.module}</p>
         </div>
       </header>
+
+      {error && (
+        <section className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </section>
+      )}
 
       {/* Header Section */}
       <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">

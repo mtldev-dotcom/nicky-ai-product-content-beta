@@ -1,27 +1,19 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
-import { encrypt, decrypt } from '@/lib/crypto';
+import { encrypt } from '@/lib/crypto';
 import { revalidatePath } from 'next/cache';
 import { SettingsForClientSchema, type SettingsForClient, SettingsUpdateSchema, type SettingsUpdate } from '@/lib/settings-schema';
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { requireOrgMembership } from '@/lib/auth/auth-context';
+import { getDecryptedOrganizationSettings, getSafeOrganizationSettings } from '@/lib/data/settings-repository';
 
 /**
  * Verifies the currently authenticated user is a member of the given org.
  * Throws if the user is unauthenticated or not a member.
  */
 async function assertOrgMembership(supabase: Awaited<ReturnType<typeof createClient>>, orgId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-
-  const { data: membership } = await supabase
-    .from('organization_members')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .eq('organization_id', orgId)
-    .maybeSingle();
-
-  if (!membership) throw new Error('Forbidden');
+  await requireOrgMembership(orgId);
 }
 
 /**
@@ -72,8 +64,8 @@ export async function testMedusaConnection(orgId: string, customUrl?: string, cu
     }
 
     return { success: false, error: `Connection failed: ${res2.status} ${res2.statusText}` };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Network error' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
   }
 }
 
@@ -117,18 +109,22 @@ export async function testR2Connection(
     try {
       await s3.send(new ListBucketsCommand({}));
       return { success: true };
-    } catch (err: any) {
+    } catch (error) {
+      const errorWithMeta = error as Error & { $metadata?: { httpStatusCode?: number } };
       // If listBuckets fails (common with restricted tokens), try to check the specific bucket
-      if (err.name === 'AccessDenied' || err.$metadata?.httpStatusCode === 403) {
+      if (
+        errorWithMeta.name === 'AccessDenied' ||
+        errorWithMeta.$metadata?.httpStatusCode === 403
+      ) {
         // We'll assume if we got a 403 on ListBuckets but can talk to the endpoint, 
         // the credentials might still be valid for the specific bucket.
         // For a more robust test, we could try to list objects in that bucket with maxKeys: 0
         return { success: true, message: 'Connected (ListBuckets restricted, but endpoint reachable)' };
       }
-      throw err;
+      throw error;
     }
-  } catch (err: any) {
-    return { success: false, error: err.message || 'S3 Client Error' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'S3 Client Error' };
   }
 }
 
@@ -329,12 +325,12 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
       if (msg.includes('variant_option_presets')) fieldsToStrip.push('variant_option_presets');
 
       if (fieldsToStrip.length > 0) {
-        const fallbackPayload = { ...payload };
+        const fallbackPayload: Record<string, unknown> = { ...payload };
         for (const field of fieldsToStrip) {
-          delete (fallbackPayload as any)[field];
+          delete fallbackPayload[field];
         }
         console.warn('[Settings Save] Retrying without fields:', fieldsToStrip);
-        const { error: retryErr } = await writeOnce(fallbackPayload);
+        const { error: retryErr } = await writeOnce(fallbackPayload as typeof payload);
         if (retryErr) {
           console.error('[Settings Save] Retry also failed:', retryErr.message);
           throw new Error(retryErr.message);
@@ -356,83 +352,8 @@ export async function saveEncryptedSettings(orgId: string, settings: SettingsUpd
  * Never returns plaintext secrets to the client.
  */
 export async function loadEncryptedSettings(orgId: string): Promise<SettingsForClient | null> {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('organization_settings')
-    .select('*')
-    .eq('organization_id', orgId)
-    .single();
-
-  if (error || !data) return null;
-
-  const safe: SettingsForClient = {
-    // Never return secrets
-    openaiApiKey: '',
-    openrouterApiKey: '',
-    falApiKey: '',
-    geminiApiKey: '',
-    r2AccountId: '',
-    r2AccessKeyId: '',
-    r2SecretAccessKey: '',
-    medusaApiKey: '',
-
-    // Indicate whether secrets exist
-    hasOpenaiApiKey: !!data.openai_api_key,
-    hasOpenrouterApiKey: !!(data as unknown as Record<string, unknown>).openrouter_api_key,
-    hasFalApiKey: !!(data as unknown as Record<string, unknown>).fal_api_key,
-    hasGeminiApiKey: !!(data as unknown as Record<string, unknown>).gemini_api_key,
-    hasR2AccountId: !!data.r2_account_id,
-    hasR2AccessKeyId: !!data.r2_access_key_id,
-    hasR2SecretAccessKey: !!data.r2_secret_access_key,
-    hasMedusaApiKey: !!data.medusa_api_key,
-
-    // Non-secrets
-    r2BucketName: data.r2_bucket_name || '',
-    r2PublicUrl: data.r2_public_url || '',
-    brandName: data.brand_name || '',
-    brandVoice: data.brand_voice || '',
-    customInstructions: data.custom_instructions || '',
-    storePlatform: data.store_platform || 'medusa',
-    medusaUrl: data.medusa_url || '',
-    activeLanguages: data.active_languages || ['en'],
-
-    // AI image generation defaults
-    aiImageProvider: ((data as unknown as Record<string, unknown>).ai_image_provider as string) || 'openai',
-    aiImageModel: ((data as unknown as Record<string, unknown>).ai_image_model as string) || '',
-
-    // AI Studio Photo prompt customization (non-secrets)
-    aiStudioPromptLibrary: ((data as unknown as Record<string, unknown>).ai_studio_prompt_library as unknown) ?? null,
-    aiStudioTogglePhrases:
-      ((data as unknown as Record<string, unknown>).ai_studio_toggle_phrases as
-        | { macro: string; noFingerprints: string; extraRimLight: string }
-        | null
-        | undefined) ?? null,
-
-    // Preview layout (non-secrets)
-    previewLayout: ((data as unknown as Record<string, unknown>).preview_layout as unknown) ?? null,
-
-    // Medusa defaults
-    defaultSalesChannelId: data.default_sales_channel_id ?? null,
-    defaultShippingProfileId: data.default_shipping_profile_id ?? null,
-    defaultCollectionId: data.default_collection_id ?? null,
-    defaultCategoryIds: data.default_category_ids || [],
-
-    // Variant option presets
-    variantOptionPresets: ((data as unknown as Record<string, unknown>).variant_option_presets as
-      | Array<{
-          id: string;
-          name: string;
-          options: Array<{
-            name: string;
-            values: string[];
-          }>;
-        }>
-      | null
-      | undefined) ?? null,
-  };
-
-  return SettingsForClientSchema.parse(safe);
+  const safe = await getSafeOrganizationSettings(orgId);
+  return safe ? SettingsForClientSchema.parse(safe) : null;
 }
 
 /**
@@ -443,55 +364,6 @@ export async function loadEncryptedSettings(orgId: string): Promise<SettingsForC
  * - Only call from Route Handlers / Server Actions.
  */
 export async function loadDecryptedSettingsForServer(orgId: string) {
-  const supabase = await createClient();
-
-  const { data, error } = await supabase
-    .from('organization_settings')
-    .select('*')
-    .eq('organization_id', orgId)
-    .single();
-
-  if (error || !data) return null;
-
-  return {
-    // allowPlaintext supports legacy rows that stored plaintext before encryption was introduced
-    openaiApiKey: data.openai_api_key ? decrypt(data.openai_api_key, { allowPlaintext: true }) : '',
-    falApiKey: (data as unknown as Record<string, unknown>).fal_api_key
-      ? decrypt((data as unknown as Record<string, unknown>).fal_api_key as string, { allowPlaintext: true })
-      : '',
-    geminiApiKey: (data as unknown as Record<string, unknown>).gemini_api_key
-      ? decrypt((data as unknown as Record<string, unknown>).gemini_api_key as string, { allowPlaintext: true })
-      : '',
-    r2AccountId: data.r2_account_id ? decrypt(data.r2_account_id, { allowPlaintext: true }) : '',
-    r2AccessKeyId: data.r2_access_key_id ? decrypt(data.r2_access_key_id, { allowPlaintext: true }) : '',
-    r2SecretAccessKey: data.r2_secret_access_key ? decrypt(data.r2_secret_access_key, { allowPlaintext: true }) : '',
-    r2BucketName: data.r2_bucket_name || '',
-    r2PublicUrl: data.r2_public_url || '',
-    brandName: data.brand_name || '',
-    brandVoice: data.brand_voice || '',
-    customInstructions: data.custom_instructions || '',
-    storePlatform: data.store_platform || 'medusa',
-    medusaUrl: data.medusa_url || '',
-    medusaApiKey: data.medusa_api_key ? decrypt(data.medusa_api_key, { allowPlaintext: true }) : '',
-    activeLanguages: data.active_languages || ['en'],
-
-    // AI image generation defaults (non-secrets)
-    aiImageProvider: ((data as unknown as Record<string, unknown>).ai_image_provider as string) || 'openai',
-    aiImageModel: ((data as unknown as Record<string, unknown>).ai_image_model as string) || '',
-
-    // AI Studio Photo prompt customization (non-secrets)
-    aiStudioPromptLibrary: ((data as unknown as Record<string, unknown>).ai_studio_prompt_library as unknown) ?? null,
-    aiStudioTogglePhrases:
-      ((data as unknown as Record<string, unknown>).ai_studio_toggle_phrases as
-        | { macro: string; noFingerprints: string; extraRimLight: string }
-        | null
-        | undefined) ?? null,
-
-    // Medusa defaults (non-secrets)
-    defaultSalesChannelId: data.default_sales_channel_id ?? null,
-    defaultShippingProfileId: data.default_shipping_profile_id ?? null,
-    defaultCollectionId: data.default_collection_id ?? null,
-    defaultCategoryIds: data.default_category_ids || [],
-  };
+  return getDecryptedOrganizationSettings(orgId);
 }
 

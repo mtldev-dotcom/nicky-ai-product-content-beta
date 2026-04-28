@@ -8,7 +8,7 @@
 - **JUST DROP IT ingestion** (paste text/URLs, upload files) → evidence extraction → blueprint generation
 - **Localization** (per-language content + option translations)
 - **Media pipeline** (upload to R2/S3, sync external URLs into org bucket with SSRF protection)
-- **Medusa integration** (taxonomy + product listing fetch; no “push product to Medusa” in this repo)
+- **Medusa integration** (taxonomy sync, product listing fetch, export-to-local, and push-to-Medusa)
 - **Cloud persistence** to Supabase (products + org settings + LLM usage logs)
 
 ## 2) Tech stack & repo layout
@@ -181,7 +181,7 @@ See ADR: `docs/adr/0003-server-side-product-persistence.md`.
 
 - **Recent Products table**:
   - Reads `products` from Supabase filtered by org_id
-  - (Currently table click does not load product into store; placeholder comment exists.)
+  - Supports reopening saved products into the editor
 
 - **Medusa catalog table (optional)**:
   - If org settings configured for Medusa (platform + url + api key), calls:
@@ -194,16 +194,19 @@ See ADR: `docs/adr/0003-server-side-product-persistence.md`.
 - `saveProductToCloud` server action → persist draft
 - optional server action call → Medusa fetch
 
-### 7.2) Create Product chooser
+### 7.2) Create Product workspace
 
 - **Route**: `/create`
 - **File**: `src/app/create/page.tsx`
 
-Shows cards:
-- **JUST DROP IT** → `/create/drop-it`
-- **Image + Text** → `/` (reuses dashboard generate)
-- **JSON Import** → `/` (reuses dashboard import)
-- **Manual Build** → `/product-details` (blank editor)
+Current behavior:
+- A single flat intake form replaces the earlier chooser cards
+- Inputs are grouped into:
+  - images
+  - product details text
+  - supplier URL
+  - optional JSON import
+- All non-JSON submissions run through the ingest pipeline and stream progress via SSE
 
 ### 7.3) JUST DROP IT (ingest UI)
 
@@ -215,7 +218,7 @@ Shows cards:
 - Multiple **Text Blocks**
 - Multiple **URLs**
 - Multiple **Files**
-  - Images + CSV + JSON + PDF + TXT supported for upload
+  - Images + CSV + JSON + TXT supported for upload
   - Upload flow:
     - call `POST /api/media/presigned` with `{ filename, contentType, forIngest: true }`
     - `PUT` the file to returned presigned URL
@@ -460,9 +463,9 @@ Creates:
 
 ## 10) Known limitations (as implemented)
 
-- **No “load product from list into editor” flow** on dashboard table (placeholder exists).
-- **No “push product to Medusa”** (only taxonomy + product list fetch).
+- Dashboard can reopen saved products into the editor.
+- Push to Medusa exists, but update behavior still needs continued hardening and broader integration coverage.
 - **PDF extraction not implemented** (`processPDF()` throws).
-- **Lint currently fails** in multiple files (strict `no-explicit-any`, React entity escaping, some hook dependency warnings).
+- Repo lint is still not globally clean; this guide should not be treated as a statement that lint passes everywhere.
 
 

@@ -7,6 +7,7 @@ This folder contains the **authoritative documentation** for the Product Archite
 - **App Guide (features + flows + architecture)**: `docs/app-guide.md`
 - **Codebase Audit Report**: `docs/audit-report.md`
 - **LLMs & AI Models (models, prompts, settings, logging)**: `docs/llms.md`
+- **PostgreSQL migration plan**: `docs/postgres-migration-plan.md`
 
 ## Feature / integration docs
 

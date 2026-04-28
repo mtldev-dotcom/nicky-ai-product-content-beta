@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Globe, Layers, ToggleLeft, ToggleRight } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
 import { useProductStore } from '@/store/useProductStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { ALL_LANGUAGES } from '@/lib/languages';
@@ -14,7 +13,6 @@ import { LayoutEditor } from '@/components/preview/LayoutEditor';
 type PreviewMode = 'single' | 'all';
 
 export default function PreviewPage() {
-  const supabase = createClient();
   const settings = useSettingsStore();
   const loadSettingsFromDb = useSettingsStore((s) => s.loadFromDb);
   const product = useProductStore();
@@ -26,24 +24,19 @@ export default function PreviewPage() {
   // Load org settings so `settings.activeLanguages` is correct.
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single();
-
-      const orgId = (membership?.organization_id as string | undefined) ?? null;
-      if (!orgId) return;
-
-      setOrganizationId(orgId);
-      await loadSettingsFromDb(orgId);
+      try {
+        const res = await fetch('/api/org/context', { cache: 'no-store' });
+        const payload = (await res.json()) as { orgId?: string };
+        if (!res.ok || !payload.orgId) return;
+        setOrganizationId(payload.orgId);
+        await loadSettingsFromDb(payload.orgId);
+      } catch (error) {
+        console.error('Failed to load org context for preview:', error);
+      }
     };
 
     init();
-  }, [supabase, loadSettingsFromDb]);
+  }, [loadSettingsFromDb]);
 
   const enabledLangs = useMemo(() => {
     const langs = settings.activeLanguages?.length ? settings.activeLanguages : ['en'];
@@ -55,10 +48,7 @@ export default function PreviewPage() {
     return ALL_LANGUAGES.filter((l) => enabledLangs.includes(l.code));
   }, [enabledLangs]);
 
-  // Keep selected language valid if org settings change.
-  useEffect(() => {
-    if (!enabledLangs.includes(selectedLang)) setSelectedLang(enabledLangs[0] || 'en');
-  }, [enabledLangs, selectedLang]);
+  const effectiveSelectedLang = enabledLangs.includes(selectedLang) ? selectedLang : (enabledLangs[0] || 'en');
 
   const defaultLayout = useMemo(() => {
     // This is the default if the org has never saved a layout.
@@ -74,11 +64,8 @@ export default function PreviewPage() {
     );
   }, []);
 
-  const [layout, setLayout] = useState(defaultLayout);
-
-  // Once settings are loaded, hydrate from the org-wide saved layout.
-  useEffect(() => {
-    const next = normalizePreviewLayout<PreviewCardId>(
+  const savedLayout = useMemo(() => {
+    return normalizePreviewLayout<PreviewCardId>(
       settings.previewLayout,
       ALL_PREVIEW_CARD_IDS,
       {
@@ -87,9 +74,10 @@ export default function PreviewPage() {
         hidden: [],
       }
     );
-    setLayout(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.previewLayout]);
+
+  const [layoutDraft, setLayoutDraft] = useState<typeof defaultLayout | null>(null);
+  const layout = layoutDraft ?? savedLayout;
 
   const previewProduct: PreviewProductData = useMemo(() => ({
     title: product.title,
@@ -114,7 +102,7 @@ export default function PreviewPage() {
     shipping_dimensions: product.shipping_dimensions,
   }), [product]);
 
-  const langsToRender = mode === 'all' ? enabledLangs : [selectedLang];
+  const langsToRender = mode === 'all' ? enabledLangs : [effectiveSelectedLang];
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
@@ -160,7 +148,7 @@ export default function PreviewPage() {
               disabled={mode === 'all'}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap',
-                selectedLang === lang.code && mode === 'single'
+                effectiveSelectedLang === lang.code && mode === 'single'
                   ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5',
                 mode === 'all' && 'cursor-not-allowed'
@@ -182,7 +170,7 @@ export default function PreviewPage() {
 
       <LayoutEditor
         layout={layout}
-        onChange={setLayout}
+        onChange={setLayoutDraft}
         onSave={async (nextLayout) => {
           if (!organizationId) return;
           // Persist to the org settings store, then save.
@@ -190,11 +178,12 @@ export default function PreviewPage() {
           // - user is authenticated and is member of org (server action enforces scope)
           // Postconditions:
           // - org default preview layout is persisted for future sessions
+          setLayoutDraft(nextLayout);
           useSettingsStore.getState().setStoreSettings({ previewLayout: nextLayout });
           await useSettingsStore.getState().saveToDb(organizationId);
         }}
         canSave={!!organizationId}
-        onReset={() => setLayout(defaultLayout)}
+        onReset={() => setLayoutDraft(defaultLayout)}
       />
 
       <div className="space-y-10">

@@ -773,3 +773,51 @@ Replaces a brittle n8n automation with a fully integrated, org-scoped, multi-ten
 
 - Set R2 bucket CORS policy to unblock direct file uploads in local dev and production.
 - Consider adding a prompt preview expandable section in GenerationLogPanel (click to see full prompt sent to each agent).
+
+## 2026-04-16 — Auth/data seam for PostgreSQL migration + settings and usage cleanup
+
+### What was done
+
+- Added a first-class auth/org seam:
+  - `src/lib/auth/auth-context.ts`
+- Added repository-style data access for migration-critical areas:
+  - `src/lib/data/settings-repository.ts`
+  - `src/lib/data/usage-repository.ts`
+- Added server-owned APIs so client pages stop depending on browser Supabase for these flows:
+  - `src/app/api/org/context/route.ts`
+  - `src/app/api/usage/sessions/route.ts`
+  - `src/app/api/usage/sessions/[sessionId]/route.ts`
+- Refactored pages to use the new boundary:
+  - `src/app/settings/page.tsx`
+  - `src/app/preview/page.tsx`
+  - `src/app/usage/page.tsx`
+  - `src/app/usage/[sessionId]/page.tsx`
+- Reworked Settings UI typing and cleaned several `any`-driven section components:
+  - `src/lib/settings-ui.ts`
+  - `src/components/settings/sections/*.tsx`
+- Added migration documentation:
+  - `docs/postgres-migration-plan.md`
+
+### Why it matters
+
+- Shrinks the Supabase blast radius before the database/auth migration.
+- Removes duplicated browser-side org lookup logic from multiple pages.
+- Makes the current architecture easier to reason about and safer to convert to plain PostgreSQL later.
+
+### What works
+
+- Targeted lint for the refactored files passes.
+- `npm test` passes.
+- `npm run build` passes.
+- Settings, preview, and usage screens now resolve critical data through server-owned boundaries instead of browser Supabase queries.
+
+### What does NOT work yet
+
+- The broader repo still has a large lint backlog outside this refactor slice.
+- Many other pages and APIs still depend directly on Supabase clients and will need the same treatment in later phases.
+
+### Follow-up TODOs
+
+- Move dashboard, create, and product-details flows off browser Supabase next.
+- Replace remaining raw settings/action DB access with repository calls.
+- Reconstruct the missing baseline SQL schema for the core org/product tables.

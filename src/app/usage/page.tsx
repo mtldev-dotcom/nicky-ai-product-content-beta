@@ -1,26 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
-import { Calendar, Filter, Search, ExternalLink } from 'lucide-react';
+import { Activity, ExternalLink, Filter, Sparkles, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface LLMSession {
-  id: string;
-  module: string;
-  status: 'pending' | 'success' | 'error' | 'partial';
-  started_at: string;
-  completed_at: string | null;
-  total_tokens_prompt: number;
-  total_tokens_completion: number;
-  total_cost_estimate: number | null;
-  input_summary: string;
-}
+import type { UsageSessionRecord } from '@/lib/data/usage-repository';
 
 export default function UsagePage() {
-  const [sessions, setSessions] = useState<LLMSession[]>([]);
+  const [sessions, setSessions] = useState<UsageSessionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     module: '',
     status: '',
@@ -28,44 +17,50 @@ export default function UsagePage() {
     dateTo: '',
   });
   const router = useRouter();
-  const supabase = createClient();
 
-  useEffect(() => {
-    loadSessions();
-  }, [filters]);
-
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      let query = supabase
-        .from('llm_sessions')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(100);
+      const params = new URLSearchParams();
+      if (filters.module) params.set('module', filters.module);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.set('dateTo', filters.dateTo);
+      params.set('limit', '100');
 
-      if (filters.module) {
-        query = query.eq('module', filters.module);
+      const res = await fetch(`/api/usage/sessions?${params.toString()}`, { cache: 'no-store' });
+      const payload = (await res.json()) as { sessions?: UsageSessionRecord[]; error?: string };
+      if (!res.ok) {
+        throw new Error(payload.error || 'Failed to load sessions');
       }
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters.dateFrom) {
-        query = query.gte('started_at', filters.dateFrom);
-      }
-      if (filters.dateTo) {
-        query = query.lte('started_at', filters.dateTo);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setSessions(data || []);
+      setSessions(payload.sessions ?? []);
     } catch (error) {
       console.error('Failed to load sessions:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load sessions');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
+
+  const summary = useMemo(() => {
+    const totalTokens = sessions.reduce(
+      (sum, session) => sum + session.total_tokens_prompt + session.total_tokens_completion,
+      0
+    );
+    const totalCost = sessions.reduce((sum, session) => sum + (session.total_cost_estimate ?? 0), 0);
+    const successCount = sessions.filter((session) => session.status === 'success').length;
+    return {
+      totalSessions: sessions.length,
+      totalTokens,
+      totalCost,
+      successRate: sessions.length ? Math.round((successCount / sessions.length) * 100) : 0,
+    };
+  }, [sessions]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -93,11 +88,47 @@ export default function UsagePage() {
   return (
     <div className="space-y-8 pb-20 md:pb-0">
       <header className="space-y-4">
-        <h1 className="text-4xl font-bold text-white">Usage & Logging</h1>
-        <p className="text-zinc-400">
-          View all AI feature usage, LLM calls, and pipeline events.
-        </p>
+        <div className="rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.16),_transparent_24%),linear-gradient(180deg,rgba(24,24,27,0.94),rgba(9,9,11,0.96))] p-6 md:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+                <Sparkles className="h-3.5 w-3.5" />
+                Observability
+              </div>
+              <h1 className="text-4xl font-bold text-white">Usage & Logging</h1>
+              <p className="max-w-2xl text-zinc-300">
+                Review pipeline runs, token spend, and the exact LLM call sequence without exposing raw credentials.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Sessions</div>
+                <div className="mt-2 text-2xl font-bold text-white">{summary.totalSessions}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Tokens</div>
+                <div className="mt-2 flex items-center gap-2 text-2xl font-bold text-white">
+                  <Activity className="h-5 w-5 text-emerald-300" />
+                  {summary.totalTokens.toLocaleString()}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Cost</div>
+                <div className="mt-2 flex items-center gap-2 text-2xl font-bold text-white">
+                  <Wallet className="h-5 w-5 text-emerald-300" />${summary.totalCost.toFixed(4)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
+
+      {error && (
+        <section className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </section>
+      )}
 
       {/* Filters */}
       <section className="glass rounded-2xl p-6 border border-white/10 space-y-4">
@@ -105,9 +136,9 @@ export default function UsagePage() {
           <Filter className="w-5 h-5" />
           <h2 className="text-lg font-semibold">Filters</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="text-xs text-zinc-500 mb-1 block">Module</label>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">Module</label>
             <select
               value={filters.module}
               onChange={(e) => setFilters({ ...filters, module: e.target.value })}
@@ -152,6 +183,16 @@ export default function UsagePage() {
               onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
               className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
             />
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-4 text-xs text-zinc-500">
+            <span>{summary.successRate}% success rate in current view</span>
+            <button
+              type="button"
+              onClick={() => setFilters({ module: '', status: '', dateFrom: '', dateTo: '' })}
+              className="rounded-full border border-white/10 px-3 py-1 text-zinc-300 transition hover:border-white/20 hover:text-white"
+            >
+              Clear filters
+            </button>
           </div>
         </div>
       </section>

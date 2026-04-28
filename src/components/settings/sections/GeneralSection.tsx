@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { UserCircle, MessageSquare, Sparkles, Fingerprint } from 'lucide-react';
+import type { SettingsDraftState } from '@/lib/settings-ui';
 
 interface GeneralSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
 }
 
 export function GeneralSection({
@@ -20,7 +21,7 @@ export function GeneralSection({
           Brand Identity
         </h2>
         <p className="text-sm text-zinc-400">
-          Define your brand's voice and unique personality for AI content generation.
+          Define your brand&apos;s voice and unique personality for AI content generation.
         </p>
       </div>
 
@@ -33,10 +34,10 @@ export function GeneralSection({
           <input
             type="text"
             placeholder="e.g., The Uncut Brand"
-            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
-            value={localState.brandName}
-            onChange={(e) => setLocalState({ ...localState, brandName: e.target.value })}
-          />
+             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+             value={localState.brandName}
+             onChange={(e) => setLocalState((prev) => ({ ...prev, brandName: e.target.value }))}
+           />
           <p className="text-[10px] text-zinc-500 italic px-1">
             The name used by the AI when referring to your store.
           </p>
@@ -50,13 +51,13 @@ export function GeneralSection({
           <input
             type="text"
             placeholder="e.g., Minimalist, Luxury, Professional"
-            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
-            value={localState.brandVoice}
-            onChange={(e) => setLocalState({ ...localState, brandVoice: e.target.value })}
-          />
-          <p className="text-[10px] text-zinc-500 italic px-1">
-            Describe how your brand should sound (e.g., "warm but technical").
-          </p>
+             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+             value={localState.brandVoice}
+             onChange={(e) => setLocalState((prev) => ({ ...prev, brandVoice: e.target.value }))}
+           />
+           <p className="text-[10px] text-zinc-500 italic px-1">
+             Describe how your brand should sound, for example &quot;warm but technical&quot;.
+           </p>
         </div>
 
         <div className="md:col-span-2 space-y-2">
@@ -66,13 +67,13 @@ export function GeneralSection({
           </label>
           <textarea
             placeholder="e.g., Focus on sustainability. Use short, punchy sentences. Always mention the artisanal process. Avoid technical jargon."
-            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all min-h-[160px] resize-y placeholder:text-zinc-600 leading-relaxed"
-            value={localState.customInstructions}
-            onChange={(e) => setLocalState({ ...localState, customInstructions: e.target.value })}
-          />
-          <p className="text-[10px] text-zinc-500 italic px-1">
-            These directives are injected into the "System Message" for every AI content generation task.
-          </p>
+             className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all min-h-[160px] resize-y placeholder:text-zinc-600 leading-relaxed"
+             value={localState.customInstructions}
+             onChange={(e) => setLocalState((prev) => ({ ...prev, customInstructions: e.target.value }))}
+           />
+           <p className="text-[10px] text-zinc-500 italic px-1">
+             These directives are injected into the &quot;System Message&quot; for every AI content generation task.
+           </p>
         </div>
       </div>
     </div>

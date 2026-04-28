@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Key, Eye, EyeOff, BrainCircuit } from 'lucide-react';
+import { Eye, EyeOff, BrainCircuit } from 'lucide-react';
+import type { SettingsDraftState, SettingsSummary } from '@/lib/settings-ui';
 
 interface AIEngineSectionProps {
-  localState: any;
-  setLocalState: (state: any) => void;
-  settings: any;
+  localState: SettingsDraftState;
+  setLocalState: React.Dispatch<React.SetStateAction<SettingsDraftState>>;
+  settings: SettingsSummary;
 }
 
 export function AIEngineSection({
@@ -54,7 +55,7 @@ export function AIEngineSection({
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                 placeholder={settings.hasOpenaiApiKey ? "•••••••• (Saved)" : "sk-..."}
                 value={localState.openaiApiKey}
-                onChange={(e) => setLocalState({ ...localState, openaiApiKey: e.target.value })}
+                onChange={(e) => setLocalState((prev) => ({ ...prev, openaiApiKey: e.target.value }))}
               />
               <button
                 type="button"
@@ -94,7 +95,7 @@ export function AIEngineSection({
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                 placeholder={settings.hasOpenrouterApiKey ? "•••••••• (Saved)" : "sk-or-..."}
                 value={localState.openrouterApiKey}
-                onChange={(e) => setLocalState({ ...localState, openrouterApiKey: e.target.value })}
+                onChange={(e) => setLocalState((prev) => ({ ...prev, openrouterApiKey: e.target.value }))}
               />
               <button
                 type="button"
@@ -132,7 +133,7 @@ export function AIEngineSection({
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                 placeholder={settings.hasFalApiKey ? "•••••••• (Saved)" : "FAL_KEY_ID:FAL_KEY_SECRET"}
                 value={localState.falApiKey}
-                onChange={(e) => setLocalState({ ...localState, falApiKey: e.target.value })}
+                onChange={(e) => setLocalState((prev) => ({ ...prev, falApiKey: e.target.value }))}
               />
               <button
                 type="button"
@@ -167,7 +168,7 @@ export function AIEngineSection({
                 className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                 placeholder={settings.hasGeminiApiKey ? "•••••••• (Saved)" : "AIza..."}
                 value={localState.geminiApiKey}
-                onChange={(e) => setLocalState({ ...localState, geminiApiKey: e.target.value })}
+                onChange={(e) => setLocalState((prev) => ({ ...prev, geminiApiKey: e.target.value }))}
               />
               <button
                 type="button"
